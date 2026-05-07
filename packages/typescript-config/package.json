@@ -1,0 +1,15 @@
+{
+  "name": "@workspot/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.57.0"
+  }
+}
