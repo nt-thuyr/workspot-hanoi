@@ -1,0 +1,351 @@
+/* ============================================================
+   RegisterPage.css — WorkSpot HaNoi — Redesigned 2026
+   ============================================================ */
+
+/* ── Root layout: split-screen ─────────────────────────────── */
+.register-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #0d0a08;
+}
+
+/* ── LEFT PANEL ─────────────────────────────────────────────── */
+.register-left {
+  position: relative;
+  flex: 1 1 45%;
+  min-width: 320px;
+  background-image: url("https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=900&q=80&auto=format&fit=crop");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem;
+  overflow: hidden;
+}
+
+.register-left__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(10, 6, 2, 0.45) 0%,
+    rgba(10, 6, 2, 0.3) 40%,
+    rgba(10, 6, 2, 0.72) 100%
+  );
+  z-index: 0;
+}
+
+/* Logo (16) */
+.register-logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.register-logo__icon {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #c8843a, #a0522d);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(200, 132, 58, 0.45);
+  flex-shrink: 0;
+}
+
+.register-logo__text {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Bottom section (17) */
+.register-left__bottom {
+  position: relative;
+  z-index: 1;
+}
+
+.register-left__desc {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0 0 1.4rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  max-width: 340px;
+}
+
+.register-left__dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.3s;
+}
+
+.dot--active {
+  background: #c8843a;
+  width: 22px;
+  border-radius: 4px;
+}
+
+/* ── RIGHT PANEL ────────────────────────────────────────────── */
+.register-right {
+  flex: 1 1 55%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #faf8f6;
+  padding: 2.5rem 1.5rem;
+  overflow-y: auto;
+}
+
+.register-form-wrapper {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Title (1) */
+.register-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #1a1208;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  background: none;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
+}
+
+/* Subtitle (2) */
+.register-subtitle {
+  font-size: 0.92rem;
+  color: #6b5e4e;
+  margin: 0 0 2rem;
+  line-height: 1.6;
+}
+
+/* ── Form ───────────────────────────────────────────────────── */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* Label (3, 5, 7, 10) */
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3d2f1e;
+  letter-spacing: 0.01em;
+}
+
+/* Input wrapper */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  color: #a0896b;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+/* Input (4, 6, 8) */
+.form-input {
+  width: 100%;
+  padding: 0.78rem 3rem 0.78rem 2.75rem;
+  border: 1.5px solid #e5d9cc;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #1a1208;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder {
+  color: #bda98e;
+}
+
+.form-input:focus {
+  border-color: #c8843a;
+  box-shadow: 0 0 0 3px rgba(200, 132, 58, 0.18);
+}
+
+.form-input:focus + .input-icon,
+.input-wrapper:focus-within .input-icon {
+  color: #c8843a;
+}
+
+/* Password toggle (9) */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #a0896b;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  box-shadow: none;
+  transform: none !important;
+}
+
+.password-toggle:hover {
+  color: #c8843a;
+  background: rgba(200, 132, 58, 0.1);
+}
+
+/* ── Role selector (10, 11, 12) ─────────────────────────────── */
+.role-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.role-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.72rem 0.5rem;
+  border: 1.5px solid #e5d9cc;
+  border-radius: 12px;
+  background: #fff;
+  color: #6b5e4e;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.22s;
+  box-shadow: none;
+  transform: none !important;
+}
+
+.role-btn:hover {
+  border-color: #c8843a;
+  color: #c8843a;
+  background: rgba(200, 132, 58, 0.06);
+}
+
+.role-btn--active {
+  border-color: #c8843a;
+  background: linear-gradient(135deg, #c8843a, #a0522d);
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(200, 132, 58, 0.35);
+}
+
+.role-btn--active:hover {
+  background: linear-gradient(135deg, #d4904a, #b05e38);
+  color: #fff;
+}
+
+.role-btn__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Submit button (13) ─────────────────────────────────────── */
+.register-submit-btn {
+  width: 100%;
+  padding: 0.88rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #3d2f1e, #1a1208);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.25s;
+  box-shadow: 0 4px 20px rgba(26, 18, 8, 0.35);
+  margin-top: 0.25rem;
+  transform: none !important;
+}
+
+.register-submit-btn:hover {
+  background: linear-gradient(135deg, #c8843a, #a0522d);
+  box-shadow: 0 6px 24px rgba(200, 132, 58, 0.45);
+  transform: translateY(-1px) !important;
+}
+
+.register-submit-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 10px rgba(200, 132, 58, 0.3);
+}
+
+/* ── Login link (14) ────────────────────────────────────────── */
+.register-login-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: #6b5e4e;
+}
+
+.register-login-link a {
+  color: #c8843a;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.register-login-link a:hover {
+  border-color: #c8843a;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .register-root {
+    flex-direction: column;
+  }
+
+  .register-left {
+    flex: none;
+    min-height: 220px;
+    padding: 1.75rem;
+  }
+
+  .register-right {
+    flex: none;
+    padding: 2rem 1.25rem;
+  }
+
+  .register-title {
+    font-size: 1.75rem;
+  }
+}
