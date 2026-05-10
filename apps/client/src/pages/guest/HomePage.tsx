@@ -1,5 +1,6 @@
 import { useState, type FC } from "react";
 import { Link } from "react-router-dom";
+import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
 
 interface CafeInfo {
@@ -59,34 +60,7 @@ const HomePage: FC = () => {
   return (
     <div className="home-root">
       {/* ── NAVBAR (1-6) ── */}
-      <nav className="home-nav">
-        {/* Logo (1) */}
-        <div className="nav-logo" id="nav-logo">
-          <div className="nav-logo__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-              <line x1="6" y1="1" x2="6" y2="4" />
-              <line x1="10" y1="1" x2="10" y2="4" />
-              <line x1="14" y1="1" x2="14" y2="4" />
-            </svg>
-          </div>
-          <span className="nav-logo__text">WorkSpot HaNoi</span>
-        </div>
-
-        {/* Menu (2, 3, 4) */}
-        <div className="nav-menu">
-          <Link to="/" id="menu-home" className="nav-link nav-link--active">ホーム</Link>
-          <Link to="/booking" id="menu-booking" className="nav-link">予約</Link>
-          <Link to="/reviews" id="menu-reviews" className="nav-link">レビュー</Link>
-        </div>
-
-        {/* Auth (5, 6) */}
-        <div className="nav-auth">
-          <Link to="/login" id="nav-login" className="nav-btn-login">ログイン</Link>
-          <Link to="/register" id="nav-register" className="nav-btn-register">新規登録</Link>
-        </div>
-      </nav>
+      <TopNavBar mode="guest" activeTab="home" />
 
       {/* ── MAIN CONTENT ── */}
       <div className="home-main">

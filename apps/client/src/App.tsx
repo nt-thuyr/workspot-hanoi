@@ -1,12 +1,19 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import HomePage from "./pages/HomePage";
+import HomePage from "./pages/guest/HomePage";
 import RegisterPage from "./pages/RegisterPage";
-import CafeEditPage from "./pages/CafeEditPage";
+import RegisterCafePage from "./pages/owner/RegisterCafePage";
+import EditCafePage from "./pages/owner/EditCafePage";
 
 const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
   { path: "/register", element: <RegisterPage /> },
-  { path: "/cafes/edit", element: <CafeEditPage /> },
+  {
+    path: "/cafes",
+    children: [
+      { path: "edit", element: <EditCafePage /> },
+      { path: "register", element: <RegisterCafePage /> },
+    ],
+  },
 ]);
 
 function App() {
