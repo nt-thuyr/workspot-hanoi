@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { CafeModel } from './models/cafe.model';
+import authRoutes from './routes/auth.routes';
+import cafeRoutes from './routes/cafe.routes';
 
 const app = express();
 app.use(cors());
@@ -8,7 +10,9 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('Chào Liêm! Backend WorkSpot HaNoi đã sẵn sàng phục vụ khách Nhật!');
 });
-
+// API đăng nhập và phân quyền
+app.use('/api/auth', authRoutes);
+app.use('/api/cafes', cafeRoutes);
 // API lấy danh sách quán cafe cho Trang chủ
 app.get('/api/cafes', async (req, res) => {
   try {

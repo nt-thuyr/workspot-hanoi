@@ -1,12 +1,14 @@
 import { useState, type FC, type ChangeEvent, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./RegisterPage.css";
 
 type Role = "cafe_owner" | "japanese_user";
 
 const RegisterPage: FC = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role>("cafe_owner");
+  const [errorMsg, setErrorMsg] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,9 +19,37 @@ const RegisterPage: FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // alert("登録データ: " + JSON.stringify({ ...formData, role: selectedRole }));
+    setErrorMsg(""); // Reset lỗi khi submit
+
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: selectedRole,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMsg(data.message || "Lỗi đăng ký không xác định");
+        return;
+      }
+
+      alert(data.message || "Đăng ký thành công! Vui lòng đăng nhập.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error during registration:", error);
+      setErrorMsg("Lỗi kết nối đến máy chủ. Vui lòng thử lại.");
+    }
   };
 
   return (
@@ -216,9 +246,16 @@ const RegisterPage: FC = () => {
               </div>
             </div>
 
+            {/* Hiển thị lỗi nếu có */}
+            {errorMsg && (
+              <p style={{ color: "#ef4444", fontSize: "14px", marginTop: "10px", marginBottom: "10px", textAlign: "center", fontWeight: 500 }}>
+                {errorMsg}
+              </p>
+            )}
+
             {/* Nút Đăng ký (13) */}
             <button type="submit" id="register-submit" className="register-submit-btn">
-              新規登録
+              新規登録 (Đăng ký)
             </button>
           </form>
 
