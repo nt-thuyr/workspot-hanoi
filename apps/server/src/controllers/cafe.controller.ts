@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import { CafeModel } from '../models/cafe.model';
+import { CafeImagesModel } from '../models/cafe_images.model';
+import { CafeAmenitiesModel } from '../models/cafe_amenities.model';
+import { uploadImageToSupabase } from '../utils/imageUpload';
+import { supabase } from '../config/supabase';
 
 // --- UTILS TÍNH TOÁN KHOẢNG CÁCH ---
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
@@ -93,36 +97,148 @@ export const getCafesByOwner = async (req: Request, res: Response) => {
 
 // ━━━ CREATE ━━━
 
-// POST /api/cafes - Tạo quán mới (owner)
+// POST /api/cafes - Tạo quán mới (owner) - Hỗ trợ file upload
 export const createCafe = async (req: Request, res: Response) => {
     try {
-        const { name, address, lat, lng, wifi_speed, quiet_level, open_time, close_time, description_ja, owner_id } = req.body;
+        console.log('[CreateCafe] Request received');
+        console.log('[CreateCafe] Body:', req.body);
+        console.log('[CreateCafe] Files:', req.files ? Object.keys(req.files) : 'No files');
+
+        // Parse form data
+        const { 
+            cafeName, 
+            ward, 
+            street, 
+            openTime, 
+            closeTime, 
+            tags, 
+            owner_id,
+            lat,
+            lng
+        } = req.body;
 
         // Validate required fields
-        if (!name || !address || !lat || !lng || !owner_id) {
+        if (!cafeName?.trim() || !ward?.trim() || !street?.trim() || !owner_id) {
+            console.log('[CreateCafe] Validation failed - missing required fields');
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields',
+                message: 'Missing required fields: cafeName, ward, street, owner_id',
             });
         }
 
-        const cafe = await CafeModel.createCafe({
-            name,
-            address,
-            lat,
-            lng,
-            wifi_speed,
-            quiet_level,
-            open_time,
-            close_time,
-            description_ja,
-            owner_id,
-        });
+        // Combine address
+        const address = `${street}, ${ward}`;
+        console.log('[CreateCafe] Cafe name:', cafeName, 'Address:', address);
 
-        res.status(201).json({ success: true, data: cafe });
+        // Get files from request
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        let coverImageUrl: string | null = null;
+        const menuImageUrls: string[] = [];
+
+        // Upload cover image
+        if (files?.coverImage && files.coverImage.length > 0) {
+            try {
+                console.log('[CreateCafe] Uploading cover image...');
+                const coverFile = files.coverImage[0];
+                if (coverFile) {
+                    coverImageUrl = await uploadImageToSupabase(coverFile, 'cafe-images', 'covers');
+                    console.log('[CreateCafe] Cover image uploaded:', coverImageUrl);
+                }
+            } catch (error: any) {
+                console.error('[CreateCafe] Error uploading cover image:', error);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to upload cover image',
+                    details: error.message,
+                });
+            }
+        } else {
+            console.log('[CreateCafe] No cover image provided');
+        }
+
+        // Upload menu images
+        if (files?.menuImages && files.menuImages.length > 0) {
+            try {
+                console.log('[CreateCafe] Uploading menu images...', files.menuImages.length);
+                for (const file of files.menuImages) {
+                    const url = await uploadImageToSupabase(file, 'cafe-images', 'menus');
+                    menuImageUrls.push(url);
+                    console.log('[CreateCafe] Menu image uploaded:', url);
+                }
+            } catch (error: any) {
+                console.error('[CreateCafe] Error uploading menu images:', error);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to upload menu images',
+                    details: error.message,
+                });
+            }
+        } else {
+            console.log('[CreateCafe] No menu images provided');
+        }
+
+        // Create cafe record
+        console.log('[CreateCafe] Creating cafe record...');
+        const cafe = await CafeModel.createCafe({
+            name: cafeName,
+            address,
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null,
+            open_time: openTime || null,
+            close_time: closeTime || null,
+            owner_id,
+            wifi_speed: 'NORMAL',
+            quiet_level: 'NORMAL',
+            description_ja: null,
+        });
+        console.log('[CreateCafe] Cafe record created:', cafe.id);
+
+        // Save cover image to cafe_images table
+        if (coverImageUrl) {
+            await CafeImagesModel.createCafeImage(cafe.id, coverImageUrl, 'INTERIOR');
+            console.log('[CreateCafe] Cover image record saved');
+        }
+
+        // Save menu images to cafe_images table
+        for (const url of menuImageUrls) {
+            await CafeImagesModel.createCafeImage(cafe.id, url, 'MENU');
+        }
+        console.log('[CreateCafe] Menu images records saved');
+
+        // Link amenities based on tags
+        if (tags) {
+            const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags || '[]');
+            console.log('[CreateCafe] Processing tags:', tagArray);
+            
+            // Map tag names to amenity IDs (thay đổi theo your data)
+            const tagToAmenityMap: { [key: string]: number } = {
+                'wifi': 1,
+                'outlet': 2,
+                'quiet': 3,
+                'nonsmoking': 4,
+            };
+
+            for (const tag of tagArray) {
+                const amenityId = tagToAmenityMap[tag.toLowerCase()];
+                if (amenityId) {
+                    await CafeAmenitiesModel.createCafeAmenity(cafe.id, amenityId);
+                    console.log('[CreateCafe] Amenity linked:', amenityId);
+                }
+            }
+        }
+
+        console.log('[CreateCafe] Cafe registration complete');
+        res.status(201).json({ 
+            success: true, 
+            message: 'Café registered successfully',
+            data: cafe 
+        });
     } catch (error: any) {
-        console.error('Error creating cafe:', error);
-        res.status(500).json({ error: 'Lỗi server!', details: error.message });
+        console.error('[CreateCafe] Error:', error);
+        res.status(500).json({ 
+            error: 'Lỗi server!', 
+            details: error.message 
+        });
     }
 };
 
