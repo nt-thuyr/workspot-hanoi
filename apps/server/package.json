@@ -2,10 +2,11 @@
   "name": "server",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all -p watch start",
+    "dev": "npm run build && npm-run-all -p watch start-dev",
     "watch": "tsc --watch",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start-dev": "nodemon dist/index.js",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit"
   },
