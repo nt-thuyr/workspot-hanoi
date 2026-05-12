@@ -1,8 +1,11 @@
 {
-  "extends": "@workspot/typescript-config/base.json",
+  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@workspot/*": ["../../packages/*"]
+    }
   },
   "include": ["src/**/*"]
 }

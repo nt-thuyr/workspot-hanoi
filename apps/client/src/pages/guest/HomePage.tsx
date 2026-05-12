@@ -77,7 +77,7 @@ const HomePage: FC = () => {
       params.append("lng", centerHanoi.lng.toString());
 
       // Gọi API Backend mà bạn đã tạo ở bước trước
-      const response = await fetch(`http://localhost:4000/api/cafes/map?${params.toString()}`);
+      const response = await fetch(`http://localhost:3000/api/cafes?${params.toString()}`);
       const result = await response.json();
 
       if (result.success) {

@@ -1,0 +1,112 @@
+import { Request, Response } from 'express';
+import { ReviewModel, ReviewImagesModel } from '../models/review.model';
+
+// POST /api/reviews - Viết review (user)
+export const createReview = async (req: Request, res: Response) => {
+  try {
+    const { user_id, cafe_id, rating, comment } = req.body;
+
+    if (!user_id || !cafe_id || !rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields or invalid rating',
+      });
+    }
+
+    const review = await ReviewModel.createReview(user_id, cafe_id, rating, comment || '');
+
+    res.status(201).json({ success: true, data: review });
+  } catch (error: any) {
+    console.error('Error creating review:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// GET /api/reviews/cafe/:cafeId - Lấy reviews của café
+export const getCafeReviews = async (req: Request, res: Response) => {
+  try {
+    const { cafeId } = req.params as { cafeId: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const { data, count } = await ReviewModel.getCafeReviews(cafeId, page, limit);
+
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil((count || 0) / limit),
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching cafe reviews:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// GET /api/reviews/user/:userId - Lấy reviews của user
+export const getUserReviews = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params as { userId: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const { data, count } = await ReviewModel.getUserReviews(userId, page, limit);
+
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil((count || 0) / limit),
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching user reviews:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// POST /api/reviews/:reviewId/images - Thêm ảnh cho review (user)
+export const createReviewImage = async (req: Request, res: Response) => {
+  try {
+    const { reviewId } = req.params as { reviewId: string };
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing imageUrl',
+      });
+    }
+
+    const image = await ReviewImagesModel.createReviewImage(parseInt(reviewId), imageUrl);
+
+    res.status(201).json({ success: true, data: image });
+  } catch (error: any) {
+    console.error('Error creating review image:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// GET /api/reviews/:reviewId/images - Lấy ảnh của review
+export const getReviewImages = async (req: Request, res: Response) => {
+  try {
+    const { reviewId } = req.params as { reviewId: string };
+    const images = await ReviewImagesModel.getReviewImages(parseInt(reviewId));
+
+    res.status(200).json({
+      success: true,
+      data: images,
+      count: images.length,
+    });
+  } catch (error: any) {
+    console.error('Error fetching review images:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};

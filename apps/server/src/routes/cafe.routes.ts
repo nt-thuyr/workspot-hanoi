@@ -1,21 +1,43 @@
 import { Router, Request, Response } from 'express';
-import { CafeModel } from '../models/cafe.model';
-import { getMapCafes } from '../controllers/cafe.controller';
+import {
+  getHomeCafes,
+  getCafeDetail,
+  getCafesByOwner,
+  createCafe,
+  updateCafe,
+  deleteCafe,
+  getMapCafes,
+} from '../controllers/cafe.controller';
 
 const router = Router();
 
-// Route lấy danh sách hiển thị trên Bản Đồ (Có filter và tính khoảng cách)
+// ━━━ READ ━━━
+
+// GET /api/cafes - Danh sách quán (có pagination)
+router.get('/', getHomeCafes);
+
+// GET /api/cafes/map - Danh sách quán trên bản đồ (có filter)
 router.get('/map', getMapCafes);
 
-// Route mặc định cho Trang Chủ (Đã có sẵn trong file index gốc, chuyển qua đây cho gọn)
-router.get('/', async (req: Request, res: Response) => {
-    try {
-        const cafes = await CafeModel.getHomeCafes();
-        res.json(cafes);
-    } catch (error: any) {
-        console.error('Error fetching cafes:', error);
-        res.status(500).json({ error: 'Lỗi server rồi Liêm ơi!', details: error.message });
-    }
-});
+// GET /api/cafes/:id - Chi tiết quán
+router.get('/:id', getCafeDetail);
+
+// GET /api/cafes/owner/:ownerId - Danh sách quán của owner
+router.get('/owner/:ownerId', getCafesByOwner);
+
+// ━━━ CREATE ━━━
+
+// POST /api/cafes - Tạo quán mới (owner)
+router.post('/', createCafe);
+
+// ━━━ UPDATE ━━━
+
+// PUT /api/cafes/:id - Cập nhật quán (owner)
+router.put('/:id', updateCafe);
+
+// ━━━ DELETE ━━━
+
+// DELETE /api/cafes/:id - Xóa quán (owner)
+router.delete('/:id', deleteCafe);
 
 export default router;
