@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { CafeModel } from './models/cafe.model';
+
 import authRoutes from './routes/auth.routes';
 import cafeRoutes from './routes/cafe.routes';
 import amenitiesRoutes from './routes/amenities.routes';
