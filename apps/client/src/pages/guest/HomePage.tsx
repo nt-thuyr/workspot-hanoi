@@ -77,14 +77,22 @@ const HomePage: FC = () => {
       params.append("maxDistance", "30"); //bán kính tìm kiếm 30km
 
       // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
-      const response = await fetch(`http://localhost:3000/api/cafes/map?${params.toString()}`);
+      const url = `http://localhost:3000/api/cafes/map?${params.toString()}`;
+      console.log('[HomePage] Fetching cafes from:', url);
+      
+      const response = await fetch(url);
       const result = await response.json();
 
+      console.log('[HomePage] API Response:', result);
+
       if (result.success) {
+        console.log('[HomePage] Cafes loaded:', result.data?.length || 0);
         setCafes(result.data);
+      } else {
+        console.error('[HomePage] API failed:', result.message);
       }
     } catch (error) {
-      console.error("Lỗi khi tải danh sách Cafe:", error);
+      console.error("[HomePage] Error fetching cafes:", error);
     }
   };
 

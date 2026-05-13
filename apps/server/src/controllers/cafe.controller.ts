@@ -297,32 +297,52 @@ export const deleteCafe = async (req: Request, res: Response) => {
 // --- CONTROLLER API BẢN ĐỒ ---
 export const getMapCafes = async (req: Request, res: Response) => {
     try {
-        console.log('[getMapCafes] Reached getMapCafes!');
+        console.log('[getMapCafes] ===== START =====');
+        console.log('[getMapCafes] Query params:', req.query);
+        
         const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance } = req.query;
 
         // 1. Fetch toàn bộ dữ liệu từ Supabase
-        console.log('[getMapCafes] Fetching all cafes...');
+        console.log('[getMapCafes] Fetching all cafes from database...');
         const allCafes = await CafeModel.getAllCafes();
-        console.log('[getMapCafes] Fetched all cafes!', allCafes?.length);
-        if (!allCafes) {
+        console.log('[getMapCafes] Total cafes in DB:', allCafes?.length || 0);
+        
+        if (!allCafes || allCafes.length === 0) {
+            console.log('[getMapCafes] No cafes found in database!');
             return res.status(200).json({ success: true, count: 0, data: [] });
+        }
+
+        // Debug: Show first cafe
+        if (allCafes.length > 0) {
+            console.log('[getMapCafes] Sample cafe:', {
+                id: allCafes[0].id,
+                name: allCafes[0].name,
+                lat: allCafes[0].lat,
+                lng: allCafes[0].lng,
+            });
         }
 
         let filteredCafes = [...allCafes];
 
         // 2. Lọc theo trạng thái Đang mở cửa (営業中)
         if (isOpen === 'true') {
+            const before = filteredCafes.length;
             filteredCafes = filteredCafes.filter((cafe) =>
                 checkIsOpen(cafe.open_time, cafe.close_time)
             );
+            console.log(`[getMapCafes] After isOpen filter: ${before} → ${filteredCafes.length}`);
         }
 
         // 3. Lọc theo Wi-Fi (高速Wi-Fi) và Yên tĩnh (静か)
         if (hasWifi === 'true') {
+            const before = filteredCafes.length;
             filteredCafes = filteredCafes.filter((cafe) => cafe.tags?.includes('Fast Wi-Fi'));
+            console.log(`[getMapCafes] After hasWifi filter: ${before} → ${filteredCafes.length}`);
         }
         if (isQuiet === 'true') {
+            const before = filteredCafes.length;
             filteredCafes = filteredCafes.filter((cafe) => cafe.tags?.includes('Quiet'));
+            console.log(`[getMapCafes] After isQuiet filter: ${before} → ${filteredCafes.length}`);
         }
 
         // 4. Tính khoảng cách (Haversine) nếu có tọa độ của User
@@ -330,6 +350,8 @@ export const getMapCafes = async (req: Request, res: Response) => {
             const userLat = parseFloat(lat as string);
             const userLng = parseFloat(lng as string);
             const radiusKm = maxDistance ? parseFloat(maxDistance as string) : 5; // Mặc định 5km
+            
+            console.log(`[getMapCafes] Calculating distance from (${userLat}, ${userLng}), radius: ${radiusKm}km`);
 
             // Map để thêm thuộc tính distance
             filteredCafes = filteredCafes.map((cafe) => {
@@ -338,11 +360,15 @@ export const getMapCafes = async (req: Request, res: Response) => {
             });
 
             // Lọc các quán nằm trong bán kính cho phép
+            const before = filteredCafes.length;
             filteredCafes = filteredCafes.filter((cafe) => cafe.distance <= radiusKm);
+            console.log(`[getMapCafes] After distance filter: ${before} → ${filteredCafes.length}`);
 
             // Sắp xếp ưu tiên quán gần nhất
             filteredCafes.sort((a, b) => a.distance - b.distance);
         }
+
+        console.log('[getMapCafes] Final filtered count:', filteredCafes.length);
 
         // 5. Format lại dữ liệu trả về Frontend
         const responseData = filteredCafes.map((cafe) => ({
@@ -357,13 +383,15 @@ export const getMapCafes = async (req: Request, res: Response) => {
             distance: cafe.distance ? parseFloat(cafe.distance.toFixed(1)) : null,
         }));
 
+        console.log('[getMapCafes] Sending response with', responseData.length, 'cafes');
+        
         res.status(200).json({
             success: true,
             count: responseData.length,
             data: responseData,
         });
     } catch (error: any) {
-        console.error('Lỗi API Map:', error);
+        console.error('[getMapCafes] ERROR:', error);
         res.status(500).json({ success: false, message: 'Lỗi máy chủ', details: error.message });
     }
 };
