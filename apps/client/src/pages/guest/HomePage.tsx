@@ -77,7 +77,7 @@ const HomePage: FC = () => {
       params.append("lng", centerHanoi.lng.toString());
 
       // Gọi API Backend mà bạn đã tạo ở bước trước
-      const response = await fetch(`http://localhost:3000/api/cafes?${params.toString()}`);
+      const response = await fetch(`http://localhost:3000/api/cafes/map?${params.toString()}`);
       const result = await response.json();
 
       if (result.success) {
@@ -187,6 +187,12 @@ const HomePage: FC = () => {
                       key={cafe.id}
                       position={{ lat: cafe.location.lat, lng: cafe.location.lng }}
                       onClick={() => setSelectedCafe(cafe)}
+                      icon={{
+                        url: cafe.imageUrl || "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+
+                        // Thu nhỏ ảnh lại thành kích thước 40x40 pixel cho vừa vặn với bản đồ
+                        scaledSize: new window.google.maps.Size(40, 40),
+                      }}
                     />
                   );
                 })}
