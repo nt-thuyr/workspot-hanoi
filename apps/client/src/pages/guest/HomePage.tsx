@@ -1,10 +1,25 @@
 import { useState, useEffect, type FC, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { GoogleMap, useJsApiLoader, MarkerF } from "@react-google-maps/api";
+// 1. Import Leaflet và CSS (Bắt buộc phải có CSS để bản đồ không bị vỡ)
+import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
 import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
 
-// Khớp với cấu trúc dữ liệu Backend trả về
+// 2. Cấu hình Icon cho ghim (Marker)
+// Leaflet cần định nghĩa Icon rõ ràng vì nó không có icon mặc định sẵn như Google
+const createCafeIcon = (imageUrl?: string) => {
+  return new L.Icon({
+    iconUrl: imageUrl || "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+    className: "custom-marker-icon"
+  });
+};
+
 interface CafeInfo {
   id: number;
   name: string;
@@ -19,14 +34,7 @@ interface CafeInfo {
 
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
 const POPULAR_TAGS = ["Fast Wi-Fi", "Quiet", "コンセント", "エアコン", "テラス席"];
-
-// Cấu hình kích thước và trung tâm mặc định của Bản đồ (Hà Nội)
-const mapContainerStyle = { width: "100%", height: "100%" };
-const centerHanoi = { lat: 21.028511, lng: 105.804817 };
-const mapOptions = {
-  disableDefaultUI: true, // Ẩn các nút rườm rà mặc định của Google Maps
-  zoomControl: false,
-};
+const centerHanoi: [number, number] = [21.028511, 105.804817];
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -38,45 +46,37 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
+// Component hỗ trợ bắt sự kiện click lên vùng trống của bản đồ
+function MapEventsHandler({ onMapClick }: { onMapClick: () => void }) {
+  useMapEvents({
+    click() {
+      onMapClick();
+    },
+  });
+  return null;
+}
+
 const HomePage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
-
-  // State lưu dữ liệu từ API
   const [cafes, setCafes] = useState<CafeInfo[]>([]);
   const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(null);
+  const [map, setMap] = useState<L.Map | null>(null);
 
-  // Load Google Maps API
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-  });
-
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-
-  const onLoad = useCallback(function callback(map: google.maps.Map) {
-    setMap(map);
-  }, []);
-
-  const onUnmount = useCallback(function callback(map: google.maps.Map) {
-    setMap(null);
-  }, []);
-
-  // 1. Hàm gọi API Backend lấy danh sách quán Cafe
+  // 3. Gọi API lấy dữ liệu từ Backend
   const fetchCafes = async () => {
     try {
-      // Xây dựng Query Params dựa trên bộ lọc
       const params = new URLSearchParams();
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
       if (activeTags.includes("Fast Wi-Fi")) params.append("hasWifi", "true");
       if (activeTags.includes("Quiet")) params.append("isQuiet", "true");
 
-      // Mặc định lấy vị trí Hà Nội làm gốc nếu chưa có GPS thật
-      params.append("lat", centerHanoi.lat.toString());
-      params.append("lng", centerHanoi.lng.toString());
+      params.append("lat", centerHanoi[0].toString());
+      params.append("lng", centerHanoi[1].toString());
+      params.append("maxDistance", "30"); //bán kính tìm kiếm 30km
 
-      // Gọi API Backend mà bạn đã tạo ở bước trước
+      // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
       const response = await fetch(`http://localhost:3000/api/cafes/map?${params.toString()}`);
       const result = await response.json();
 
@@ -88,7 +88,6 @@ const HomePage: FC = () => {
     }
   };
 
-  // 2. Tự động gọi API mỗi khi bộ lọc (Filter/Tags) thay đổi
   useEffect(() => {
     fetchCafes();
   }, [activeFilters, activeTags]);
@@ -99,22 +98,17 @@ const HomePage: FC = () => {
   const toggleTag = (t: string) =>
     setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
-  // Nút di chuyển bản đồ về vị trí hiện tại
   const handlePanToCurrent = () => {
     if (map) {
-      map.panTo(centerHanoi);
-      map.setZoom(14);
+      map.flyTo(centerHanoi, 14);
     }
   };
 
   return (
     <div className="home-root">
-      {/* ── NAVBAR ── */}
       <TopNavBar mode="guest" activeTab="home" />
 
-      {/* ── MAIN CONTENT ── */}
       <div className="home-main">
-        {/* ── SIDEBAR ── */}
         <aside className="home-sidebar">
           <div className="sidebar-hero">
             <h1 className="sidebar-hero__title">理想のワークスペース</h1>
@@ -122,7 +116,6 @@ const HomePage: FC = () => {
           </div>
 
           <div className="sidebar-search">
-            {/* ... (Giữ nguyên Search Bar của bạn) ... */}
             <input
               id="search-bar"
               className="search-input"
@@ -161,61 +154,46 @@ const HomePage: FC = () => {
           </div>
         </aside>
 
-        {/* ── MAP AREA ── */}
         <div className="map-area" id="main-map">
-          <div className="map-inner">
+          <div className="map-inner" style={{ height: "100%", width: "100%" }}>
 
-            {/* Tích hợp Google Maps */}
-            {isLoaded ? (
-              // @ts-ignore: Bỏ qua lỗi type mismatch của thư viện Google Maps với React 18
-              <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={centerHanoi}
-                zoom={14}
-                onLoad={onLoad}
-                onUnmount={onUnmount}
-                options={mapOptions}
-              >
-                {/* Render Ghim (Markers) từ API trả về */}
-                {cafes.map((cafe) => {
-                  // Fallback if location is undefined
-                  if (!cafe.location || !cafe.location.lat || !cafe.location.lng) {
-                    return null;
-                  }
-                  return (
-                    <MarkerF
-                      key={cafe.id}
-                      position={{ lat: cafe.location.lat, lng: cafe.location.lng }}
-                      onClick={() => setSelectedCafe(cafe)}
-                      icon={{
-                        url: cafe.imageUrl || "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+            {/* 4. RENDER BẢN ĐỒ OPENSTREETMAP */}
+            <MapContainer
+              center={centerHanoi}
+              zoom={14}
+              scrollWheelZoom={true}
+              style={{ height: "100%", width: "100%" }}
+              zoomControl={false}
+              ref={setMap}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
 
-                        // Thu nhỏ ảnh lại thành kích thước 40x40 pixel cho vừa vặn với bản đồ
-                        scaledSize: new window.google.maps.Size(40, 40),
-                      }}
-                    />
-                  );
-                })}
-              </GoogleMap>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                <p>Bản đồ đang tải...</p>
-              </div>
-            )}
+              <MapEventsHandler onMapClick={() => setSelectedCafe(null)} />
 
-            {/* Lớp phủ Info Card cho Cafe được chọn */}
+              {/* Render các quán Cafe dưới dạng ghim */}
+              {cafes.map((cafe) => {
+                if (!cafe.location?.lat || !cafe.location?.lng) return null;
+
+                return (
+                  <Marker
+                    key={cafe.id}
+                    position={[Number(cafe.location.lat), Number(cafe.location.lng)]}
+                    icon={createCafeIcon(cafe.imageUrl)}
+                    eventHandlers={{
+                      click: () => setSelectedCafe(cafe),
+                    }}
+                  />
+                );
+              })}
+            </MapContainer>
+
+            {/* Lớp phủ Info Card */}
             <div className="map-overlay">
               {selectedCafe && (
-                <div
-                  className="info-card"
-                  style={{
-                    position: "absolute",
-                    bottom: "24px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 10,
-                  }}
-                >
+                <div className="info-card" style={{ position: "absolute", bottom: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 1000 }}>
                   <div className="info-card__header">
                     <span className={`info-card__status ${selectedCafe.isOpenNow ? 'info-card__status--open' : 'info-card__status--closed'}`}>
                       {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
@@ -238,19 +216,18 @@ const HomePage: FC = () => {
             </div>
           </div>
 
-          {/* Map controls */}
-          <div className="map-controls">
-            <button className="map-ctrl-btn" title="ズームイン" onClick={() => map?.setZoom((map.getZoom() || 14) + 1)}>
+          <div className="map-controls" style={{ zIndex: 1000 }}>
+            <button className="map-ctrl-btn" onClick={() => map?.zoomIn()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
-            <button className="map-ctrl-btn" title="ズームアウト" onClick={() => map?.setZoom((map.getZoom() || 14) - 1)}>
+            <button className="map-ctrl-btn" onClick={() => map?.zoomOut()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
-            <button className="map-ctrl-btn map-ctrl-btn--location" title="現在地へ" onClick={handlePanToCurrent}>
+            <button className="map-ctrl-btn map-ctrl-btn--location" onClick={handlePanToCurrent}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="3" /><path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
               </svg>
