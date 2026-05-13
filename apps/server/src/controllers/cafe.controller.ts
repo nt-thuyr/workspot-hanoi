@@ -297,10 +297,13 @@ export const deleteCafe = async (req: Request, res: Response) => {
 // --- CONTROLLER API BẢN ĐỒ ---
 export const getMapCafes = async (req: Request, res: Response) => {
     try {
+        console.log('[getMapCafes] Reached getMapCafes!');
         const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance } = req.query;
 
         // 1. Fetch toàn bộ dữ liệu từ Supabase
+        console.log('[getMapCafes] Fetching all cafes...');
         const allCafes = await CafeModel.getAllCafes();
+        console.log('[getMapCafes] Fetched all cafes!', allCafes?.length);
         if (!allCafes) {
             return res.status(200).json({ success: true, count: 0, data: [] });
         }

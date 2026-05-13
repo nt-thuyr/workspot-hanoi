@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 // @ts-ignore
 import "./TopNavBar.css";
@@ -9,23 +9,32 @@ interface TopNavBarProps {
 }
 
 export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("user_name");
+    window.location.href = "/login";
+  };
+
   return (
     <nav className="top-nav">
       {/* Logo */}
       <Link to={mode === "guest" ? "/" : "/dashboard"} className="nav-logo" id="nav-logo">
-        <div className="nav-logo__icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-            <line x1="6" y1="1" x2="6" y2="4" />
-            <line x1="10" y1="1" x2="10" y2="4" />
-            <line x1="14" y1="1" x2="14" y2="4" />
-          </svg>
-        </div>
         <span className="nav-logo__text">WorkSpot HaNoi</span>
-      </Link>
-
-      {/* Menu */}
+      </Link>      {/* Menu */}
       <div className="nav-menu">
         {mode === "guest" ? (
           <>
@@ -43,7 +52,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
       </div>
 
       {/* Right Side */}
-      {mode === "guest" ? (
+      {!localStorage.getItem("access_token") ? (
         <div className="nav-auth">
           <Link to="/login" id="nav-login" className="nav-btn-login">ログイン</Link>
           <Link to="/register" id="nav-register" className="nav-btn-register">新規登録</Link>
@@ -57,13 +66,38 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
             </svg>
             <span className="nav-badge">2</span>
           </button>
-          <button id="user-profile" className="nav-profile-btn">
-            <div className="nav-avatar">T</div>
-            <span>Thao</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
+          <div className="nav-profile-wrapper" ref={dropdownRef}>
+            <button 
+              id="user-profile" 
+              className="nav-profile-btn"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <div className="nav-avatar">
+                {localStorage.getItem("user_name") ? localStorage.getItem("user_name")![0].toUpperCase() : "U"}
+              </div>
+              <span>{localStorage.getItem("user_name") || "ユーザー"}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isDropdownOpen && (
+              <div className="profile-dropdown">
+                <div className="dropdown-header">
+                  <span className="dropdown-name">{localStorage.getItem("user_name") || "ユーザー"}</span>
+                  <span className="dropdown-email">{localStorage.getItem("user_email") || "user@example.com"}</span>
+                </div>
+                <div className="dropdown-divider" />
+                <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  ログアウト
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

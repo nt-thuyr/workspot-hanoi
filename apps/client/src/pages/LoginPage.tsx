@@ -34,6 +34,8 @@ const LoginPage: FC = () => {
                 
                 const userRole = data.data.user.role;
                 localStorage.setItem("user_role", userRole);
+                localStorage.setItem("user_name", data.data.user.full_name);
+                localStorage.setItem("user_email", data.data.user.email);
 
                 if (userRole === "cafe_owner") {
                     navigate("/cafes/edit");
@@ -54,23 +56,8 @@ const LoginPage: FC = () => {
             {/* ===== LEFT PANEL — ảnh nền + logo + mô tả ===== */}
             <div className="login-left">
                 <div className="login-left__overlay" />
-
                 {/* Logo */}
                 <div className="login-logo">
-                    <div className="login-logo__icon">
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                            <path
-                                d="M6 8h20v2H6zM8 12h16c0 6-2 10-8 12C10 22 8 18 8 12z"
-                                fill="white"
-                                opacity="0.9"
-                            />
-                            <path
-                                d="M22 10c0-2 2-3 4-2v4c-2 1-4 0-4-2z"
-                                fill="white"
-                                opacity="0.7"
-                            />
-                        </svg>
-                    </div>
                     <span className="login-logo__text">
                         WorkSpot<br />HaNoi
                     </span>

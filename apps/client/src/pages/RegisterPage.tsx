@@ -1,6 +1,5 @@
 import { useState, type FC, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LocationSelector } from "../components/LocationSelector";
 import "./RegisterPage.css";
 
 type Role = "cafe_owner" | "japanese_user";
@@ -22,18 +21,11 @@ const RegisterPage: FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLocationSelect = (lat: number, lng: number, address: string) => {
-    setFormData({ ...formData, latitude: lat, longitude: lng });
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg(""); // Reset lỗi khi submit
 
-    if (!formData.latitude || !formData.longitude) {
-      setErrorMsg("Vui lòng chọn vị trí của bạn trên bản đồ.");
-      return;
-    }
 
     try {
       const response = await fetch("http://localhost:3000/api/auth/register", {
@@ -46,8 +38,6 @@ const RegisterPage: FC = () => {
           password: formData.password,
           name: formData.name,
           role: selectedRole,
-          latitude: formData.latitude,
-          longitude: formData.longitude,
         }),
       });
 
@@ -71,23 +61,8 @@ const RegisterPage: FC = () => {
       {/* ===== LEFT PANEL — ảnh nền + logo + mô tả (15, 16, 17) ===== */}
       <div className="register-left">
         <div className="register-left__overlay" />
-
         {/* Logo (16) */}
         <div className="register-logo">
-          <div className="register-logo__icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path
-                d="M6 8h20v2H6zM8 12h16c0 6-2 10-8 12C10 22 8 18 8 12z"
-                fill="white"
-                opacity="0.9"
-              />
-              <path
-                d="M22 10c0-2 2-3 4-2v4c-2 1-4 0-4-2z"
-                fill="white"
-                opacity="0.7"
-              />
-            </svg>
-          </div>
           <span className="register-logo__text">
             WorkSpot<br />HaNoi
           </span>

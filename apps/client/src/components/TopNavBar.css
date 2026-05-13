@@ -10,7 +10,7 @@
   border-bottom: 1px solid #ede8e0;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
-  z-index: 100;
+  z-index: 9999;
 }
 
 /* Logo */
@@ -188,3 +188,14 @@
   align-items: center;
   justify-content: center;
 }
+.nav-profile-wrapper { position: relative; }
+.profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: white; border: 1px solid #ede8e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 8px; min-width: 200px; z-index: 1000; animation: fadeIn 0.2s ease; }
+.dropdown-header { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.dropdown-name { font-weight: 700; font-size: 0.95rem; color: #3d2f1e; }
+.dropdown-email { font-size: 0.8rem; color: #888; }
+.dropdown-divider { height: 1px; background: #ede8e0; margin: 4px 0; }
+.dropdown-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: none; background: transparent; font-size: 0.9rem; font-weight: 500; cursor: pointer; border-radius: 6px; text-align: left; transition: background 0.2s; }
+.dropdown-item:hover { background: #f5ede2; }
+.dropdown-item--danger { color: #e11d48; }
+.dropdown-item--danger:hover { background: #ffe4e6; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }

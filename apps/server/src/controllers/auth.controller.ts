@@ -31,6 +31,13 @@ export const login = async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
         }
 
+        // Fetch profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', data.user.id)
+            .single();
+
         // Trả về session (chứa access_token) và thông tin user
         res.status(200).json({
             success: true,
@@ -40,11 +47,11 @@ export const login = async (req: Request, res: Response) => {
                 user: {
                     id: data.user.id,
                     email: data.user.email,
-                    role: data.user.user_metadata?.role || 'japanese_user'
+                    role: data.user.user_metadata?.role || 'japanese_user',
+                    full_name: profile?.full_name || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Người dùng'
                 }
             }
         });
-
     } catch (error) {
         res.status(500).json({ success: false, message: 'Lỗi server khi đăng nhập' });
     }
