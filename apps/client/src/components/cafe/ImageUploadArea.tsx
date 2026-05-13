@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 
 interface ImageUploadAreaProps {
   onImageSelect: (file: File) => void;
@@ -14,15 +14,35 @@ export const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
   size = "Recommended size: 1920x800px",
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const handleClick = () => {
+    console.log("[ImageUploadArea] Click to upload, opening file dialog");
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    console.log("[ImageUploadArea] File selected:", file);
     if (file) {
+      console.log("[ImageUploadArea] File details:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setPreview(result);
+        console.log("[ImageUploadArea] Preview created");
+      };
+      reader.readAsDataURL(file);
+      
       onImageSelect(file);
+      console.log("[ImageUploadArea] File passed to parent");
+    } else {
+      console.log("[ImageUploadArea] No file selected");
     }
   };
 
@@ -42,11 +62,22 @@ export const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
           onChange={handleFileChange}
           className="hidden"
         />
-        <span className="material-symbols-outlined text-4xl text-[#81756d] mb-2 group-hover:scale-110 transition-transform">
-          add_a_photo
-        </span>
-        <p className="text-sm text-[#4f453e] font-medium">{description}</p>
-        <p className="text-xs text-[#81756d] mt-1">{size}</p>
+        
+        {preview ? (
+          <img
+            src={preview}
+            alt="Preview"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <>
+            <span className="material-symbols-outlined text-4xl text-[#81756d] mb-2 group-hover:scale-110 transition-transform">
+              add_a_photo
+            </span>
+            <p className="text-sm text-[#4f453e] font-medium">{description}</p>
+            <p className="text-xs text-[#81756d] mt-1">{size}</p>
+          </>
+        )}
       </div>
     </div>
   );

@@ -22,13 +22,23 @@ export const MenuImageGrid: React.FC<MenuImageGridProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddClick = () => {
+    console.log("[MenuImageGrid] Click to add menu image");
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    console.log("[MenuImageGrid] File selected:", file);
     if (file) {
+      console.log("[MenuImageGrid] File details:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
       onAddImage(file);
+      console.log("[MenuImageGrid] File passed to parent");
+    } else {
+      console.log("[MenuImageGrid] No file selected");
     }
   };
 

@@ -177,13 +177,19 @@ const HomePage: FC = () => {
                 options={mapOptions}
               >
                 {/* Render Ghim (Markers) từ API trả về */}
-                {cafes.map((cafe) => (
-                  <MarkerF
-                    key={cafe.id}
-                    position={{ lat: cafe.location.lat, lng: cafe.location.lng }}
-                    onClick={() => setSelectedCafe(cafe)}
-                  />
-                ))}
+                {cafes.map((cafe) => {
+                  // Fallback if location is undefined
+                  if (!cafe.location || !cafe.location.lat || !cafe.location.lng) {
+                    return null;
+                  }
+                  return (
+                    <MarkerF
+                      key={cafe.id}
+                      position={{ lat: cafe.location.lat, lng: cafe.location.lng }}
+                      onClick={() => setSelectedCafe(cafe)}
+                    />
+                  );
+                })}
               </GoogleMap>
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-200">

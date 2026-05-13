@@ -88,6 +88,16 @@ export const register = async (req: Request, res: Response) => {
             });
         }
 
+        // Cập nhật display name cho user
+        if (fullName) {
+            await supabase.auth.admin.updateUserById(data.user.id, {
+                user_metadata: {
+                    name: fullName,
+                    role,
+                }
+            });
+        }
+
         try {
             await AuthModel.createProfile({
                 id: data.user.id,

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import {
   getHomeCafes,
   getCafeDetail,
@@ -8,6 +9,30 @@ import {
   deleteCafe,
   getMapCafes,
 } from '../controllers/cafe.controller';
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    console.log('[Multer] File received:', {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      console.log('[Multer] File accepted');
+      cb(null, true);
+    } else {
+      console.log('[Multer] File rejected - invalid MIME type:', file.mimetype);
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP are allowed`));
+    }
+  },
+});
 
 const router = Router();
 
@@ -27,8 +52,26 @@ router.get('/owner/:ownerId', getCafesByOwner);
 
 // ━━━ CREATE ━━━
 
-// POST /api/cafes - Tạo quán mới (owner)
-router.post('/', createCafe);
+// POST /api/cafes - Tạo quán mới (owner) - Với file upload
+router.post(
+  '/',
+  (req: Request, res: Response, next: any) => {
+    upload.fields([
+      { name: 'coverImage', maxCount: 1 },
+      { name: 'menuImages', maxCount: 10 },
+    ])(req, res, (err: any) => {
+      if (err) {
+        console.error('[Route POST /cafes] Multer error:', err.message);
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${err.message}`,
+        });
+      }
+      next();
+    });
+  },
+  createCafe
+);
 
 // ━━━ UPDATE ━━━
 

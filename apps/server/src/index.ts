@@ -36,6 +36,7 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`Backend WorkSpot HaNoi đang chạy tại http://localhost:${PORT}`);
 });
