@@ -169,16 +169,17 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
   };
 
   return (
-    <div className="relative w-full h-full min-h-[400px] bg-[#e5e3df] rounded-xl overflow-hidden border border-[#d6cfc7]">
+    <div className="relative w-full h-full flex flex-col overflow-hidden">
       {/* Bản đồ Leaflet */}
-      <MapContainer
-        center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : centerHanoi}
-        zoom={14}
-        scrollWheelZoom={true}
-        style={{ height: "100%", width: "100%" }}
-        zoomControl={true}
-        ref={setMap}
-      >
+      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <MapContainer
+          center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : centerHanoi}
+          zoom={14}
+          scrollWheelZoom={true}
+          style={{ height: "100%", width: "100%", flex: 1 }}
+          zoomControl={false}
+          ref={setMap}
+        >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -193,20 +194,21 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           />
         )}
       </MapContainer>
+      </div>
 
       {/* Nút GPS */}
       <button
         type="button"
         onClick={getCurrentLocation}
         disabled={loading}
-        className="absolute right-4 bottom-20 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center text-[#4f453e] hover:text-[#614734] hover:bg-gray-50 disabled:opacity-50 transition-colors z-[400]"
+        className="absolute right-4 bottom-20 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center text-[#4f453e] hover:text-[#614734] hover:bg-gray-50 disabled:opacity-50 transition-colors z-400"
         title="Lấy vị trí hiện tại"
       >
         <span className="material-symbols-outlined">my_location</span>
       </button>
 
       {/* Zoom Controls */}
-      <div className="absolute right-4 bottom-4 flex flex-col bg-white rounded-lg shadow-md overflow-hidden z-[400]">
+      <div className="absolute right-4 bottom-4 flex flex-col bg-white rounded-lg shadow-md overflow-hidden z-400">
         <button
           type="button"
           className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 border-b border-gray-100 transition-colors"
@@ -230,7 +232,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
       </div>
 
       {/* Info Card */}
-      <div className="absolute top-4 left-4 right-16 bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-sm border border-white/50 z-[400]">
+      <div className="absolute top-4 left-4 right-16 bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-sm border border-white/50 z-400">
         <p className="text-sm font-medium text-[#4f453e] flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-[#614734]">map</span>
           {selectedLocation 

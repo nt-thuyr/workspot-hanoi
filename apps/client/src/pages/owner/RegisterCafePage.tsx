@@ -268,10 +268,10 @@ export const RegisterCafePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fdf9f4] text-[#1c1c19] pb-24 md:pb-0">
-      <TopNavBar mode="owner" activeTab="create" />
+      <TopNavBar mode="owner" activeTab="register" />
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-16 md:py-24">
+      <main className="max-w-6xl mx-auto px-6 py-16 md:py-24">
         {/* Page Header */}
         <div className="mb-12 text-center">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-[#614734] tracking-tight mb-4">
