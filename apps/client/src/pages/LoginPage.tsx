@@ -6,7 +6,7 @@ const LoginPage: FC = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-    
+
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -31,7 +31,7 @@ const LoginPage: FC = () => {
 
             if (response.ok && data.success) {
                 localStorage.setItem("access_token", data.data.session.access_token);
-                
+
                 const userRole = data.data.user.role;
                 localStorage.setItem("user_role", userRole);
                 localStorage.setItem("user_name", data.data.user.full_name);
@@ -70,11 +70,6 @@ const LoginPage: FC = () => {
                         ハノイで、あなただけの特別な作業場所を見つけよう。<br />
                         深い集中とこだわりのコーヒーのための、厳選された空間。
                     </p>
-                    <div className="login-left__dots">
-                        <span className="dot dot--active" />
-                        <span className="dot" />
-                        <span className="dot" />
-                    </div>
                 </div>
             </div>
 
@@ -174,7 +169,7 @@ const LoginPage: FC = () => {
 
                         {/* Nút Đăng nhập */}
                         <button type="submit" id="login-submit" className="login-submit-btn">
-                            ログイン (Đăng nhập)
+                            ログイン
                         </button>
                     </form>
 
