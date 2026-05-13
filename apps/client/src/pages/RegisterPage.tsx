@@ -74,11 +74,7 @@ const RegisterPage: FC = () => {
             街の中心で、あなただけの特別な居場所を見つけよう。<br />
             深い集中とこだわりのコーヒーのための、厳選された空間。
           </p>
-          <div className="register-left__dots">
-            <span className="dot dot--active" />
-            <span className="dot" />
-            <span className="dot" />
-          </div>
+          {/* slider dots removed */}
         </div>
       </div>
 
@@ -244,7 +240,7 @@ const RegisterPage: FC = () => {
 
             {/* Nút Đăng ký (13) */}
             <button type="submit" id="register-submit" className="register-submit-btn">
-              新規登録 (Đăng ký)
+              新規登録
             </button>
           </form>
 

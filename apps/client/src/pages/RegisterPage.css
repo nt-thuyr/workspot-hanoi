@@ -83,24 +83,11 @@
   max-width: 340px;
 }
 
-.register-left__dots {
-  display: flex;
-  gap: 6px;
-}
+.register-left__dots { /* slider dots removed */ }
 
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  transition: background 0.3s;
-}
+.dot { /* removed */ }
 
-.dot--active {
-  background: #c8843a;
-  width: 22px;
-  border-radius: 4px;
-}
+.dot--active { /* removed */ }
 
 /* ── RIGHT PANEL ────────────────────────────────────────────── */
 .register-right {
