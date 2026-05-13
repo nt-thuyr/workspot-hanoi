@@ -70,14 +70,14 @@ export const register = async (req: Request, res: Response) => {
         const normalizedEmail = String(email).trim().toLowerCase();
         const fullName = typeof name === 'string' ? name.trim() : '';
 
-        const { data, error } = await supabase.auth.signUp({
+        // Dùng Admin API để tạo user với email đã xác thực ngay (không gửi email → tránh rate limit)
+        const { data, error } = await supabase.auth.admin.createUser({
             email: normalizedEmail,
             password,
-            options: {
-                data: {
-                    name: fullName || null,
-                    role,
-                }
+            email_confirm: true,   // ← xác nhận email ngay, không cần gửi mail
+            user_metadata: {
+                name: fullName || null,
+                role,
             }
         });
 
@@ -115,7 +115,6 @@ export const register = async (req: Request, res: Response) => {
                     role,
                     full_name: fullName || null,
                 },
-                session: data.session,
             },
         });
 
