@@ -11,6 +11,7 @@ interface MenuImage {
   id: string;
   src: string;
   alt: string;
+  file?: File;
 }
 
 interface CafeFormData {
@@ -22,33 +23,69 @@ interface CafeFormData {
   closeTime: string;
   coverImage: File | null;
   menuImages: MenuImage[];
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export const EditCafePage: React.FC = () => {
   const navigate = useNavigate();
+  const [cafeId, setCafeId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [submitError, setSubmitError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
   const [formData, setFormData] = useState<CafeFormData>({
-    cafeName: "The Coffee House",
-    ward: "Ba Dinh",
-    street: "54 Linh Lang",
-    tags: ["高速Wi-Fi", "静か"],
-    openTime: "08:00 AM",
-    closeTime: "10:00 PM",
+    cafeName: "",
+    ward: "",
+    street: "",
+    tags: [],
+    openTime: "",
+    closeTime: "",
     coverImage: null,
-    menuImages: [
-      {
-        id: "1",
-        src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=120&h=90&fit=crop",
-        alt: "Menu 1",
-      },
-      {
-        id: "2",
-        src: "https://images.unsplash.com/photo-1497515114629-f71d768fd07c?w=120&h=90&fit=crop",
-        alt: "Menu 2",
-      },
-    ],
+    menuImages: [],
+    latitude: null,
+    longitude: null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    const ownerId = localStorage.getItem("user_id");
+    if (!ownerId) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchCafe = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/cafes/owner/${ownerId}`);
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+          const cafe = result.data[0];
+          setCafeId(cafe.id);
+          setFormData({
+            cafeName: cafe.name || "",
+            ward: (cafe.address || "").split(",").reverse()[0]?.trim() || "",
+            street: (cafe.address || "").split(",").reverse()[1]?.trim() || cafe.address || "",
+            tags: cafe.tags || [],
+            openTime: cafe.open_time || "",
+            closeTime: cafe.close_time || "",
+            coverImage: null,
+            menuImages: [],
+            latitude: cafe.lat || null,
+            longitude: cafe.lng || null,
+          });
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu quán:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCafe();
+  }, [navigate]);
 
   const fullAddress = useMemo(() => {
     return [formData.ward, formData.street].filter(Boolean).join(" ");
@@ -62,12 +99,8 @@ export const EditCafePage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -76,10 +109,7 @@ export const EditCafePage: React.FC = () => {
   };
 
   const handleCoverImageSelect = (file: File) => {
-    setFormData((prev) => ({
-      ...prev,
-      coverImage: file,
-    }));
+    setFormData((prev) => ({ ...prev, coverImage: file }));
   };
 
   const handleAddMenuImage = (file: File) => {
@@ -87,6 +117,7 @@ export const EditCafePage: React.FC = () => {
       id: Date.now().toString(),
       src: URL.createObjectURL(file),
       alt: file.name,
+      file: file,
     };
     setFormData((prev) => ({
       ...prev,
@@ -103,7 +134,6 @@ export const EditCafePage: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.cafeName.trim()) newErrors.cafeName = "カフェ名は必須です";
     if (!formData.ward.trim()) newErrors.ward = "区・町名は必須です";
     if (!formData.street.trim()) newErrors.street = "番地・通り名は必須です";
@@ -114,17 +144,47 @@ export const EditCafePage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm() || !cafeId) return;
 
-    console.log("Form submitted:", formData);
-    alert("カフェ情報を正常に更新しました！");
-    navigate("/cafes");
+    setIsSaving(true);
+    setSubmitError("");
+
+    try {
+      const ownerId = localStorage.getItem("user_id");
+      const address = [formData.street, formData.ward].filter(Boolean).join(", ");
+      
+      const response = await fetch(`http://localhost:3000/api/cafes/${cafeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_id: ownerId,
+          name: formData.cafeName,
+          address: address,
+          open_time: formData.openTime,
+          close_time: formData.closeTime,
+          tags: formData.tags,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to update");
+
+      alert("カフェ情報を正常に更新しました！");
+      navigate("/");
+    } catch (error: any) {
+      console.error(error);
+      setSubmitError(error.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#fdf9f4] flex items-center justify-center">Đang tải dữ liệu...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#fdf9f4] text-[#1c1c19] pb-24 md:pb-0">
@@ -273,9 +333,10 @@ export const EditCafePage: React.FC = () => {
               </Link>
               <button
                 type="submit"
-                className="w-full md:w-auto px-12 py-4 bg-[#614734] text-white font-bold rounded-full shadow-lg shadow-[#614734]/20 hover:bg-[#4a3628] active:scale-95 transition-all"
+                disabled={isSaving}
+                className="w-full md:w-auto px-12 py-4 bg-[#614734] text-white font-bold rounded-full shadow-lg shadow-[#614734]/20 hover:bg-[#4a3628] active:scale-95 transition-all disabled:opacity-50"
               >
-                変更を保存
+                {isSaving ? "保存中..." : "変更を保存"}
               </button>
             </div>
           </form>

@@ -192,8 +192,12 @@ export const RegisterCafePage: React.FC = () => {
       formDataToSend.append("lng", formData.longitude?.toString() || "");
       formDataToSend.append("tags", JSON.stringify(formData.tags));
       
-      // TODO: Get actual user ID from auth context
-      formDataToSend.append("owner_id", "00000000-0000-0000-0000-000000000003");
+      // Get actual user ID from localStorage
+      const ownerId = localStorage.getItem("user_id");
+      if (!ownerId) {
+        throw new Error("Vui lòng đăng nhập lại để tiếp tục");
+      }
+      formDataToSend.append("owner_id", ownerId);
 
       // Add cover image if present
       if (formData.coverImage) {
