@@ -44,7 +44,7 @@ npm run dev
 Mặc định:
 
 - Client: `http://localhost:5173`
-- Server: `http://localhost:4000`
+- Server: `http://localhost:3000`
 
 Chạy riêng từng app:
 
