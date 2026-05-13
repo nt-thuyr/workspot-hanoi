@@ -21,6 +21,8 @@ interface CafeFormData {
   tags: string[];
   openTime: string;
   closeTime: string;
+  latitude: number | null;
+  longitude: number | null;
   coverImage: File | null;
   menuImages: MenuImage[];
 }
@@ -34,6 +36,8 @@ export const RegisterCafePage: React.FC = () => {
     tags: [],
     openTime: "",
     closeTime: "",
+    latitude: null,
+    longitude: null,
     coverImage: null,
     menuImages: [
       {
@@ -76,6 +80,27 @@ export const RegisterCafePage: React.FC = () => {
 
   const handleTagsChange = (tags: string[]) => {
     setFormData((prev) => ({ ...prev, tags }));
+  };
+
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    // Chỉ cập nhật lat/lng, không thay đổi street/ward nếu user đã điền
+    // Nếu cả street và ward trống, mới tách address để điền
+    setFormData((prev) => {
+      const updateData = {
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+      };
+
+      // Chỉ cập nhật street/ward nếu chúng trống
+      if (!prev.street.trim() && !prev.ward.trim()) {
+        const addressParts = address.split(",").map((part) => part.trim()).reverse();
+        updateData.street = addressParts[1] || "";
+        updateData.ward = addressParts[0] || "";
+      }
+
+      return updateData;
+    });
   };
 
   const handleCoverImageSelect = (file: File) => {
@@ -126,6 +151,9 @@ export const RegisterCafePage: React.FC = () => {
     if (!formData.street.trim()) newErrors.street = "番地・通り名は必須です";
     if (!formData.openTime.trim()) newErrors.openTime = "開店時間は必須です";
     if (!formData.closeTime.trim()) newErrors.closeTime = "閉店時間は必須です";
+    if (formData.latitude === null || formData.longitude === null) {
+      newErrors.location = "地図から場所を選択してください";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,6 +177,8 @@ export const RegisterCafePage: React.FC = () => {
       formDataToSend.append("street", formData.street);
       formDataToSend.append("openTime", formData.openTime);
       formDataToSend.append("closeTime", formData.closeTime);
+      formDataToSend.append("lat", formData.latitude?.toString() || "");
+      formDataToSend.append("lng", formData.longitude?.toString() || "");
       formDataToSend.append("tags", JSON.stringify(formData.tags));
       
       // TODO: Get actual user ID from auth context
@@ -217,6 +247,8 @@ export const RegisterCafePage: React.FC = () => {
       tags: [],
       openTime: "",
       closeTime: "",
+      latitude: null,
+      longitude: null,
       coverImage: null,
       menuImages: [],
     });
@@ -295,11 +327,18 @@ export const RegisterCafePage: React.FC = () => {
                 {/* Right Column: Sticky Map */}
                 <div className="relative">
                   <div className="sticky top-24 h-full min-h-[400px] max-h-[calc(100vh-160px)]">
-                    <LocationMap address={fullAddress} />
+                    <LocationMap address={fullAddress} onLocationSelect={handleLocationSelect} />
                   </div>
                 </div>
               </div>
             </section>
+
+            {/* Error for location */}
+            {errors.location && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+                {errors.location}
+              </div>
+            )}
 
             {/* Logistics Section */}
             <section className="space-y-6">

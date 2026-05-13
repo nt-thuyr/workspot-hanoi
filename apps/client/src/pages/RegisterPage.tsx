@@ -1,5 +1,6 @@
 import { useState, type FC, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { LocationSelector } from "../components/LocationSelector";
 import "./RegisterPage.css";
 
 type Role = "cafe_owner" | "japanese_user";
@@ -13,15 +14,26 @@ const RegisterPage: FC = () => {
     name: "",
     email: "",
     password: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    setFormData({ ...formData, latitude: lat, longitude: lng });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg(""); // Reset lỗi khi submit
+
+    if (!formData.latitude || !formData.longitude) {
+      setErrorMsg("Vui lòng chọn vị trí của bạn trên bản đồ.");
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:3000/api/auth/register", {
@@ -34,6 +46,8 @@ const RegisterPage: FC = () => {
           password: formData.password,
           name: formData.name,
           role: selectedRole,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
         }),
       });
 
