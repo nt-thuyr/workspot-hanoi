@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import { FormInput } from "../../components/FormInput";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
 import { MenuImageGrid } from "../../components/cafe/MenuImageGrid";
 import { FeatureTags } from "../../components/cafe/FeatureTags";
-import { LocationMap } from "../../components/cafe/LocationMap";
+import { LocationMap, type LocationMapHandle } from "../../components/cafe/LocationMap";
 
 interface MenuImage {
   id: string;
@@ -29,6 +29,7 @@ interface CafeFormData {
 
 export const RegisterCafePage: React.FC = () => {
   const navigate = useNavigate();
+  const locationMapRef = useRef<LocationMapHandle>(null);
   const [formData, setFormData] = useState<CafeFormData>({
     cafeName: "",
     ward: "",
@@ -75,6 +76,16 @@ export const RegisterCafePage: React.FC = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Trigger geocoding when Enter is pressed
+      if (locationMapRef.current && fullAddress.trim()) {
+        locationMapRef.current.geocodeAndSearch(fullAddress);
+      }
     }
   };
 
@@ -304,6 +315,7 @@ export const RegisterCafePage: React.FC = () => {
                       placeholder="番地・通り名"
                       value={formData.street}
                       onChange={handleInputChange}
+                      onKeyDown={handleAddressKeyDown}
                       error={errors.street}
                     />
                     <FormInput
@@ -312,6 +324,7 @@ export const RegisterCafePage: React.FC = () => {
                       placeholder="区・町名"
                       value={formData.ward}
                       onChange={handleInputChange}
+                      onKeyDown={handleAddressKeyDown}
                       error={errors.ward}
                     />
                   </div>
@@ -327,7 +340,7 @@ export const RegisterCafePage: React.FC = () => {
                 {/* Right Column: Sticky Map */}
                 <div className="relative">
                   <div className="sticky top-24 h-full min-h-[400px] max-h-[calc(100vh-160px)]">
-                    <LocationMap address={fullAddress} onLocationSelect={handleLocationSelect} />
+                    <LocationMap ref={locationMapRef} address={fullAddress} onLocationSelect={handleLocationSelect} />
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -6,6 +6,10 @@ import "leaflet/dist/leaflet.css";
 interface LocationMapProps {
   address?: string;
   onLocationSelect?: (lat: number, lng: number, address: string) => void;
+}
+
+export interface LocationMapHandle {
+  geocodeAndSearch: (addr: string) => Promise<void>;
 }
 
 const createCafeIcon = (imageUrl?: string) => {
@@ -29,92 +33,98 @@ function MapClickHandler({ onMapClick }: { onMapClick: (latlng: L.LatLng) => voi
   return null;
 }
 
-export const LocationMap: React.FC<LocationMapProps> = ({ address, onLocationSelect }) => {
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [currentAddress, setCurrentAddress] = useState<string>(address || "");
-  const [loading, setLoading] = useState(false);
-  const [map, setMap] = useState<L.Map | null>(null);
+export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
+  ({ address, onLocationSelect }, ref) => {
+    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [currentAddress, setCurrentAddress] = useState<string>(address || "");
+    const [loading, setLoading] = useState(false);
+    const [map, setMap] = useState<L.Map | null>(null);
 
-  // Chuyển đổi tọa độ sang địa chỉ (Reverse Geocoding)
-  const reverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      );
-      const data = await response.json();
+    // Chuyển đổi địa chỉ sang tọa độ (Geocoding)
+    const geocodeAddress = async (addr: string) => {
+      if (!addr.trim()) return;
       
-      // Tạo địa chỉ từ các thành phần chi tiết
-      const addr = data.address || {};
-      const addressParts = [];
-      
-      // Lấy các thành phần theo thứ tự chi tiết
-      if (addr.house_number) addressParts.push(addr.house_number);
-      if (addr.road) addressParts.push(addr.road);
-      if (addr.neighbourhood) addressParts.push(addr.neighbourhood);
-      if (addr.suburb) addressParts.push(addr.suburb);
-      if (addr.city_district) addressParts.push(addr.city_district);
-      if (addr.district) addressParts.push(addr.district);
-      if (addr.city) addressParts.push(addr.city);
-      
-      let newAddress = addressParts.filter(Boolean).join(", ");
-      
-      // Nếu không có chi tiết, dùng city hoặc town
-      if (!newAddress) {
-        newAddress = addr.city || addr.town || "Địa chỉ không xác định";
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`
+        );
+        const data = await response.json();
+        
+        if (data.length > 0) {
+          const { lat, lon } = data[0];
+          const newLat = parseFloat(lat);
+          const newLon = parseFloat(lon);
+          
+          setSelectedLocation({ lat: newLat, lng: newLon });
+          
+          // Pan bản đồ đến vị trí mới
+          if (map) {
+            map.setView([newLat, newLon], 14);
+          }
+          
+          if (onLocationSelect) {
+            onLocationSelect(newLat, newLon, addr);
+          }
+        } else {
+          alert("Không tìm thấy địa chỉ này. Vui lòng thử lại.");
+        }
+      } catch (error) {
+        console.error("Lỗi geocode:", error);
+        alert("Lỗi khi tìm kiếm địa chỉ.");
+      } finally {
+        setLoading(false);
       }
-      
-      setCurrentAddress(newAddress);
-      return newAddress;
-    } catch (error) {
-      console.error("Lỗi reverse geocode:", error);
-      setCurrentAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    }
-  };
+    };
 
-  // Chuyển đổi địa chỉ sang tọa độ (Geocoding)
-  const geocodeAddress = async (addr: string) => {
-    if (!addr.trim()) return;
-    
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`
-      );
-      const data = await response.json();
-      
-      if (data.length > 0) {
-        const { lat, lon } = data[0];
-        const newLat = parseFloat(lat);
-        const newLon = parseFloat(lon);
+    // Expose method to parent component
+    useImperativeHandle(ref, () => ({
+      geocodeAndSearch: geocodeAddress
+    }), [map, onLocationSelect]);
+
+    // Chuyển đổi tọa độ sang địa chỉ (Reverse Geocoding)
+    const reverseGeocode = async (lat: number, lng: number) => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        );
+        const data = await response.json();
         
-        setSelectedLocation({ lat: newLat, lng: newLon });
+        // Tạo địa chỉ từ các thành phần chi tiết
+        const addr = data.address || {};
+        const addressParts = [];
         
-        // Pan bản đồ đến vị trí mới
-        if (map) {
-          map.setView([newLat, newLon], 14);
+        // Lấy các thành phần theo thứ tự chi tiết
+        if (addr.house_number) addressParts.push(addr.house_number);
+        if (addr.road) addressParts.push(addr.road);
+        if (addr.neighbourhood) addressParts.push(addr.neighbourhood);
+        if (addr.suburb) addressParts.push(addr.suburb);
+        if (addr.city_district) addressParts.push(addr.city_district);
+        if (addr.district) addressParts.push(addr.district);
+        if (addr.city) addressParts.push(addr.city);
+        
+        let newAddress = addressParts.filter(Boolean).join(", ");
+        
+        // Nếu không có chi tiết, dùng city hoặc town
+        if (!newAddress) {
+          newAddress = addr.city || addr.town || "Địa chỉ không xác định";
         }
         
-        if (onLocationSelect) {
-          onLocationSelect(newLat, newLon, addr);
-        }
-      } else {
-        alert("Không tìm thấy địa chỉ này. Vui lòng thử lại.");
+        setCurrentAddress(newAddress);
+        return newAddress;
+      } catch (error) {
+        console.error("Lỗi reverse geocode:", error);
+        setCurrentAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
-    } catch (error) {
-      console.error("Lỗi geocode:", error);
-      alert("Lỗi khi tìm kiếm địa chỉ.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   // Lắng nghe thay đổi của address prop từ parent
   useEffect(() => {
     if (address && address !== currentAddress) {
       setCurrentAddress(address);
-      // Tự động geocode khi địa chỉ thay đổi từ parent
-      geocodeAddress(address);
+      // Không tự động geocode khi địa chỉ thay đổi - chỉ cập nhật state
+      // User sẽ nhấn Enter để trigger geocoding
     }
   }, [address]);
 
@@ -231,4 +241,5 @@ export const LocationMap: React.FC<LocationMapProps> = ({ address, onLocationSel
       </div>
     </div>
   );
-};
+  }
+);
