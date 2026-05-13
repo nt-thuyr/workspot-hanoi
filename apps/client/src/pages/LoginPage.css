@@ -1,229 +1,270 @@
-/* LoginPage.css */
+/* ============================================================
+   LoginPage.css — WorkSpot HaNoi — Synced with RegisterPage
+   ============================================================ */
 
+/* ── Root layout: split-screen ─────────────────────────────── */
 .login-root {
-    display: flex;
-    width: 100%;
-    height: 100vh;
-    background-color: #f9fafb;
-    /* gray-50 */
-    overflow: hidden;
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #0d0a08;
 }
 
-/* ===== LEFT PANEL (Hero Section) ===== */
+/* ── LEFT PANEL ─────────────────────────────────────────────── */
 .login-left {
-    position: relative;
-    display: none;
-    width: 50%;
-    height: 100%;
-    background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=900&q=80&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 48px;
-}
-
-@media (min-width: 768px) {
-    .login-left {
-        display: flex;
-    }
+  position: relative;
+  flex: 1 1 45%;
+  min-width: 320px;
+  background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=900&q=80&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem;
+  overflow: hidden;
 }
 
 .login-left__overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.4);
-    z-index: 1;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(10, 6, 2, 0.45) 0%,
+    rgba(10, 6, 2, 0.3) 40%,
+    rgba(10, 6, 2, 0.72) 100%
+  );
+  z-index: 0;
 }
 
+/* Logo */
 .login-logo {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: auto;
-    /* Đẩy logo lên trên cùng của panel trái */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
 }
 
 .login-logo__text {
-    color: white;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.2;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
+/* Bottom section */
 .login-left__bottom {
-    position: relative;
-    z-index: 10;
-    max-width: 400px;
+  position: relative;
+  z-index: 1;
 }
 
 .login-left__desc {
-    color: white;
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 1.6;
-    margin-bottom: 24px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0 0 1.4rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  max-width: 340px;
 }
 
-.login-left__dots {
-    display: flex;
-    gap: 8px;
-}
-
-.dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-.dot--active {
-    background-color: #ef4444;
-    /* red-500 làm điểm nhấn giống spec */
-    width: 24px;
-    border-radius: 4px;
-}
-
-/* ===== RIGHT PANEL (Form Section) ===== */
+/* ── RIGHT PANEL ────────────────────────────────────────────── */
 .login-right {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    background-color: white;
-}
-
-@media (min-width: 768px) {
-    .login-right {
-        width: 50%;
-    }
+  flex: 1 1 55%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #faf8f6;
+  padding: 2.5rem 1.5rem;
+  overflow-y: auto;
 }
 
 .login-form-wrapper {
-    width: 100%;
-    max-width: 400px;
+  width: 100%;
+  max-width: 420px;
 }
 
+/* Title */
 .login-title {
-    font-size: 30px;
-    font-weight: 700;
-    color: #1f2937;
-    /* gray-800 */
-    margin-bottom: 8px;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #1a1208;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  background: none;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
 }
 
+/* Subtitle */
 .login-subtitle {
-    font-size: 16px;
-    color: #6b7280;
-    /* gray-500 */
-    margin-bottom: 32px;
+  font-size: 0.92rem;
+  color: #6b5e4e;
+  margin: 0 0 2rem;
+  line-height: 1.6;
 }
 
+/* ── Form ───────────────────────────────────────────────────── */
 .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
+/* Label */
 .form-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
-    /* gray-700 */
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3d2f1e;
+  letter-spacing: 0.01em;
 }
 
+/* Input wrapper */
 .input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .input-icon {
-    position: absolute;
-    left: 12px;
-    color: #9ca3af;
-    /* gray-400 */
-    display: flex;
-    align-items: center;
+  position: absolute;
+  left: 14px;
+  color: #a0896b;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: color 0.2s;
 }
 
+/* Input */
 .form-input {
-    width: 100%;
-    padding: 12px 12px 12px 40px;
-    border: 1px solid #d1d5db;
-    /* gray-300 */
-    border-radius: 8px;
-    font-size: 16px;
-    outline: none;
-    transition: all 0.2s;
+  width: 100%;
+  padding: 0.78rem 3rem 0.78rem 2.75rem;
+  border: 1.5px solid #e5d9cc;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #1a1208;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder {
+  color: #bda98e;
 }
 
 .form-input:focus {
-    border-color: #111827;
-    /* gray-900 */
-    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.05);
+  border-color: #c8843a;
+  box-shadow: 0 0 0 3px rgba(200, 132, 58, 0.18);
 }
 
+.form-input:focus + .input-icon,
+.input-wrapper:focus-within .input-icon {
+  color: #c8843a;
+}
+
+/* Password toggle */
 .password-toggle {
-    position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: #9ca3af;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 4px;
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #a0896b;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  box-shadow: none;
+  transform: none !important;
 }
 
 .password-toggle:hover {
-    color: #4b5563;
+  color: #c8843a;
+  background: rgba(200, 132, 58, 0.1);
 }
 
+/* ── Submit button ──────────────────────────────────────────── */
 .login-submit-btn {
-    width: 100%;
-    padding: 14px;
-    background-color: #111827;
-    /* gray-900 */
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 10px;
+  width: 100%;
+  padding: 0.88rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #3d2f1e, #1a1208);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.25s;
+  box-shadow: 0 4px 20px rgba(26, 18, 8, 0.35);
+  margin-top: 0.25rem;
+  transform: none !important;
 }
 
 .login-submit-btn:hover {
-    background-color: #1f2937;
+  background: linear-gradient(135deg, #c8843a, #a0522d);
+  box-shadow: 0 6px 24px rgba(200, 132, 58, 0.45);
+  transform: translateY(-1px) !important;
 }
 
+.login-submit-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 10px rgba(200, 132, 58, 0.3);
+}
+
+/* ── Register link ──────────────────────────────────────────── */
 .login-register-link {
-    margin-top: 32px;
-    text-align: center;
-    font-size: 14px;
-    color: #4b5563;
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: #6b5e4e;
 }
 
 .login-register-link a {
-    color: #2563eb;
-    /* blue-600 */
-    font-weight: 600;
-    text-decoration: none;
-    margin-left: 4px;
+  color: #c8843a;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color 0.2s;
 }
 
 .login-register-link a:hover {
-    text-decoration: underline;
+  border-color: #c8843a;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .login-root {
+    flex-direction: column;
+  }
+
+  .login-left {
+    flex: none;
+    min-height: 220px;
+    padding: 1.75rem;
+  }
+
+  .login-right {
+    flex: none;
+    padding: 2rem 1.25rem;
+  }
+
+  .login-title {
+    font-size: 1.75rem;
+  }
 }
