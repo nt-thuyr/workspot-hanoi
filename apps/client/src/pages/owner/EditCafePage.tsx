@@ -1,11 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import { FormInput } from "../../components/FormInput";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
 import { MenuImageGrid } from "../../components/cafe/MenuImageGrid";
 import { FeatureTags } from "../../components/cafe/FeatureTags";
-import { LocationMap } from "../../components/cafe/LocationMap";
+import {
+  LocationMap,
+  type LocationMapHandle,
+} from "../../components/cafe/LocationMap";
 
 interface MenuImage {
   id: string;
@@ -29,6 +32,7 @@ interface CafeFormData {
 
 export const EditCafePage: React.FC = () => {
   const navigate = useNavigate();
+  const locationMapRef = useRef<LocationMapHandle>(null);
   const [cafeId, setCafeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [submitError, setSubmitError] = useState("");
@@ -58,16 +62,68 @@ export const EditCafePage: React.FC = () => {
 
     const fetchCafe = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/cafes/owner/${ownerId}`);
+        const response = await fetch(
+          `http://localhost:3000/api/cafes/owner/${ownerId}`,
+        );
         const result = await response.json();
-        
+
         if (result.success && result.data && result.data.length > 0) {
           const cafe = result.data[0];
           setCafeId(cafe.id);
+          // Parse address into street and ward using same logic as Register page
+          const rawAddress = cafe.address || "";
+          const addressParts = rawAddress
+            .split(",")
+            .map((p: string) => p.trim())
+            .filter(Boolean);
+
+          let parsedStreet = "";
+          let parsedWard = "";
+
+          if (addressParts.length >= 2) {
+            const wardPatterns = [
+              "phường",
+              "quận",
+              "huyện",
+              "xã",
+              "thị trấn",
+              "tp.",
+              "thành phố",
+              "ward",
+              "district",
+              "commune",
+              "city",
+              "town",
+            ];
+
+            const wardIndex = addressParts.findIndex((part: string) =>
+              wardPatterns.some((pattern) =>
+                part.toLowerCase().includes(pattern),
+              ),
+            );
+
+            if (wardIndex > 0) {
+              parsedStreet = addressParts.slice(0, wardIndex).join(", ");
+              parsedWard = addressParts.slice(wardIndex).join(", ");
+            } else if (wardIndex === 0) {
+              parsedStreet = "";
+              parsedWard = addressParts.join(", ");
+            } else if (addressParts.length > 1) {
+              parsedStreet = addressParts.slice(0, -1).join(", ");
+              parsedWard = addressParts.slice(-1)[0] || "";
+            } else {
+              parsedStreet = addressParts[0] || "";
+              parsedWard = "";
+            }
+          } else if (addressParts.length === 1) {
+            parsedStreet = addressParts[0];
+            parsedWard = "";
+          }
+
           setFormData({
             cafeName: cafe.name || "",
-            ward: (cafe.address || "").split(",").reverse()[0]?.trim() || "",
-            street: (cafe.address || "").split(",").reverse()[1]?.trim() || cafe.address || "",
+            ward: parsedWard,
+            street: parsedStreet || cafe.address || "",
             tags: cafe.tags || [],
             openTime: cafe.open_time || "",
             closeTime: cafe.close_time || "",
@@ -88,7 +144,7 @@ export const EditCafePage: React.FC = () => {
   }, [navigate]);
 
   const fullAddress = useMemo(() => {
-    return [formData.ward, formData.street].filter(Boolean).join(" ");
+    return [formData.street, formData.ward].filter(Boolean).join(", ");
   }, [formData.ward, formData.street]);
 
   const handleInputChange = (
@@ -103,6 +159,98 @@ export const EditCafePage: React.FC = () => {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Trigger immediate geocoding when Enter is pressed
+      if (locationMapRef.current && fullAddress.trim()) {
+        locationMapRef.current.geocodeAndSearch(fullAddress);
+      }
+    }
+  };
+
+  const handleLocationSelect = (
+    lat: number,
+    lng: number,
+    address: string,
+    fromGeocode?: boolean,
+  ) => {
+    setFormData((prev) => {
+      const updateData = {
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+      };
+
+      // Nếu cập nhật vị trí xuất phát từ việc gõ địa chỉ, không ghi đè text input đang gõ
+      if (fromGeocode) {
+        return updateData;
+      }
+
+      const addressParts = address
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      const wardPatterns = [
+        "phường",
+        "quận",
+        "huyện",
+        "xã",
+        "thị trấn",
+        "tp.",
+        "thành phố",
+        "ward",
+        "district",
+        "commune",
+        "city",
+        "town",
+      ];
+
+      const wardIndex = addressParts.findIndex((part) =>
+        wardPatterns.some((pattern) => part.toLowerCase().includes(pattern)),
+      );
+
+      let parsedWard = "";
+      let parsedStreet = "";
+
+      if (wardIndex > 0) {
+        parsedStreet = addressParts.slice(0, wardIndex).join(", ");
+        parsedWard = addressParts.slice(wardIndex).join(", ");
+      } else if (wardIndex === 0) {
+        parsedStreet = "";
+        parsedWard = addressParts.join(", ");
+      } else if (addressParts.length > 1) {
+        parsedStreet = addressParts.slice(0, -1).join(", ");
+        parsedWard = addressParts.slice(-1)[0] || "";
+      } else {
+        parsedStreet = addressParts[0] || "";
+        parsedWard = "";
+      }
+
+      updateData.street = parsedStreet;
+      updateData.ward = parsedWard;
+
+      return updateData;
+    });
+  };
+
+  // Auto-geocode when address changes (with debounce to avoid excessive API calls)
+  React.useEffect(() => {
+    if (!fullAddress.trim()) {
+      return; // Don't geocode empty addresses
+    }
+
+    // Debounce the geocoding request by 800ms
+    const timeoutId = setTimeout(() => {
+      if (locationMapRef.current && fullAddress.trim()) {
+        locationMapRef.current.geocodeAndSearch(fullAddress);
+      }
+    }, 800);
+
+    return () => clearTimeout(timeoutId);
+  }, [fullAddress]);
 
   const handleTagsChange = (tags: string[]) => {
     setFormData((prev) => ({ ...prev, tags }));
@@ -154,20 +302,27 @@ export const EditCafePage: React.FC = () => {
 
     try {
       const ownerId = localStorage.getItem("user_id");
-      const address = [formData.street, formData.ward].filter(Boolean).join(", ");
-      
-      const response = await fetch(`http://localhost:3000/api/cafes/${cafeId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          owner_id: ownerId,
-          name: formData.cafeName,
-          address: address,
-          open_time: formData.openTime,
-          close_time: formData.closeTime,
-          tags: formData.tags,
-        }),
-      });
+      const address = [formData.street, formData.ward]
+        .filter(Boolean)
+        .join(", ");
+
+      const response = await fetch(
+        `http://localhost:3000/api/cafes/${cafeId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            owner_id: ownerId,
+            name: formData.cafeName,
+            address: address,
+            lat: formData.latitude,
+            lng: formData.longitude,
+            open_time: formData.openTime,
+            close_time: formData.closeTime,
+            tags: formData.tags,
+          }),
+        },
+      );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update");
@@ -183,7 +338,11 @@ export const EditCafePage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-[#fdf9f4] flex items-center justify-center">Đang tải dữ liệu...</div>;
+    return (
+      <div className="min-h-screen bg-[#fdf9f4] flex items-center justify-center">
+        Đang tải dữ liệu...
+      </div>
+    );
   }
 
   return (
@@ -230,19 +389,21 @@ export const EditCafePage: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormInput
-                      label="番地・通り名"
+                      label="番地・通り"
                       name="street"
-                      placeholder="番地・通り名"
+                      placeholder="番地・通り"
                       value={formData.street}
                       onChange={handleInputChange}
+                      onKeyDown={handleAddressKeyDown}
                       error={errors.street}
                     />
                     <FormInput
                       label="区・町"
                       name="ward"
-                      placeholder="区・町名"
+                      placeholder="区・町"
                       value={formData.ward}
                       onChange={handleInputChange}
+                      onKeyDown={handleAddressKeyDown}
                       error={errors.ward}
                     />
                   </div>
@@ -258,7 +419,13 @@ export const EditCafePage: React.FC = () => {
                 {/* Right Column: Sticky Map */}
                 <div className="relative">
                   <div className="sticky top-24 h-full min-h-[400px] max-h-[calc(100vh-160px)]">
-                    <LocationMap address={fullAddress} />
+                    <LocationMap
+                      ref={locationMapRef}
+                      address={fullAddress}
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      onLocationSelect={handleLocationSelect}
+                    />
                   </div>
                 </div>
               </div>
