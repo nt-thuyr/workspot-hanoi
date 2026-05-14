@@ -13,4 +13,10 @@ if (!supabaseUrl || !supabaseKey) {
 console.log('[Supabase Config] URL:', supabaseUrl);
 console.log('[Supabase Config] Key (first 20 chars):', supabaseKey.substring(0, 20) + '...');
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
+});
