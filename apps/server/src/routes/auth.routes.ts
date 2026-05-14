@@ -9,7 +9,7 @@ const router = Router();
 // Giới hạn đăng ký: tối đa 5 tài khoản/IP mỗi 15 phút
 const registerLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,  // 15 phút
-    limit: 5,
+    limit: 50,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: {

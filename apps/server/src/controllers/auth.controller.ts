@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabase';
-import { AuthModel } from '../models/auth.model';
+import { supabase, supabaseAuth } from '../config/supabase';
 
 const ROLE_TO_ROLE_ID = {
     japanese_user: 1,
@@ -21,8 +20,8 @@ export const login = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Vui lòng nhập email và mật khẩu' });
         }
 
-        // Gọi hàm đăng nhập của Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Dùng supabaseAuth (client riêng) để tránh user session ghi đè lên supabase admin client
+        const { data, error } = await supabaseAuth.auth.signInWithPassword({
             email,
             password,
         });
@@ -31,14 +30,13 @@ export const login = async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
         }
 
-        // Fetch profile
+        // Fetch profile dùng supabase admin client (service_role, không bị RLS)
         const { data: profile } = await supabase
             .from('profiles')
             .select('full_name')
             .eq('id', data.user.id)
             .single();
 
-        // Trả về session (chứa access_token) và thông tin user
         res.status(200).json({
             success: true,
             message: 'Đăng nhập thành công',
@@ -56,6 +54,7 @@ export const login = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: 'Lỗi server khi đăng nhập' });
     }
 };
+
 export const register = async (req: Request, res: Response) => {
     try {
         const { email, password, name, role, latitude, longitude } = req.body;
@@ -77,11 +76,12 @@ export const register = async (req: Request, res: Response) => {
         const normalizedEmail = String(email).trim().toLowerCase();
         const fullName = typeof name === 'string' ? name.trim() : '';
 
-        // Dùng Admin API để tạo user với email đã xác thực ngay (không gửi email → tránh rate limit)
+        // Dùng supabase admin client — KHÔNG bao giờ gọi signInWithPassword trên client này
+        // Profile sẽ được tạo tự động qua Supabase trigger on_auth_user_created
         const { data, error } = await supabase.auth.admin.createUser({
             email: normalizedEmail,
             password,
-            email_confirm: true,   // ← xác nhận email ngay, không cần gửi mail
+            email_confirm: true,
             user_metadata: {
                 name: fullName || null,
                 role,
@@ -94,35 +94,6 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({
                 success: false,
                 message: error?.message || 'Không thể tạo tài khoản mới.',
-            });
-        }
-
-        // Cập nhật display name cho user
-        if (fullName) {
-            await supabase.auth.admin.updateUserById(data.user.id, {
-                user_metadata: {
-                    name: fullName,
-                    role,
-                    latitude: latitude || null,
-                    longitude: longitude || null,
-                }
-            });
-        }
-
-        try {
-            await AuthModel.createProfile({
-                id: data.user.id,
-                role_id: ROLE_TO_ROLE_ID[role],
-                full_name: fullName || null,
-                avatar_url: null,
-            });
-        } catch (profileError) {
-            await supabase.auth.admin.deleteUser(data.user.id);
-
-            console.error('Error creating profile after sign up:', profileError);
-            return res.status(500).json({
-                success: false,
-                message: 'Đã tạo tài khoản nhưng không thể tạo profile. Vui lòng thử lại.',
             });
         }
 
