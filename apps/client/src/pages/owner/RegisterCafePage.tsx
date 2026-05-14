@@ -5,7 +5,10 @@ import { FormInput } from "../../components/FormInput";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
 import { MenuImageGrid } from "../../components/cafe/MenuImageGrid";
 import { FeatureTags } from "../../components/cafe/FeatureTags";
-import { LocationMap, type LocationMapHandle } from "../../components/cafe/LocationMap";
+import {
+  LocationMap,
+  type LocationMapHandle,
+} from "../../components/cafe/LocationMap";
 
 interface MenuImage {
   id: string;
@@ -40,18 +43,7 @@ export const RegisterCafePage: React.FC = () => {
     latitude: null,
     longitude: null,
     coverImage: null,
-    menuImages: [
-      {
-        id: "1",
-        src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCxrCmr4tRyY1DnfGN3Qp5SpY-rk1bIDZg_Y0Mb47xwJXg-V9hzfDzGPJXpXDddhAllVVUTetsSOVmJKTdqQOYyinjEjVg0OcuKMT_ch0POW5jcegz0lxZS97DT4C-t4OGhWlDdYfipDxForD-vLvGuBe47NeqYyE6RWJJnKHiPo2vUOVfBP2Ozi1S-E9r5flFc_Yy_vvaKSYZGfplw0I7ZV8gcaoOSjk558nQ-Uj51-nJsvPFXYsOpyRH_JwcF5CUT_GvpYd5UQRwY",
-        alt: "Menu chalkboard",
-      },
-      {
-        id: "2",
-        src: "https://lh3.googleusercontent.com/aida-public/AB6AXuB6fTzswVnRdIEHQIRDjf08uq6SaY9tp6PhjiFmgUEXYto4jc8QAovL3tH81A4L5SAgZ_C62ADT4KdaCG97J8_wj00uU3lytowKIX7-3Vi_a1MrrzEs_TEpPJ2erJh9oExrv5dJR5ps2oQzBmTslIq4BeJIlwLRldDDepQR69Eu28enHm04v57pOqUrW56hX474OlL0mbgFmNS3KSG3dCT8G1RzAmfzD9UXrvnni_0gAMNJwPtfSJMmgN22mDoqb4pmDQZQXYZnoS4h",
-        alt: "Menu on wooden table",
-      },
-    ],
+    menuImages: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,8 +51,23 @@ export const RegisterCafePage: React.FC = () => {
   const [submitError, setSubmitError] = useState<string>("");
 
   const fullAddress = useMemo(() => {
-    return [formData.ward, formData.street].filter(Boolean).join(" ");
+    return [formData.street, formData.ward].filter(Boolean).join(", ");
   }, [formData.ward, formData.street]);
+
+  // Auto-geocode khi địa chỉ thay đổi (debounce 800ms) để cập nhật mượt mà
+  React.useEffect(() => {
+    if (!fullAddress.trim()) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (locationMapRef.current && fullAddress.trim()) {
+        locationMapRef.current.geocodeAndSearch(fullAddress);
+      }
+    }, 800);
+
+    return () => clearTimeout(timeoutId);
+  }, [fullAddress]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -93,9 +100,12 @@ export const RegisterCafePage: React.FC = () => {
     setFormData((prev) => ({ ...prev, tags }));
   };
 
-  const handleLocationSelect = (lat: number, lng: number, address: string) => {
-    // Chỉ cập nhật lat/lng, không thay đổi street/ward nếu user đã điền
-    // Nếu cả street và ward trống, mới tách address để điền
+  const handleLocationSelect = (
+    lat: number,
+    lng: number,
+    address: string,
+    fromGeocode?: boolean,
+  ) => {
     setFormData((prev) => {
       const updateData = {
         ...prev,
@@ -103,12 +113,54 @@ export const RegisterCafePage: React.FC = () => {
         longitude: lng,
       };
 
-      // Chỉ cập nhật street/ward nếu chúng trống
-      if (!prev.street.trim() && !prev.ward.trim()) {
-        const addressParts = address.split(",").map((part) => part.trim()).reverse();
-        updateData.street = addressParts[1] || "";
-        updateData.ward = addressParts[0] || "";
+      // Nếu cập nhật vị trí xuất phát từ việc gõ địa chỉ, không ghi đè text input đang gõ
+      if (fromGeocode) {
+        return updateData;
       }
+
+      const addressParts = address
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      const wardPatterns = [
+        "phường",
+        "quận",
+        "huyện",
+        "xã",
+        "thị trấn",
+        "tp.",
+        "thành phố",
+        "ward",
+        "district",
+        "commune",
+        "city",
+        "town",
+      ];
+
+      const wardIndex = addressParts.findIndex((part) =>
+        wardPatterns.some((pattern) => part.toLowerCase().includes(pattern)),
+      );
+
+      let parsedWard = "";
+      let parsedStreet = "";
+
+      if (wardIndex > 0) {
+        parsedStreet = addressParts.slice(0, wardIndex).join(", ");
+        parsedWard = addressParts.slice(wardIndex).join(", ");
+      } else if (wardIndex === 0) {
+        parsedStreet = "";
+        parsedWard = addressParts.join(", ");
+      } else if (addressParts.length > 1) {
+        parsedStreet = addressParts.slice(0, -1).join(", ");
+        parsedWard = addressParts.slice(-1)[0] || "";
+      } else {
+        parsedStreet = addressParts[0] || "";
+        parsedWard = "";
+      }
+
+      updateData.street = parsedStreet;
+      updateData.ward = parsedWard;
 
       return updateData;
     });
@@ -191,7 +243,7 @@ export const RegisterCafePage: React.FC = () => {
       formDataToSend.append("lat", formData.latitude?.toString() || "");
       formDataToSend.append("lng", formData.longitude?.toString() || "");
       formDataToSend.append("tags", JSON.stringify(formData.tags));
-      
+
       // Get actual user ID from localStorage
       const ownerId = localStorage.getItem("user_id");
       if (!ownerId) {
@@ -240,7 +292,9 @@ export const RegisterCafePage: React.FC = () => {
       console.log("[RegisterCafe] Response data:", data);
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to register café");
+        throw new Error(
+          data.message || data.error || "Failed to register café",
+        );
       }
 
       // Success!
@@ -248,7 +302,9 @@ export const RegisterCafePage: React.FC = () => {
       navigate("/dashboard"); // Redirect to dashboard
     } catch (error: any) {
       console.error("[RegisterCafe] Error submitting form:", error);
-      setSubmitError(error.message || "Failed to register café. Please try again.");
+      setSubmitError(
+        error.message || "Failed to register café. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +372,7 @@ export const RegisterCafePage: React.FC = () => {
                     <FormInput
                       label="番地・通り"
                       name="street"
-                      placeholder="番地・通り名"
+                      placeholder="番地・通り"
                       value={formData.street}
                       onChange={handleInputChange}
                       onKeyDown={handleAddressKeyDown}
@@ -325,7 +381,7 @@ export const RegisterCafePage: React.FC = () => {
                     <FormInput
                       label="区・町"
                       name="ward"
-                      placeholder="区・町名"
+                      placeholder="区・町"
                       value={formData.ward}
                       onChange={handleInputChange}
                       onKeyDown={handleAddressKeyDown}
@@ -344,7 +400,13 @@ export const RegisterCafePage: React.FC = () => {
                 {/* Right Column: Sticky Map */}
                 <div className="relative">
                   <div className="sticky top-24 h-full min-h-[400px] max-h-[calc(100vh-160px)]">
-                    <LocationMap ref={locationMapRef} address={fullAddress} onLocationSelect={handleLocationSelect} />
+                    <LocationMap
+                      ref={locationMapRef}
+                      address={fullAddress}
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      onLocationSelect={handleLocationSelect}
+                    />
                   </div>
                 </div>
               </div>
