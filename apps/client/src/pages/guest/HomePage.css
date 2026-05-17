@@ -133,7 +133,7 @@
 
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 .home-sidebar {
-  width: 270px;
+  width: 300px;
   flex-shrink: 0;
   background: #fff;
   border-right: 1px solid #ede8e0;
