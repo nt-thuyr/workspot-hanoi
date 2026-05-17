@@ -9,6 +9,7 @@ import {
   LocationMap,
   type LocationMapHandle,
 } from "../../components/cafe/LocationMap";
+import toast from "react-hot-toast";
 
 interface MenuImage {
   id: string;
@@ -48,7 +49,6 @@ export const RegisterCafePage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string>("");
 
   const fullAddress = useMemo(() => {
     return [formData.street, formData.ward].filter(Boolean).join(", ");
@@ -167,36 +167,23 @@ export const RegisterCafePage: React.FC = () => {
   };
 
   const handleCoverImageSelect = (file: File) => {
-    console.log("[RegisterCafe] Cover image selected:", {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
     setFormData((prev) => ({
       ...prev,
       coverImage: file,
     }));
-    console.log("[RegisterCafe] Cover image state updated");
   };
 
   const handleAddMenuImage = (file: File) => {
-    console.log("[RegisterCafe] Menu image selected:", {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
     const newImage: MenuImage = {
       id: Date.now().toString(),
       src: URL.createObjectURL(file),
       alt: file.name,
       file: file, // Store the actual File object
     };
-    console.log("[RegisterCafe] Menu image added, blob URL:", newImage.src);
     setFormData((prev) => ({
       ...prev,
       menuImages: [...prev.menuImages, newImage],
     }));
-    console.log("[RegisterCafe] Menu image state updated");
   };
 
   const handleDeleteMenuImage = (id: string) => {
@@ -219,7 +206,12 @@ export const RegisterCafePage: React.FC = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -230,7 +222,6 @@ export const RegisterCafePage: React.FC = () => {
     }
 
     setIsLoading(true);
-    setSubmitError("");
 
     try {
       // Create FormData to include files
@@ -253,32 +244,14 @@ export const RegisterCafePage: React.FC = () => {
 
       // Add cover image if present
       if (formData.coverImage) {
-        console.log("[RegisterCafe] Adding cover image:", formData.coverImage);
         formDataToSend.append("coverImage", formData.coverImage);
-      } else {
-        console.log("[RegisterCafe] No cover image selected");
       }
 
       // Add menu images (collect only those with File objects)
-      let menuImageCount = 0;
       formData.menuImages.forEach((img) => {
         if (img.file) {
-          console.log("[RegisterCafe] Adding menu image:", img.file.name);
           formDataToSend.append("menuImages", img.file);
-          menuImageCount++;
         }
-      });
-      console.log("[RegisterCafe] Total menu images:", menuImageCount);
-
-      console.log("[RegisterCafe] Submitting form data...");
-      console.log("[RegisterCafe] FormData entries:", {
-        cafeName: formData.cafeName,
-        ward: formData.ward,
-        street: formData.street,
-        openTime: formData.openTime,
-        closeTime: formData.closeTime,
-        hasCoverImage: !!formData.coverImage,
-        menuImageCount: menuImageCount,
       });
 
       const response = await fetch("http://localhost:3000/api/cafes", {
@@ -286,11 +259,7 @@ export const RegisterCafePage: React.FC = () => {
         body: formDataToSend,
       });
 
-      console.log("[RegisterCafe] Response status:", response.status);
-
       const data = await response.json();
-      console.log("[RegisterCafe] Response data:", data);
-
       if (!response.ok) {
         throw new Error(
           data.message || data.error || "Failed to register café",
@@ -298,11 +267,11 @@ export const RegisterCafePage: React.FC = () => {
       }
 
       // Success!
-      alert("カフェを正常に登録しました！");
+      toast.success("カフェを正常に登録しました！");
       navigate("/dashboard"); // Redirect to dashboard
     } catch (error: any) {
       console.error("[RegisterCafe] Error submitting form:", error);
-      setSubmitError(
+      toast.error(
         error.message || "Failed to register café. Please try again.",
       );
     } finally {
@@ -480,11 +449,6 @@ export const RegisterCafePage: React.FC = () => {
 
             {/* Actions */}
             <div className="pt-8 flex flex-col md:flex-row items-center justify-end gap-4 border-t border-[#e5e3df]">
-              {submitError && (
-                <div className="w-full p-4 bg-red-100 text-red-700 rounded-lg mb-4">
-                  {submitError}
-                </div>
-              )}
               <button
                 type="button"
                 onClick={handleCancel}

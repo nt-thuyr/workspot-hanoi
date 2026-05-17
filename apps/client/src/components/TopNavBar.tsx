@@ -73,7 +73,10 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
               <div className="nav-avatar">
-                {localStorage.getItem("user_name") ? localStorage.getItem("user_name")![0].toUpperCase() : "U"}
+                {(() => {
+                  const name = localStorage.getItem("user_name");
+                  return name && name.length > 0 ? name.charAt(0).toUpperCase() : "U";
+                })()}
               </div>
               <span>{localStorage.getItem("user_name") || "ユーザー"}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

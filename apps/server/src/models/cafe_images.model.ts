@@ -52,6 +52,18 @@ export class CafeImagesModel {
     return true;
   }
 
+  // DELETE BY TYPE - Xóa ảnh theo loại
+  static async deleteCafeImagesByType(cafeId: string, imageType: string) {
+    const { error } = await supabase
+      .from('cafe_images')
+      .delete()
+      .eq('cafe_id', cafeId)
+      .eq('image_type', imageType);
+    
+    if (error) throw error;
+    return true;
+  }
+
   // HELPER - Kiểm tra owner của café
   static async isOwner(cafeImageId: number, ownerId: string): Promise<boolean> {
     const { data: image, error: imageError } = await supabase

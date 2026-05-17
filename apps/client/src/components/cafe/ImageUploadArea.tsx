@@ -5,6 +5,7 @@ interface ImageUploadAreaProps {
   label: string;
   description?: string;
   size?: string;
+  initialPreview?: string | null;
 }
 
 export const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
@@ -12,9 +13,16 @@ export const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
   label,
   description = "Click to select primary hero photo",
   size = "Recommended size: 1920x800px",
+  initialPreview = null,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialPreview);
+
+  React.useEffect(() => {
+    if (initialPreview) {
+      setPreview(initialPreview);
+    }
+  }, [initialPreview]);
 
   const handleClick = () => {
     console.log("[ImageUploadArea] Click to upload, opening file dialog");

@@ -213,9 +213,17 @@ export const createCafe = async (req: Request, res: Response) => {
             // Map tag names to amenity IDs (thay đổi theo your data)
             const tagToAmenityMap: { [key: string]: number } = {
                 'wifi': 1,
+                '高速wi-fi': 1,
                 'outlet': 2,
+                'コンセント': 2,
+                'コンセントあり': 2,
                 'quiet': 3,
+                '静かな環境': 3,
+                '静か': 3,
                 'nonsmoking': 4,
+                '禁煙': 4,
+                'エアコン': 5,
+                'エアコン完備': 5
             };
 
             for (const tag of tagArray) {
@@ -248,7 +256,24 @@ export const createCafe = async (req: Request, res: Response) => {
 export const updateCafe = async (req: Request, res: Response) => {
     try {
         const { id } = req.params as { id: string };
-        const { owner_id, ...updates } = req.body;
+        const { 
+            owner_id,
+            cafeName, // Lấy tên tương tự FE truyền
+            name,
+            address,
+            ward,
+            street,
+            lat,
+            lng,
+            openTime,
+            closeTime,
+            tags,
+            deletedMenuImageIds
+        } = req.body;
+
+        // Xử lý address: kết hợp từ street và ward nếu có, hoặc dùng thẳng address
+        const updatedAddress = (street && ward) ? `${street}, ${ward}` : address;
+        const updatedName = cafeName || name;
 
         // Kiểm tra owner
         const isOwner = await CafeModel.isOwner(id, owner_id);
@@ -259,7 +284,75 @@ export const updateCafe = async (req: Request, res: Response) => {
             });
         }
 
+        const updates = {
+            name: updatedName,
+            address: updatedAddress,
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null,
+            open_time: openTime || null,
+            close_time: closeTime || null,
+        };
+
         const cafe = await CafeModel.updateCafeInfo(id, updates);
+
+        // Link amenities based on tags
+        if (tags) {
+            const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags || '[]');
+            
+            // Xóa hết amenities cũ để thêm mới
+            await CafeAmenitiesModel.deleteCafeAmenities(id);
+
+            const tagToAmenityMap: { [key: string]: number } = {
+                'wifi': 1,
+                '高速wi-fi': 1,
+                'outlet': 2,
+                'コンセント': 2,
+                'コンセントあり': 2,
+                'quiet': 3,
+                '静かな環境': 3,
+                '静か': 3,
+                'nonsmoking': 4,
+                '禁煙': 4,
+                'エアコン': 5,
+                'エアコン完備': 5
+            };
+
+            for (const tag of tagArray) {
+                const amenityId = tagToAmenityMap[tag.toLowerCase()];
+                if (amenityId) {
+                    await CafeAmenitiesModel.createCafeAmenity(id, amenityId);
+                }
+            }
+        }
+
+        // Xử lý file ảnh
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        
+        // Cập nhật ảnh cover (INTERIOR)
+        if (files?.coverImage && files.coverImage.length > 0) {
+            const coverFile = files.coverImage[0];
+            if (coverFile) {
+                await CafeImagesModel.deleteCafeImagesByType(id, 'INTERIOR');
+                const coverImageUrl = await uploadImageToSupabase(coverFile, 'cafe-images', 'covers');
+                await CafeImagesModel.createCafeImage(id, coverImageUrl, 'INTERIOR');
+            }
+        }
+
+        // Xóa các ảnh menu bị người dùng xóa
+        if (deletedMenuImageIds) {
+            const idsToDelete = JSON.parse(deletedMenuImageIds);
+            for (const imageId of idsToDelete) {
+                await CafeImagesModel.deleteCafeImage(parseInt(imageId));
+            }
+        }
+
+        // Cập nhật ảnh menu (thêm ảnh mới)
+        if (files?.menuImages && files.menuImages.length > 0) {
+            for (const file of files.menuImages) {
+                const url = await uploadImageToSupabase(file, 'cafe-images', 'menus');
+                await CafeImagesModel.createCafeImage(id, url, 'MENU');
+            }
+        }
 
         res.status(200).json({ success: true, data: cafe });
     } catch (error: any) {

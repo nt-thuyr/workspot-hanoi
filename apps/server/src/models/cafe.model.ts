@@ -63,7 +63,15 @@ export class CafeModel {
 
     if (amenitiesError) throw amenitiesError;
 
-    return { ...cafe, amenities };
+    // Lấy images
+    const { data: images, error: imagesError } = await supabase
+      .from("cafe_images")
+      .select("*")
+      .eq("cafe_id", id);
+
+    if (imagesError) throw imagesError;
+
+    return { ...cafe, amenities, images };
   }
 
   // Lấy toàn bộ quán của owner (với pagination)

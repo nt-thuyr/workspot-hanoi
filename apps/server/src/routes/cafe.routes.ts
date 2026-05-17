@@ -76,7 +76,25 @@ router.post(
 // ━━━ UPDATE ━━━
 
 // PUT /api/cafes/:id - Cập nhật quán (owner)
-router.put('/:id', updateCafe);
+router.put(
+  '/:id',
+  (req: Request, res: Response, next: any) => {
+    upload.fields([
+      { name: 'coverImage', maxCount: 1 },
+      { name: 'menuImages', maxCount: 10 },
+    ])(req, res, (err: any) => {
+      if (err) {
+        console.error('[Route PUT /cafes] Multer error:', err.message);
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${err.message}`,
+        });
+      }
+      next();
+    });
+  },
+  updateCafe
+);
 
 // ━━━ DELETE ━━━
 

@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import HomePage from "./pages/guest/HomePage";
 import SearchPage from "./pages/guest/SearchPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -17,13 +18,19 @@ const router = createBrowserRouter([
     path: "/cafes",
     children: [
       { path: "edit", element: <EditCafePage /> },
+      { path: "edit/:id", element: <EditCafePage /> },
       { path: "register", element: <RegisterCafePage /> },
     ],
   },
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <Toaster position="top-right" />
+      <RouterProvider router={router} />
+    </>
+  );
 }
 
 export default App;

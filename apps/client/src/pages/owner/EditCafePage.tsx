@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import { FormInput } from "../../components/FormInput";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
@@ -9,6 +9,7 @@ import {
   LocationMap,
   type LocationMapHandle,
 } from "../../components/cafe/LocationMap";
+import toast from "react-hot-toast";
 
 interface MenuImage {
   id: string;
@@ -32,11 +33,13 @@ interface CafeFormData {
 
 export const EditCafePage: React.FC = () => {
   const navigate = useNavigate();
+  const { id: urlCafeId } = useParams<{ id: string }>();
   const locationMapRef = useRef<LocationMapHandle>(null);
-  const [cafeId, setCafeId] = useState<string | null>(null);
+  const [cafeId, setCafeId] = useState<string | null>(urlCafeId || null);
   const [isLoading, setIsLoading] = useState(true);
-  const [submitError, setSubmitError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [initialCoverImagePreview, setInitialCoverImagePreview] = useState<string | null>(null);
+  const [deletedMenuImageIds, setDeletedMenuImageIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState<CafeFormData>({
     cafeName: "",
@@ -62,76 +65,137 @@ export const EditCafePage: React.FC = () => {
 
     const fetchCafe = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3000/api/cafes/owner/${ownerId}`,
-        );
-        const result = await response.json();
+        let targetCafeId = urlCafeId;
 
-        if (result.success && result.data && result.data.length > 0) {
-          const cafe = result.data[0];
-          setCafeId(cafe.id);
-          // Parse address into street and ward using same logic as Register page
-          const rawAddress = cafe.address || "";
-          const addressParts = rawAddress
-            .split(",")
-            .map((p: string) => p.trim())
-            .filter(Boolean);
+        if (!targetCafeId) {
+          // Step 1: Lấy list cafes của owner để lấy cafeId
+          const ownerResponse = await fetch(
+            `http://localhost:3000/api/cafes/owner/${ownerId}`,
+          );
+          const ownerResult = await ownerResponse.json();
 
-          let parsedStreet = "";
-          let parsedWard = "";
+          if (ownerResult.success && ownerResult.data && ownerResult.data.length > 0) {
+            targetCafeId = ownerResult.data[0].id;
+          }
+        }
 
-          if (addressParts.length >= 2) {
-            const wardPatterns = [
-              "phường",
-              "quận",
-              "huyện",
-              "xã",
-              "thị trấn",
-              "tp.",
-              "thành phố",
-              "ward",
-              "district",
-              "commune",
-              "city",
-              "town",
-            ];
+        if (targetCafeId) {
+          setCafeId(targetCafeId);
+          // Step 2: Fetch chi tiết quán bằng ID để lấy amenities & images
+          const detailResponse = await fetch(`http://localhost:3000/api/cafes/${targetCafeId}`);
+          const detailResult = await detailResponse.json();
+          
+          if (detailResult.success && detailResult.data) {
+            const cafe = detailResult.data;
+            setCafeId(cafe.id);
+            
+            // Parse address into street and ward using same logic as Register page
+            const rawAddress = cafe.address || "";
+            const addressParts = rawAddress
+              .split(",")
+              .map((p: string) => p.trim())
+              .filter(Boolean);
 
-            const wardIndex = addressParts.findIndex((part: string) =>
-              wardPatterns.some((pattern) =>
-                part.toLowerCase().includes(pattern),
-              ),
-            );
+            let parsedStreet = "";
+            let parsedWard = "";
 
-            if (wardIndex > 0) {
-              parsedStreet = addressParts.slice(0, wardIndex).join(", ");
-              parsedWard = addressParts.slice(wardIndex).join(", ");
-            } else if (wardIndex === 0) {
-              parsedStreet = "";
-              parsedWard = addressParts.join(", ");
-            } else if (addressParts.length > 1) {
-              parsedStreet = addressParts.slice(0, -1).join(", ");
-              parsedWard = addressParts.slice(-1)[0] || "";
-            } else {
-              parsedStreet = addressParts[0] || "";
+            if (addressParts.length >= 2) {
+              const wardPatterns = [
+                "phường",
+                "quận",
+                "huyện",
+                "xã",
+                "thị trấn",
+                "tp.",
+                "thành phố",
+                "ward",
+                "district",
+                "commune",
+                "city",
+                "town",
+              ];
+
+              const wardIndex = addressParts.findIndex((part: string) =>
+                wardPatterns.some((pattern) =>
+                  part.toLowerCase().includes(pattern),
+                ),
+              );
+
+              if (wardIndex > 0) {
+                parsedStreet = addressParts.slice(0, wardIndex).join(", ");
+                parsedWard = addressParts.slice(wardIndex).join(", ");
+              } else if (wardIndex === 0) {
+                parsedStreet = "";
+                parsedWard = addressParts.join(", ");
+              } else if (addressParts.length > 1) {
+                parsedStreet = addressParts.slice(0, -1).join(", ");
+                parsedWard = addressParts.slice(-1)[0] || "";
+              } else {
+                parsedStreet = addressParts[0] || "";
+                parsedWard = "";
+              }
+            } else if (addressParts.length === 1) {
+              parsedStreet = addressParts[0];
               parsedWard = "";
             }
-          } else if (addressParts.length === 1) {
-            parsedStreet = addressParts[0];
-            parsedWard = "";
-          }
 
-          setFormData({
-            cafeName: cafe.name || "",
-            ward: parsedWard,
-            street: parsedStreet || cafe.address || "",
-            tags: cafe.tags || [],
-            openTime: cafe.open_time || "",
-            closeTime: cafe.close_time || "",
-            coverImage: null,
-            menuImages: [],
-            latitude: cafe.lat || null,
-            longitude: cafe.lng || null,
-          });
+            // Map amenities sang tags
+            const tags = cafe.amenities
+              ? cafe.amenities.map(
+                  (a: any) => {
+                    const name = a.amenities?.name_ja || a.amenities?.name_vi;
+                    if (name) return name;
+                    
+                    switch(a.amenity_id) {
+                      case 1: return "高速Wi-Fi";
+                      case 2: return "コンセントあり";
+                      case 3: return "静かな環境";
+                      case 4: return "禁煙";
+                      case 5: return "エアコン完備";
+                      default: return "";
+                    }
+                  }
+                ).filter(Boolean)
+              : [];
+            
+            // Map images
+            let initialCoverUrl = null;
+            const mappedMenuImages: MenuImage[] = [];
+            
+            if (cafe.images) {
+              const coverImg = cafe.images.find((img: any) => img.image_type === 'INTERIOR');
+              if (coverImg) {
+                initialCoverUrl = coverImg.image_url;
+                setInitialCoverImagePreview(initialCoverUrl);
+              }
+              
+              const menuImgs = cafe.images.filter((img: any) => img.image_type === 'MENU');
+              menuImgs.forEach((img: any) => {
+                mappedMenuImages.push({
+                  id: img.id.toString(),
+                  src: img.image_url,
+                  alt: "Menu Image",
+                });
+              });
+            }
+
+            setFormData({
+              cafeName: cafe.name || "",
+              ward: parsedWard,
+              street: parsedStreet || cafe.address || "",
+              tags: tags,
+              openTime: cafe.open_time ? cafe.open_time.substring(0, 5) : "",
+              closeTime: cafe.close_time ? cafe.close_time.substring(0, 5) : "",
+              coverImage: null,
+              menuImages: mappedMenuImages,
+              latitude: cafe.lat || null,
+              longitude: cafe.lng || null,
+            });
+          } else {
+            console.error("Không tìm thấy quán với ID này");
+          }
+        } else {
+          console.error("Owner không có quán nào để sửa");
         }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu quán:", err);
@@ -141,7 +205,7 @@ export const EditCafePage: React.FC = () => {
     };
 
     fetchCafe();
-  }, [navigate]);
+  }, [navigate, urlCafeId]);
 
   const fullAddress = useMemo(() => {
     return [formData.street, formData.ward].filter(Boolean).join(", ");
@@ -262,7 +326,7 @@ export const EditCafePage: React.FC = () => {
 
   const handleAddMenuImage = (file: File) => {
     const newImage: MenuImage = {
-      id: Date.now().toString(),
+      id: "new-" + Date.now().toString(),
       src: URL.createObjectURL(file),
       alt: file.name,
       file: file,
@@ -278,6 +342,9 @@ export const EditCafePage: React.FC = () => {
       ...prev,
       menuImages: prev.menuImages.filter((img) => img.id !== id),
     }));
+    if (!id.startsWith("new-")) {
+      setDeletedMenuImageIds(prev => [...prev, id]);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -289,7 +356,15 @@ export const EditCafePage: React.FC = () => {
     if (!formData.closeTime.trim()) newErrors.closeTime = "閉店時間は必須です";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
+    }
+    
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -298,40 +373,53 @@ export const EditCafePage: React.FC = () => {
     if (!validateForm() || !cafeId) return;
 
     setIsSaving(true);
-    setSubmitError("");
 
     try {
       const ownerId = localStorage.getItem("user_id");
-      const address = [formData.street, formData.ward]
-        .filter(Boolean)
-        .join(", ");
+      if (!ownerId) {
+        throw new Error("Vui lòng đăng nhập lại để tiếp tục");
+      }
+      
+      const formDataToSend = new FormData();
+      formDataToSend.append("cafeName", formData.cafeName);
+      formDataToSend.append("ward", formData.ward);
+      formDataToSend.append("street", formData.street);
+      formDataToSend.append("openTime", formData.openTime);
+      formDataToSend.append("closeTime", formData.closeTime);
+      formDataToSend.append("lat", formData.latitude?.toString() || "");
+      formDataToSend.append("lng", formData.longitude?.toString() || "");
+      formDataToSend.append("tags", JSON.stringify(formData.tags));
+      formDataToSend.append("owner_id", ownerId);
+      formDataToSend.append("deletedMenuImageIds", JSON.stringify(deletedMenuImageIds));
+
+      // Add cover image if changed
+      if (formData.coverImage) {
+        formDataToSend.append("coverImage", formData.coverImage);
+      }
+
+      // Add new menu images
+      formData.menuImages.forEach((img) => {
+        if (img.file) {
+          formDataToSend.append("menuImages", img.file);
+        }
+      });
 
       const response = await fetch(
         `http://localhost:3000/api/cafes/${cafeId}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            owner_id: ownerId,
-            name: formData.cafeName,
-            address: address,
-            lat: formData.latitude,
-            lng: formData.longitude,
-            open_time: formData.openTime,
-            close_time: formData.closeTime,
-            tags: formData.tags,
-          }),
+          body: formDataToSend,
         },
       );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update");
 
-      alert("カフェ情報を正常に更新しました！");
+      toast.success("Cập nhật thông tin quán thành công!");
       navigate("/");
     } catch (error: any) {
       console.error(error);
-      setSubmitError(error.message);
+      toast.error(error.message || "Đã xảy ra lỗi khi lưu thông tin");
     } finally {
       setIsSaving(false);
     }
@@ -479,6 +567,7 @@ export const EditCafePage: React.FC = () => {
                 onImageSelect={handleCoverImageSelect}
                 description="クリックしてメイン写真を選択"
                 size="推奨サイズ: 1920x800px"
+                initialPreview={initialCoverImagePreview}
               />
 
               {/* Menu Grid */}

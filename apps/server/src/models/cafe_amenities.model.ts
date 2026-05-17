@@ -27,6 +27,17 @@ export class CafeAmenitiesModel {
     return data;
   }
 
+  // DELETE ALL - Xóa tất cả amenities của cafe
+  static async deleteCafeAmenities(cafeId: string) {
+    const { error } = await supabase
+      .from('cafe_amenities')
+      .delete()
+      .eq('cafe_id', cafeId);
+    
+    if (error) throw error;
+    return true;
+  }
+
   // DELETE - Bỏ amenity khỏi café
   static async deleteCafeAmenity(cafeId: string, amenityId: number) {
     const { error } = await supabase
