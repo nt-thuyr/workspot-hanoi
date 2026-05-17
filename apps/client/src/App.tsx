@@ -5,12 +5,14 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterCafePage from "./pages/owner/RegisterCafePage";
 import EditCafePage from "./pages/owner/EditCafePage";
+import ReservationPage from "./pages/ReservationPage";
 
 const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
   { path: "/search", element: <SearchPage /> },
   { path: "/register", element: <RegisterPage /> },
   { path: "/login", element: <LoginPage />},
+  { path: "/booking", element: <ReservationPage /> },
   {
     path: "/cafes",
     children: [
