@@ -53,6 +53,60 @@ export const getUserReservations = async (req: Request, res: Response) => {
   }
 };
 
+export const getHistory = async (req: Request, res: Response) => {
+  try {
+    // Lấy user_id từ request (Đã được Middleware auth giải mã từ Token)
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+    }
+
+    // Gọi Model lấy dữ liệu thô từ Database
+    const rawData = await ReservationModel.getHistoryByUserId(userId);
+
+    // Biến đổi dữ liệu khớp với Interface của Frontend
+    const formattedData = (rawData || []).map((item: any) => {
+      // Xử lý định dạng ngày YYYY/MM/DD
+      const resDate = item.res_date ? new Date(item.res_date) : new Date();
+      const createdDate = item.created_at ? new Date(item.created_at) : new Date();
+
+      // Xử lý an toàn nếu quán bị xóa
+      const cafeInfo = item.cafes || {};
+
+      // Xử lý nối giờ (Sử dụng res_time từ model mới)
+      const timeSlot = item.res_time ? item.res_time : '00:00 - 00:00';
+
+      // Xử lý status map với Frontend ("PENDING" -> "upcoming", "CONFIRMED" -> "completed", "CANCELLED" -> "cancelled")
+      let mappedStatus = 'upcoming';
+      if (item.status === 'CONFIRMED') mappedStatus = 'completed';
+      else if (item.status === 'CANCELLED') mappedStatus = 'cancelled';
+
+      return {
+          id: item.id,
+          cafeId: cafeInfo.id || 0,
+          cafeName: cafeInfo.name || 'Quán Cafe đã ẩn',
+          imageUrl: cafeInfo.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
+          reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
+          timeSlot: timeSlot,
+          seatNumber: item.seat_number || 'フリー席 (Chỗ ngồi tự do)',
+          status: mappedStatus,
+        createdAt: createdDate.toISOString().slice(0, 10).replace(/-/g, '/'),
+        amount: item.amount || 0
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: formattedData
+    });
+
+  } catch (error: any) {
+    console.error('Lỗi API Get History:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi server nội bộ' });
+  }
+};
+
 // GET /api/reservations/cafe/:cafeId - Lấy danh sách đặt chỗ của quán (owner)
 export const getCafeReservations = async (req: Request, res: Response) => {
   try {

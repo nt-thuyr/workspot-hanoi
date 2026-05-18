@@ -1,0 +1,271 @@
+.history-root {
+    min-height: 100vh;
+    background-color: #fcfbf9;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+.history-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.history-header {
+    margin-bottom: 32px;
+}
+
+.history-title {
+    font-size: 28px;
+    color: #4f453e;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.history-subtitle {
+    color: #8c827a;
+    font-size: 14px;
+}
+
+/* Tabs điều hướng */
+.history-tabs {
+    display: flex;
+    gap: 12px;
+    border-bottom: 2px solid #ebdcd0;
+    padding-bottom: 0px;
+    margin-bottom: 24px;
+}
+
+.history-tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 16px;
+    font-size: 15px;
+    color: #8c827a;
+    cursor: pointer;
+    font-weight: 500;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.history-tab-btn:hover {
+    color: #614734;
+}
+
+.history-tab-btn--active {
+    color: #614734;
+    font-weight: 700;
+}
+
+.history-tab-btn--active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #614734;
+    border-radius: 3px 3px 0 0;
+}
+
+/* Các trạng thái trống / loading */
+.history-state-view {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #ebdcd0;
+    color: #8c827a;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    color: #ebdcd0;
+}
+
+/* Danh sách thẻ đặt lịch */
+.reservation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.reservation-card {
+    background-color: #ffffff;
+    border: 1px solid #ebdcd0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(97, 71, 52, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reservation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(97, 71, 52, 0.08);
+}
+
+.res-card-main {
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+    border-bottom: 1px solid #f5ede6;
+}
+
+.res-image-wrapper {
+    width: 140px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.res-cafe-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.res-info-content {
+    flex-grow: 1;
+}
+
+.res-info-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.res-cafe-name {
+    font-size: 18px;
+    color: #4f453e;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Trạng thái Badges */
+.res-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.res-badge--upcoming {
+    background-color: #e6f7ed;
+    color: #2e7d32;
+}
+
+.res-badge--completed {
+    background-color: #f5f5f5;
+    color: #616161;
+}
+
+.res-badge--cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+/* Grid thông tin chi tiết */
+.res-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+}
+
+.res-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6d625a;
+    font-size: 14px;
+}
+
+.detail-icon {
+    font-size: 18px;
+    color: #a89c93;
+}
+
+/* Khu vực nút hành động ở bottom card */
+.res-card-actions {
+    background-color: #faf7f4;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.res-created-date {
+    font-size: 12px;
+    color: #a89c93;
+}
+
+.res-btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.res-action-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s ease;
+}
+
+.res-btn--primary {
+    background-color: #614734;
+    color: #ffffff;
+}
+
+.res-btn--primary:hover {
+    background-color: #4f3929;
+}
+
+.res-btn--secondary {
+    background-color: #ffffff;
+    color: #614734;
+    border: 1px solid #ebdcd0;
+}
+
+.res-btn--secondary:hover {
+    background-color: #faf7f4;
+}
+
+.res-btn--danger {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.res-btn--danger:hover {
+    background-color: #ffcdd2;
+}
+
+/* Responsive cho điện thoại */
+@media (max-width: 600px) {
+    .res-card-main {
+        flex-direction: column;
+    }
+
+    .res-image-wrapper {
+        width: 100%;
+        height: 140px;
+    }
+
+    .res-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .res-card-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .res-btn-group {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

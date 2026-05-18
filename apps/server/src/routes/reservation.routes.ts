@@ -1,9 +1,11 @@
 import { Router } from 'express';
+import { verifyToken } from '../middlewares/auth.middleware';
 import {
   createReservation,
   getUserReservations,
   getCafeReservations,
   updateReservationStatus,
+  getHistory,
 } from '../controllers/reservation.controller';
 
 const router = Router();
@@ -19,5 +21,8 @@ router.get('/cafe/:cafeId', getCafeReservations);
 
 // PUT /api/reservations/:id/status - Cập nhật status (owner)
 router.put('/:id/status', updateReservationStatus);
+
+// GET /api/reservations/history - Lấy lịch sử đặt chỗ (cần token)
+router.get('/history', verifyToken, getHistory);
 
 export default router;
