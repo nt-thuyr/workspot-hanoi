@@ -1,5 +1,6 @@
 import { useState, useEffect, type FC } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./ReservationHistoryPage.css";
 
@@ -25,11 +26,33 @@ const TABS = [
     { key: "cancelled", label: "キャンセル済" } // Đã hủy
 ];
 
+// Component Hộp thoại Xác nhận Hủy
+function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <div className="modal-icon">🗓️</div>
+                <h3 className="modal-title">予約をキャンセルしますか？</h3>
+                <p className="modal-subtitle">Bạn có chắc chắn muốn hủy đặt chỗ?</p>
+                <p className="modal-warning">
+                    本当にこの予約をキャンセルしてもよろしいですか？<br />
+                    <span>キャンセルすると元に戻すことはできません。</span>
+                </p>
+                <div className="modal-actions">
+                    <button onClick={onClose} className="btn-modal-cancel">戻る / Quay lại</button>
+                    <button onClick={() => { onConfirm(); onClose(); }} className="btn-modal-confirm">キャンセルする / Hủy</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const ReservationHistoryPage: FC = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<string>("all");
     const [reservations, setReservations] = useState<ReservationInfo[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
 
     // Lấy trạng thái đăng nhập
     const isLoggedIn = !!localStorage.getItem("access_token");
@@ -42,61 +65,57 @@ const ReservationHistoryPage: FC = () => {
             setLoading(true);
             const token = localStorage.getItem("access_token");
 
+            if (!token) {
+                setReservations([]);
+                setLoading(false);
+                return;
+            }
+
             // Gọi lên route api của tầng server
             const response = await fetch("http://localhost:3000/api/reservations/history", {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
             });
+            
             const result = await response.json();
 
             if (result.success) {
-                setReservations(result.data);
+                setReservations(result.data); // Dữ liệu thật từ DB
             } else {
-                // Dữ liệu mẫu (Mock data) dự phòng nếu backend của nhóm chưa seed dữ liệu lịch sử
-                setReservations([
-                    {
-                        id: 1,
-                        cafeId: 101,
-                        cafeName: "Cerenote Coffee",
-                        imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=500",
-                        reservationDate: "2026/05/20",
-                        timeSlot: "09:00 - 12:00",
-                        seatNumber: "A-04 (コンセント席)",
-                        status: "upcoming",
-                        createdAt: "2026/05/15",
-                        amount: 50000
-                    },
-                    {
-                        id: 2,
-                        cafeId: 102,
-                        cafeName: "Xofa Café & Bistro",
-                        imageUrl: "https://images.unsplash.com/photo-1498804103079-a6351b050096?w=500",
-                        reservationDate: "2026/05/10",
-                        timeSlot: "14:00 - 18:00",
-                        seatNumber: "B-12 (ソファー席)",
-                        status: "completed",
-                        createdAt: "2026/05/09",
-                        amount: 75000
-                    },
-                    {
-                        id: 3,
-                        cafeId: 103,
-                        cafeName: "Kafeville",
-                        imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
-                        reservationDate: "2026/05/01",
-                        timeSlot: "08:00 - 11:00",
-                        seatNumber: "C-02 (窓際席)",
-                        status: "cancelled",
-                        createdAt: "2026/04/30",
-                        amount: 40000
-                    }
-                ]);
+                console.error("Lấy lịch sử thất bại:", result.message);
+                setReservations([]); 
             }
         } catch (error) {
             console.error("Lỗi khi tải lịch sử đặt chỗ:", error);
+            setReservations([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Logic Hủy Đặt Chỗ
+    const executeCancel = async () => {
+        if (!cancelTargetId) return;
+        try {
+            const toastId = toast.loading("キャンセル処理中...");
+            const response = await fetch(`http://localhost:3000/api/reservations/${cancelTargetId}/cancel`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success("予約をキャンセルしました。", { id: toastId });
+                fetchReservationHistory();
+            } else {
+                toast.error(result.message || "キャンセルに失敗しました。", { id: toastId });
+            }
+        } catch (error) {
+            toast.error("サーバーエラーが発生しました。");
         }
     };
 
@@ -218,13 +237,19 @@ const ReservationHistoryPage: FC = () => {
                                         </button>
 
                                         {item.status === "upcoming" && (
-                                            <button className="res-action-btn res-btn--danger">
+                                            <button 
+                                                className="res-action-btn res-btn--danger"
+                                                onClick={() => setCancelTargetId(item.id)}
+                                            >
                                                 予約キャンセル
                                             </button>
                                         )}
 
                                         {item.status === "completed" && (
-                                            <button className="res-action-btn res-btn--primary">
+                                            <button 
+                                                className="res-action-btn res-btn--primary"
+                                                onClick={() => toast("レビュー機能は開発中です！", { icon: '✍️' })}
+                                            >
                                                 レビューを書く
                                             </button>
                                         )}
@@ -235,6 +260,14 @@ const ReservationHistoryPage: FC = () => {
                     </div>
                 )}
             </main>
+
+            {/* Modal Hủy Đặt chỗ */}
+            {cancelTargetId && (
+                <CancelModal
+                    onConfirm={executeCancel}
+                    onClose={() => setCancelTargetId(null)}
+                />
+            )}
         </div>
     );
 };

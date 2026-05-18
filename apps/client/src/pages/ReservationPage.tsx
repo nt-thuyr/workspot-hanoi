@@ -135,37 +135,44 @@ const ReservationPage: FC = () => {
 
     // Validation
     if (!formData.name || !formData.date || !formData.time || !selectedCafe) {
-      setShowAlert("Vui lòng điền đầy đủ thông tin");
+      setShowAlert("Vui lòng điền đầy đủ thông tin và chọn quán Cafe trên bản đồ.");
       return;
     }
 
     try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setShowAlert("Vui lòng đăng nhập để thực hiện đặt chỗ.");
+        return;
+      }
+
       const response = await fetch("http://localhost:3000/api/reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: formData.name,
           res_date: formData.date,
           res_time: formData.time,
           num_guests: formData.guests,
-          cafe_id: selectedCafe.id,
-          user_id: localStorage.getItem("user_id"),
+          cafe_id: selectedCafe.id
+          // Không cần gửi user_id vì Backend đã tự lấy từ Token
         }),
       });
 
       const result = await response.json();
+      
       if (result.success) {
-        setShowAlert("Đặt chỗ thành công! Vui lòng kiểm tra email.");
+        setShowAlert("✅ Đặt chỗ thành công! Vui lòng kiểm tra trong Lịch sử.");
+        // Reset form sau khi đặt thành công
         setFormData({ name: "", date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
-        setShowAlert(result.message || "Đặt chỗ thất bại");
+        setShowAlert("❌ " + (result.message || "Đặt chỗ thất bại"));
       }
     } catch (error) {
-      setShowAlert("Lỗi: " + String(error));
+      setShowAlert("Lỗi kết nối máy chủ: " + String(error));
     }
   };
 

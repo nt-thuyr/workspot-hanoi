@@ -89,6 +89,18 @@ export class ReservationModel {
     return data?.cafe_id || null;
   }
 
+  // HELPER - Lấy user_id từ reservation (dùng để xác minh quyền hủy)
+  static async getUserIdFromReservation(reservationId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('user_id')
+      .eq('id', reservationId)
+      .single();
+
+    if (error) return null;
+    return data?.user_id || null;
+  }
+
   // Lấy lịch sử đặt chỗ theo userId
   static async getHistoryByUserId(userId: string) {
     const { data, error } = await supabase

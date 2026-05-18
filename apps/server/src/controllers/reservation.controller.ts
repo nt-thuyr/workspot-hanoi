@@ -4,7 +4,8 @@ import { ReservationModel } from '../models/reservation.model';
 // POST /api/reservations - Đặt chỗ (user)
 export const createReservation = async (req: Request, res: Response) => {
   try {
-    const { user_id, cafe_id, res_date, res_time, num_guests = 1 } = req.body;
+    const user_id = (req as any).user?.id;
+    const { cafe_id, res_date, res_time, num_guests = 1 } = req.body;
 
     if (!user_id || !cafe_id || !res_date || !res_time) {
       return res.status(400).json({
@@ -83,14 +84,14 @@ export const getHistory = async (req: Request, res: Response) => {
       else if (item.status === 'CANCELLED') mappedStatus = 'cancelled';
 
       return {
-          id: item.id,
-          cafeId: cafeInfo.id || 0,
-          cafeName: cafeInfo.name || 'Quán Cafe đã ẩn',
-          imageUrl: cafeInfo.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
-          reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
-          timeSlot: timeSlot,
-          seatNumber: item.seat_number || 'フリー席 (Chỗ ngồi tự do)',
-          status: mappedStatus,
+        id: item.id,
+        cafeId: cafeInfo.id || 0,
+        cafeName: cafeInfo.name || 'Quán Cafe đã ẩn',
+        imageUrl: cafeInfo.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
+        reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
+        timeSlot: timeSlot,
+        seatNumber: item.seat_number || 'フリー席 (Chỗ ngồi tự do)',
+        status: mappedStatus,
         createdAt: createdDate.toISOString().slice(0, 10).replace(/-/g, '/'),
         amount: item.amount || 0
       };
@@ -185,6 +186,34 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: reservation });
   } catch (error: any) {
     console.error('Error updating reservation status:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// PATCH /api/reservations/:id/cancel - Hủy đặt chỗ (guest)
+export const cancelReservationByUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+    }
+
+    const reservationUserId = await ReservationModel.getUserIdFromReservation(id);
+    if (!reservationUserId) {
+      return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại' });
+    }
+
+    if (reservationUserId !== userId) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền hủy đơn đặt chỗ này' });
+    }
+
+    const reservation = await ReservationModel.updateReservationStatus(id, 'CANCELLED');
+
+    res.status(200).json({ success: true, message: 'Đã hủy thành công', data: reservation });
+  } catch (error: any) {
+    console.error('Error cancelling reservation:', error);
     res.status(500).json({ error: 'Lỗi server!', details: error.message });
   }
 };
