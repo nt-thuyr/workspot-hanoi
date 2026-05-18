@@ -62,7 +62,7 @@ function MapEvents({ onLocationSelect }: MapEventsProps) {
 
 const ReservationPage: FC = () => {
   const centerHanoi: [number, number] = [21.028511, 105.804817];
-  
+
   const [formData, setFormData] = useState<ReservationForm>({
     name: "",
     date: "",
@@ -142,12 +142,15 @@ const ReservationPage: FC = () => {
     try {
       const response = await fetch("http://localhost:3000/api/reservations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
         body: JSON.stringify({
           name: formData.name,
-          date: formData.date,
-          time: formData.time,
-          guests: formData.guests,
+          res_date: formData.date,
+          res_time: formData.time,
+          num_guests: formData.guests,
           cafe_id: selectedCafe.id,
           user_id: localStorage.getItem("user_id"),
         }),
@@ -296,36 +299,39 @@ const ReservationPage: FC = () => {
               )}
 
               {/* Cafe Markers */}
-              {cafes.map((cafe) => (
-                <Marker
-                  key={cafe.id}
-                  position={[cafe.lat, cafe.lng]}
-                  icon={createCafeIcon()}
-                  eventHandlers={{
-                    click: () => handleCafeSelect(cafe),
-                  }}
-                >
-                  <Popup>
-                    <div className="cafe-popup">
-                      <strong className="popup-name">{cafe.name}</strong>
-                      <p className="popup-wifi">
-                        {cafe.tags?.includes("wifi") && "📶 無料WiFiあり"}
-                      </p>
-                      <p className="popup-distance">0.8 km～ Ba Dinh</p>
-                      <div className="popup-tags">
-                        {cafe.tags?.map((tag) => (
-                          <span key={tag} className="popup-tag">
-                            {tag}
-                          </span>
-                        ))}
+              {cafes.map((cafe) => {
+                if (!cafe.lat || !cafe.lng) return null;
+                return (
+                  <Marker
+                    key={cafe.id}
+                    position={[cafe.lat, cafe.lng]}
+                    icon={createCafeIcon()}
+                    eventHandlers={{
+                      click: () => handleCafeSelect(cafe),
+                    }}
+                  >
+                    <Popup>
+                      <div className="cafe-popup">
+                        <strong className="popup-name">{cafe.name}</strong>
+                        <p className="popup-wifi">
+                          {cafe.tags?.includes("wifi") && "📶 無料WiFiあり"}
+                        </p>
+                        <p className="popup-distance">0.8 km～ Ba Dinh</p>
+                        <div className="popup-tags">
+                          {cafe.tags?.map((tag) => (
+                            <span key={tag} className="popup-tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
+                          選択
+                        </button>
                       </div>
-                      <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
-                        選択
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+                    </Popup>
+                  </Marker>
+                );
+              })}
 
               <MapEvents onLocationSelect={handleLocationSelect} />
             </MapContainer>
@@ -367,7 +373,7 @@ const ReservationPage: FC = () => {
                 <div className="cafe-info-card">
                   <div className="cafe-card-header">
                     <h3 className="cafe-card-name">{selectedCafe.name}</h3>
-                    <button 
+                    <button
                       className="cafe-card-close"
                       onClick={() => setSelectedCafe(null)}
                     >
