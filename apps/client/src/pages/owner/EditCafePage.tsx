@@ -143,15 +143,19 @@ export const EditCafePage: React.FC = () => {
             const tags = cafe.amenities
               ? cafe.amenities.map(
                   (a: any) => {
-                    const name = a.amenities?.name_ja || a.amenities?.name_vi;
-                    if (name) return name;
-                    
                     switch(a.amenity_id) {
                       case 1: return "高速Wi-Fi";
-                      case 2: return "コンセントあり";
+                      case 2: return "コンセント";
                       case 3: return "静かな環境";
                       case 4: return "禁煙";
-                      case 5: return "エアコン完備";
+                      case 5: return "エアコン";
+                      case 6: return "ペット可";
+                      case 7: return "駐車場";
+                      case 8: return "テラス席";
+                      case 9: return "飲食可";
+                      case 10: return "プロジェクター";
+                      case 11: return "会議室";
+                      case 12: return "24時間営業";
                       default: return "";
                     }
                   }
