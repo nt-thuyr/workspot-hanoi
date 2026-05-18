@@ -39,7 +39,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
         {mode === "guest" ? (
           <>
             <Link to="/" id="menu-home" className={`nav-link ${activeTab === "home" ? "nav-link--active" : ""}`}>ホーム</Link>
-            <Link to="/booking" id="menu-booking" className={`nav-link ${activeTab === "booking" ? "nav-link--active" : ""}`}>予約</Link>
+            <Link to="/history" id="menu-booking" className={`nav-link ${activeTab === "history" || activeTab === "booking" ? "nav-link--active" : ""}`}>予約</Link>
             <Link to="/reviews" id="menu-reviews" className={`nav-link ${activeTab === "reviews" ? "nav-link--active" : ""}`}>レビュー</Link>
           </>
         ) : (
