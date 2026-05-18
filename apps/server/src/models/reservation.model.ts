@@ -15,7 +15,7 @@ export class ReservationModel {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -31,7 +31,7 @@ export class ReservationModel {
       .eq('user_id', userId)
       .order('res_date', { ascending: false })
       .range(from, to);
-    
+
     if (error) throw error;
     return { data, count };
   }
@@ -47,7 +47,7 @@ export class ReservationModel {
       .eq('cafe_id', cafeId)
       .order('res_date', { ascending: false })
       .range(from, to);
-    
+
     if (error) throw error;
     return { data, count };
   }
@@ -60,7 +60,7 @@ export class ReservationModel {
       .eq('id', reservationId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -72,7 +72,7 @@ export class ReservationModel {
       .select('owner_id')
       .eq('id', cafeId)
       .single();
-    
+
     if (error) return false;
     return data?.owner_id === ownerId;
   }
@@ -84,8 +84,36 @@ export class ReservationModel {
       .select('cafe_id')
       .eq('id', reservationId)
       .single();
-    
+
     if (error) return null;
     return data?.cafe_id || null;
+  }
+
+  // Lấy lịch sử đặt chỗ theo userId
+  static async getHistoryByUserId(userId: string) {
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        res_date,
+        res_time,
+        status,
+        num_guests,
+        created_at,
+        amount,
+        seat_number,
+        cafes (
+          id,
+          name,
+          image_url
+        )
+      `)
+      .eq('user_id', userId)
+      .order('res_date', { ascending: false }); // Sắp xếp ngày đặt gần nhất lên đầu
+
+    if (error) {
+      throw error;
+    }
+    return data;
   }
 }
