@@ -201,6 +201,42 @@ export const createCafe = async (req: Request, res: Response) => {
       console.log("[CreateCafe] No menu images provided");
     }
 
+    // Parse tags to separate standard amenities and custom tags
+    const tagArray = tags ? (Array.isArray(tags) ? tags : JSON.parse(tags || "[]")) : [];
+    const tagToAmenityMap: { [key: string]: number } = {
+      wifi: 1,
+      "高速wi-fi": 1,
+      outlet: 2,
+      コンセント: 2,
+      コンセントあり: 2,
+      quiet: 3,
+      静かな環境: 3,
+      静か: 3,
+      nonsmoking: 4,
+      禁煙: 4,
+      エアコン: 5,
+      エアコン完備: 5,
+      ペット可: 6,
+      駐車場: 7,
+      テラス席: 8,
+      飲食可: 9,
+      プロジェクター: 10,
+      会議室: 11,
+      "24時間営業": 12,
+    };
+
+    const uniqueAmenityIds = new Set<number>();
+    const customTags: string[] = [];
+
+    for (const tag of tagArray) {
+      const amenityId = tagToAmenityMap[tag.toLowerCase()];
+      if (amenityId) {
+        uniqueAmenityIds.add(amenityId);
+      } else {
+        customTags.push(tag);
+      }
+    }
+
     // Create cafe record
     console.log("[CreateCafe] Creating cafe record...");
     const cafe = await CafeModel.createCafe({
@@ -214,6 +250,7 @@ export const createCafe = async (req: Request, res: Response) => {
       wifi_speed: "NORMAL",
       quiet_level: "NORMAL",
       description_ja: null,
+      custom_tags: customTags.length > 0 ? customTags : null,
     });
     console.log("[CreateCafe] Cafe record created:", cafe.id);
 
@@ -229,44 +266,10 @@ export const createCafe = async (req: Request, res: Response) => {
     }
     console.log("[CreateCafe] Menu images records saved");
 
-    // Link amenities based on tags
-    if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags || "[]");
-      console.log("[CreateCafe] Processing tags:", tagArray);
-
-      // Map tag names to amenity IDs
-      const tagToAmenityMap: { [key: string]: number } = {
-        wifi: 1,
-        "高速wi-fi": 1,
-        outlet: 2,
-        コンセント: 2,
-        コンセントあり: 2,
-        quiet: 3,
-        静かな環境: 3,
-        静か: 3,
-        nonsmoking: 4,
-        禁煙: 4,
-        エアコン: 5,
-        エアコン完備: 5,
-        ペット可: 6,
-        駐車場: 7,
-        テラス席: 8,
-        飲食可: 9,
-        プロジェクター: 10,
-        会議室: 11,
-        "24時間営業": 12,
-      };
-
-      const uniqueAmenityIds = new Set<number>();
-      for (const tag of tagArray) {
-        const amenityId = tagToAmenityMap[tag.toLowerCase()];
-        if (amenityId) uniqueAmenityIds.add(amenityId);
-      }
-
-      for (const amenityId of uniqueAmenityIds) {
-        await CafeAmenitiesModel.createCafeAmenity(cafe.id, amenityId);
-        console.log("[CreateCafe] Amenity linked:", amenityId);
-      }
+    // Link amenities
+    for (const amenityId of uniqueAmenityIds) {
+      await CafeAmenitiesModel.createCafeAmenity(cafe.id, amenityId);
+      console.log("[CreateCafe] Amenity linked:", amenityId);
     }
 
     console.log("[CreateCafe] Cafe registration complete");
@@ -318,6 +321,42 @@ export const updateCafe = async (req: Request, res: Response) => {
       });
     }
 
+    // Parse tags
+    const tagArray = tags ? (Array.isArray(tags) ? tags : JSON.parse(tags || "[]")) : [];
+    const tagToAmenityMap: { [key: string]: number } = {
+      wifi: 1,
+      "高速wi-fi": 1,
+      outlet: 2,
+      コンセント: 2,
+      コンセントあり: 2,
+      quiet: 3,
+      静かな環境: 3,
+      静か: 3,
+      nonsmoking: 4,
+      禁煙: 4,
+      エアコン: 5,
+      エアコン完備: 5,
+      ペット可: 6,
+      駐車場: 7,
+      テラス席: 8,
+      飲食可: 9,
+      プロジェクター: 10,
+      会議室: 11,
+      "24時間営業": 12,
+    };
+
+    const uniqueAmenityIds = new Set<number>();
+    const customTags: string[] = [];
+
+    for (const tag of tagArray) {
+      const amenityId = tagToAmenityMap[tag.toLowerCase()];
+      if (amenityId) {
+        uniqueAmenityIds.add(amenityId);
+      } else {
+        customTags.push(tag);
+      }
+    }
+
     const updates = {
       name: updatedName,
       address: updatedAddress,
@@ -325,48 +364,15 @@ export const updateCafe = async (req: Request, res: Response) => {
       lng: lng ? parseFloat(lng) : null,
       open_time: openTime || null,
       close_time: closeTime || null,
+      custom_tags: customTags.length > 0 ? customTags : null,
     };
 
     const cafe = await CafeModel.updateCafeInfo(id, updates);
 
-    // Link amenities based on tags
-    if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags || "[]");
-
-      // Xóa hết amenities cũ để thêm mới
-      await CafeAmenitiesModel.deleteCafeAmenities(id);
-
-      const tagToAmenityMap: { [key: string]: number } = {
-        wifi: 1,
-        "高速wi-fi": 1,
-        outlet: 2,
-        コンセント: 2,
-        コンセントあり: 2,
-        quiet: 3,
-        静かな環境: 3,
-        静か: 3,
-        nonsmoking: 4,
-        禁煙: 4,
-        エアコン: 5,
-        エアコン完備: 5,
-        ペット可: 6,
-        駐車場: 7,
-        テラス席: 8,
-        飲食可: 9,
-        プロジェクター: 10,
-        会議室: 11,
-        "24時間営業": 12,
-      };
-
-      const uniqueAmenityIds = new Set<number>();
-      for (const tag of tagArray) {
-        const amenityId = tagToAmenityMap[tag.toLowerCase()];
-        if (amenityId) uniqueAmenityIds.add(amenityId);
-      }
-
-      for (const amenityId of uniqueAmenityIds) {
-        await CafeAmenitiesModel.createCafeAmenity(id, amenityId);
-      }
+    // Cập nhật amenities
+    await CafeAmenitiesModel.deleteCafeAmenities(id);
+    for (const amenityId of uniqueAmenityIds) {
+      await CafeAmenitiesModel.createCafeAmenity(id, amenityId);
     }
 
     // Xử lý file ảnh

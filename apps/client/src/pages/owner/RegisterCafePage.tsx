@@ -267,8 +267,10 @@ export const RegisterCafePage: React.FC = () => {
       }
 
       // Success!
-      toast.success("カフェを正常に登録しました！");
-      navigate("/dashboard"); // Redirect to dashboard
+      toast.success("Tạo quán thành công!");
+      setTimeout(() => {
+        navigate("/dashboard"); // Redirect to dashboard
+      }, 1500);
     } catch (error: any) {
       console.error("[RegisterCafe] Error submitting form:", error);
       toast.error(

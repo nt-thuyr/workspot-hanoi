@@ -27,4 +27,5 @@ export interface Cafe {
   close_time: string | null;
   description_ja: string | null;
   avg_rating: number | null;
+  custom_tags?: string[] | null;
 }

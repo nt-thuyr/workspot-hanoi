@@ -140,7 +140,7 @@ export const EditCafePage: React.FC = () => {
             }
 
             // Map amenities sang tags
-            const tags = cafe.amenities
+            const standardTags = cafe.amenities
               ? cafe.amenities.map(
                   (a: any) => {
                     switch(a.amenity_id) {
@@ -161,6 +161,8 @@ export const EditCafePage: React.FC = () => {
                   }
                 ).filter(Boolean)
               : [];
+
+            const tags = [...standardTags, ...(cafe.custom_tags || [])];
             
             // Map images
             let initialCoverUrl = null;
@@ -420,7 +422,9 @@ export const EditCafePage: React.FC = () => {
       if (!response.ok) throw new Error(data.message || "Failed to update");
 
       toast.success("Cập nhật thông tin quán thành công!");
-      navigate("/");
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Đã xảy ra lỗi khi lưu thông tin");
