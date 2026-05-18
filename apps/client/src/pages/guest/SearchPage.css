@@ -41,25 +41,6 @@
   flex-shrink: 0;
 }
 
-.sidebar-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.sidebar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #c8843a, #a0522d);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(200, 132, 58, 0.35);
-}
-
 .sidebar-title {
   font-size: 1.25rem;
   font-weight: 800;
@@ -440,11 +421,12 @@
   margin-top: 0.2rem;
 }
 
-/* ⑭ Location Info Card */
+/* ⑭ KHU VỰC ĐANG XEM — bottom-center */
 .location-card {
   position: absolute;
   bottom: 18px;
-  right: 70px;
+  left: 50%;
+  transform: translateX(-50%);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-radius: 10px;
@@ -455,6 +437,7 @@
   z-index: 500;
   border: 1px solid #ede8e0;
   pointer-events: none;
+  white-space: nowrap;
 }
 
 .location-card__label {
@@ -482,9 +465,9 @@
   z-index: 500;
 }
 
-.map-ctrl {
-  width: 40px;
-  height: 40px;
+.map-ctrl-btn {
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   border: 1px solid #e5d9cc;
   background: #fff;
@@ -493,28 +476,29 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   transition: all 0.2s;
   padding: 0;
+  transform: none !important;
 }
 
-.map-ctrl:hover {
+.map-ctrl-btn:hover {
   background: #f5ede2;
   border-color: #c8843a;
   color: #c8843a;
 }
 
 /* ⑬ Current location button */
-.map-ctrl--locate {
+.map-ctrl-btn--location {
   background: linear-gradient(135deg, #3d2f1e, #1a1208);
   color: #fff;
   border-color: transparent;
 }
 
-.map-ctrl--locate:hover {
+.map-ctrl-btn--location:hover {
   background: linear-gradient(135deg, #c8843a, #a0522d);
-  border-color: transparent;
   color: #fff;
+  border-color: transparent;
 }
 
 /* ── Leaflet Overrides ────────────────────────────────────── */
@@ -602,8 +586,36 @@
 .cafe-popup .leaflet-popup-tip { background: #fff; }
 
 .popup-inner {
-  padding: 0.7rem 0.9rem;
-  min-width: 140px;
+  padding: 0.75rem 0.9rem;
+  min-width: 155px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.popup-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.popup-badge--open {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.popup-badge--closed {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .popup-name {

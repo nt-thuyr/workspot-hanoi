@@ -1,24 +1,40 @@
 import { useState, useEffect, type FC, useCallback } from "react";
 import { Link } from "react-router-dom";
 // 1. Import Leaflet và CSS (Bắt buộc phải có CSS để bản đồ không bị vỡ)
-import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
 
-// 2. Cấu hình Icon cho ghim (Marker)
-// Leaflet cần định nghĩa Icon rõ ràng vì nó không có icon mặc định sẵn như Google
-const createCafeIcon = (imageUrl?: string) => {
-  return new L.Icon({
-    iconUrl: imageUrl || "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+// 2. Cấu hình Icon cho ghim (Marker) — dùng divIcon giống SearchPage
+const createCafeIcon = (selected = false) => {
+  const cls = selected ? 'map-pin map-pin--selected' : 'map-pin';
+  return L.divIcon({
+    className: '',
+    html: `<div class="${cls}">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+        <path d="M18.5 9.5A6.5 6.5 0 0 0 5.5 9.5c0 4.5 6.5 11 6.5 11S18.5 14 18.5 9.5z"/>
+        <circle cx="12" cy="9.5" r="2.5" fill="white"/>
+      </svg>
+    </div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 40],
-    popupAnchor: [0, -40],
-    className: "custom-marker-icon"
+    popupAnchor: [0, -42],
   });
 };
+
+const createCurrentLocationIcon = () =>
+  L.divIcon({
+    className: "",
+    html: `<div class="current-pin">
+      <div class="current-pin__pulse"></div>
+      <div class="current-pin__dot"></div>
+    </div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
 
 interface CafeInfo {
   id: number;
@@ -79,7 +95,7 @@ const HomePage: FC = () => {
       // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
       const url = `http://localhost:3000/api/cafes/map?${params.toString()}`;
       console.log('[HomePage] Fetching cafes from:', url);
-      
+
       const response = await fetch(url);
       const result = await response.json();
 
@@ -106,9 +122,16 @@ const HomePage: FC = () => {
   const toggleTag = (t: string) =>
     setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
+  const handleSelectCafe = useCallback((cafe: CafeInfo) => {
+    setSelectedCafe(cafe);
+    if (map) {
+      map.flyTo([cafe.location.lat, cafe.location.lng], 15, { animate: true, duration: 0.6 });
+    }
+  }, [map]);
+
   const handlePanToCurrent = () => {
     if (map) {
-      map.flyTo(centerHanoi, 14);
+      map.flyTo(centerHanoi, 14, { animate: true });
     }
   };
 
@@ -193,6 +216,12 @@ const HomePage: FC = () => {
 
               <MapEventsHandler onMapClick={() => setSelectedCafe(null)} />
 
+              {/* ⑨ Current Location Marker */}
+              <Marker
+                position={centerHanoi}
+                icon={createCurrentLocationIcon()}
+              />
+
               {/* Render các quán Cafe dưới dạng ghim */}
               {cafes.map((cafe) => {
                 if (!cafe.location?.lat || !cafe.location?.lng) return null;
@@ -201,38 +230,41 @@ const HomePage: FC = () => {
                   <Marker
                     key={cafe.id}
                     position={[Number(cafe.location.lat), Number(cafe.location.lng)]}
-                    icon={createCafeIcon(cafe.imageUrl)}
+                    icon={createCafeIcon(selectedCafe?.id === cafe.id)}
                     eventHandlers={{
-                      click: () => setSelectedCafe(cafe),
+                      click: () => handleSelectCafe(cafe),
                     }}
-                  />
+                  >
+                    <Popup className="cafe-popup" closeButton={false}>
+                      <div className="popup-inner">
+                        <div className="popup-header">
+                          <p className="popup-name">{cafe.name}</p>
+                          <span className={`popup-badge ${cafe.isOpenNow ? "popup-badge--open" : "popup-badge--closed"}`}>
+                            {cafe.isOpenNow ? "営業中" : "閉店中"}
+                          </span>
+                        </div>
+                        <StarRating value={cafe.rating} />
+                        <div className="popup-row">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                            <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
+                          </svg>
+                          {cafe.tags?.[0] ?? "Wi-Fi"}
+                        </div>
+                        <div className="popup-row popup-dist">
+                          {cafe.distance ? `${cafe.distance} km` : ""}
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
                 );
               })}
             </MapContainer>
 
-            {/* Lớp phủ Info Card */}
-            <div className="map-overlay">
-              {selectedCafe && (
-                <div className="info-card" style={{ position: "absolute", bottom: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 1000 }}>
-                  <div className="info-card__header">
-                    <span className={`info-card__status ${selectedCafe.isOpenNow ? 'info-card__status--open' : 'info-card__status--closed'}`}>
-                      {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
-                    </span>
-                    <button className="info-card__close" onClick={() => setSelectedCafe(null)}>✕</button>
-                  </div>
-                  <p className="info-card__name">{selectedCafe.name}</p>
-                  <div className="info-card__meta">
-                    <StarRating value={selectedCafe.rating} />
-                    <span className="info-card__dist">{selectedCafe.distance ? `${selectedCafe.distance} km` : ""}</span>
-                  </div>
-                  <div className="info-card__tags">
-                    {selectedCafe.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="info-card__tag">{t}</span>
-                    ))}
-                  </div>
-                  <button className="info-card__btn">詳細を見る →</button>
-                </div>
-              )}
+            {/* KHU VỰC ĐANG XEM — bottom-center */}
+            <div className="location-card" id="location-info-card">
+              <span className="location-card__label">現在表示中</span>
+              <span className="location-card__name">Ba Dinh, Ha Noi</span>
             </div>
           </div>
 

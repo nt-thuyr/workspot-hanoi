@@ -157,7 +157,7 @@
 }
 
 /* Input (4, 6, 8) */
-.form-input {
+.register-form .form-input {
   width: 100%;
   padding: 0.78rem 3rem 0.78rem 2.75rem;
   border: 1.5px solid #e5d9cc;
