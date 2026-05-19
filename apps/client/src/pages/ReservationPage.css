@@ -104,7 +104,11 @@
 
 .date-input-wrapper input {
   width: 100%;
-  padding-right: 32px;
+  padding-right: 38px;
+}
+
+.date-input-wrapper input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 
 .calendar-icon {
@@ -113,7 +117,34 @@
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  font-size: 14px;
+  font-size: 13px;
+  color: #a0958e;
+}
+
+.time-input-wrapper {
+  position: relative;
+}
+
+.time-input-wrapper input {
+  width: 100%;
+  padding-right: 38px;
+  position: relative;
+  z-index: 1;
+}
+
+.time-input-wrapper input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.time-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 13px;
+  color: #a0958e;
+  z-index: 2;
 }
 
 /* ALERT */
@@ -249,6 +280,21 @@
 .cafe-card-distance {
   font-size: 12px;
   color: #666;
+}
+
+.cafe-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cafe-tag {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f3ebe2;
+  color: #6b4f3b;
+  border: 1px solid #e2d4c6;
 }
 
 .cafe-card-btn {

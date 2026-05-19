@@ -86,11 +86,6 @@ export const MenuImageGrid: React.FC<MenuImageGridProps> = ({
             </div>
           </div>
         ))}
-
-        {/* Empty Slots */}
-        {images.length < 3 && (
-          <div className="hidden md:block aspect-square bg-[#ebe8e3] rounded-xl border-2 border-dashed border-[#d3c4bb]/10"></div>
-        )}
       </div>
     </div>
   );
