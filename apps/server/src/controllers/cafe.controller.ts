@@ -476,7 +476,7 @@ export const getMapCafes = async (req: Request, res: Response) => {
 
     // Map amenities to string tags
     const tagMap: Record<number, string> = {
-      1: "Fast Wi-Fi", 2: "コンセント", 3: "Quiet", 4: "禁煙",
+      1: "高速Wi-Fi", 2: "コンセント", 3: "静か", 4: "禁煙",
       5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
       9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
     };
@@ -552,8 +552,8 @@ export const getMapCafes = async (req: Request, res: Response) => {
       id: cafe.id,
       name: cafe.name,
       location: { lat: cafe.lat, lng: cafe.lng },
-      rating: cafe.rating || 0,
-      reviewCount: cafe.review_count || 0,
+      rating: cafe.avg_rating ? Number(cafe.avg_rating) : 0,
+      reviewCount: cafe.reviews ? cafe.reviews.length : 0,
       tags: cafe.tags || [],
       imageUrl: cafe.image_url,
       isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),

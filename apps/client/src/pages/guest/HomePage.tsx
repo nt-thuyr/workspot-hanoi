@@ -78,6 +78,8 @@ const HomePage: FC = () => {
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [cafes, setCafes] = useState<CafeInfo[]>([]);
   const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(null);
+  const [fullCafeDetail, setFullCafeDetail] = useState<any | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
 
   // 3. Gọi API lấy dữ liệu từ Backend
@@ -131,12 +133,29 @@ const HomePage: FC = () => {
   const toggleTag = (t: string) =>
     setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
-  const handleSelectCafe = useCallback((cafe: CafeInfo) => {
+  const handleSelectCafe = useCallback(async (cafe: CafeInfo) => {
     setSelectedCafe(cafe);
+    setFullCafeDetail(null);
+    setActiveImageIndex(0);
     if (map) {
       map.flyTo([cafe.location.lat, cafe.location.lng], 15, { animate: true, duration: 0.6 });
     }
+    try {
+      const response = await fetch(`http://localhost:3000/api/cafes/${cafe.id}`);
+      const result = await response.json();
+      if (result.success) {
+        setFullCafeDetail(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching cafe detail:", error);
+    }
   }, [map]);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedCafe(null);
+    setFullCafeDetail(null);
+    setActiveImageIndex(0);
+  }, []);
 
   const handlePanToCurrent = () => {
     if (map) {
@@ -149,139 +168,365 @@ const HomePage: FC = () => {
       <TopNavBar mode="guest" activeTab="home" />
 
       <div className="home-main">
-        <aside className="home-sidebar" id="search-sidebar">
-          <div className="sidebar-hero">
-            <h1 className="sidebar-hero__title">理想のワークスペース</h1>
-            <p className="sidebar-hero__sub">厳選されたカフェスペース</p>
-          </div>
-
-          <form className="sidebar-search" onSubmit={handleSearchSubmit}>
-            <svg
-              className="search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              width="15"
-              height="15"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              id="search-bar"
-              className="search-input"
-              type="text"
-              placeholder="キーワードやタグで検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
-
-          <div className="filter-chips">
-            {FILTER_CHIPS.map((f) => (
-              <button
-                key={f}
-                className={`filter-chip${activeFilters.includes(f) ? " filter-chip--active" : ""}`}
-                onClick={() => toggleFilter(f)}
+        <aside className={`home-sidebar ${selectedCafe ? "home-sidebar--detail" : ""}`} id="search-sidebar">
+          {selectedCafe ? (
+            <div className="cafe-detail-panel flex flex-col h-full bg-[#fbf9f6]">
+              {/* Cover Image */}
+              <div
+                className="cafe-detail-cover relative h-48 w-full bg-cover bg-center shrink-0"
+                style={{
+                  backgroundImage: `url(${
+                    selectedCafe.imageUrl ||
+                    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500&auto=format&fit=crop&q=60"
+                  })`,
+                }}
               >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          {/* Hiển thị số lượng kết quả và danh sách quán */}
-          {cafes.length > 0 ? (
-            <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
-              <div className="text-sm text-gray-600 mb-4 font-medium">
-                <span className="font-bold text-[#614734]">「{searchQuery || "すべて"}」</span>
-                {" で "}
-                <span className="font-bold text-[#614734]">{cafes.length}件</span>
-                {" のカフェが見つかりました"}
-              </div>
-              
-              <div className="flex flex-col gap-4">
-                {cafes.map((cafe) => {
-                  const isSelected = selectedCafe?.id === cafe.id;
-                  return (
-                    <div
-                      key={cafe.id}
-                      className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
-                        isSelected 
-                          ? "border-[#614734] shadow-md transform scale-[1.02]" 
-                          : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
-                      }`}
-                      onClick={() => handleSelectCafe(cafe)}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30 flex flex-col justify-between p-4">
+                  {/* Close button */}
+                  <div className="flex justify-end">
+                    <button
+                      className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors border-0 cursor-pointer"
+                      onClick={handleCloseDetail}
                     >
-                      <div className="flex gap-4">
-                        <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative bg-gray-100">
-                          {cafe.imageUrl ? (
-                            <img src={cafe.imageUrl} alt={cafe.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="24" height="24">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                <polyline points="21 15 16 10 5 21"></polyline>
-                              </svg>
-                            </div>
-                          )}
-                          <div className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            cafe.isOpenNow ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                          }`}>
-                            {cafe.isOpenNow ? "営業中" : "閉店中"}
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                          <div>
-                            <h3 className="font-bold text-[#3d2c20] text-base truncate" title={cafe.name}>{cafe.name}</h3>
-                            <div className="flex items-center gap-2 mt-1 text-xs">
-                              <StarRating value={cafe.rating} />
-                              <span className="text-gray-400">({cafe.reviewCount})</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1 mt-2 text-xs text-gray-500">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
-                                <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
-                              </svg>
-                              <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 truncate">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
-                              </svg>
-                              <span className="truncate">
-                                {cafe.distance ? `${cafe.distance}km先` : ""}
-                                {(cafe as any).address ? ` • ${(cafe as any).address.split(',').pop()?.trim()}` : ""}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        width="16"
+                        height="16"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Title & subtitle inside cover */}
+                  <div className="text-white text-center pb-2">
+                    <h2 className="text-xl font-extrabold tracking-tight drop-shadow-md">
+                      {selectedCafe.name}
+                    </h2>
+                    <p className="text-[10px] text-gray-200/90 font-medium tracking-wider mt-0.5">
+                      2014年創業 • コーヒーの家
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail Info Body */}
+              <div className="cafe-detail-body flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-[#3d2c20]">
+                <div>
+                  <h3 className="text-xl font-extrabold text-[#1a1208] leading-snug">
+                    {selectedCafe.name}
+                  </h3>
+                  
+                  {/* Distance & Time */}
+                  <div className="flex items-center gap-4 mt-2 text-xs text-[#a0896b] font-medium">
+                    {selectedCafe.distance !== null && (
+                      <div className="flex items-center gap-1">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-[#c8843a]">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{selectedCafe.distance} km 先</span>
                       </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-[#c8843a]">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span>
+                        {fullCafeDetail?.open_time && fullCafeDetail?.close_time
+                          ? `${fullCafeDetail.open_time.substring(0, 5)} - ${fullCafeDetail.close_time.substring(0, 5)}`
+                          : "07:00 - 22:00"}
+                      </span>
                     </div>
-                  );
-                })}
+                  </div>
+
+                  {/* Address */}
+                  <div className="flex items-start gap-1.5 mt-2.5 text-xs text-[#6b5e4e] leading-relaxed">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-gray-400 shrink-0 mt-0.5">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span>{fullCafeDetail?.address || selectedCafe.address || "Hanoi, Vietnam"}</span>
+                  </div>
+                </div>
+
+                {/* Status & Rating */}
+                <div className="flex items-center justify-between border-t border-b border-[#f0ebe3] py-3 my-1">
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      selectedCafe.isOpenNow
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
+                  >
+                    {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-500 text-lg">★</span>
+                    <span className="text-sm font-bold text-[#3d2c20]">
+                      {selectedCafe.rating?.toFixed(1) || "0.0"}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">
+                      ({selectedCafe.reviewCount || 0})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Feature Tags / Amenities */}
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedCafe.tags && selectedCafe.tags.map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#f5ede2] text-[#a0522d] border border-[#ebdcc7]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2.5 mt-2">
+                  <Link
+                    to={`/booking?cafeId=${selectedCafe.id}`}
+                    className="flex-1 bg-gradient-to-r from-[#3d2f1e] to-[#1a1208] text-white text-xs font-bold text-center py-3 rounded-xl hover:from-[#c8843a] hover:to-[#a0522d] transition-all shadow-sm flex items-center justify-center gap-1.5 border-0 cursor-pointer decoration-none"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    席を予約
+                  </Link>
+                  <button
+                    className="flex-1 bg-white text-[#3d2f1e] border border-[#d6cfc7] text-xs font-bold py-3 rounded-xl hover:bg-[#faf8f6] hover:border-[#614734] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => {
+                      alert("レビュー機能 là chức năng đang phát triển!");
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    レビューを書く
+                  </button>
+                </div>
+
+                {/* Menu Highlight Section */}
+                <div className="mt-2 border-t border-[#f0ebe3] pt-4">
+                  <h4 className="text-xs font-bold text-[#c8843a] uppercase tracking-wider mb-3">
+                    メニューハイライト
+                  </h4>
+                  
+                  {/* Image Carousel */}
+                  {fullCafeDetail?.images &&
+                  fullCafeDetail.images.filter((img: any) => img.image_type === "MENU").length > 0 ? (
+                    (() => {
+                      const menuImages = fullCafeDetail.images
+                        .filter((img: any) => img.image_type === "MENU")
+                        .map((img: any) => img.image_url);
+
+                      return (
+                        <div className="relative rounded-xl overflow-hidden shadow-sm bg-gray-100 aspect-video group">
+                          <img
+                            src={menuImages[activeImageIndex]}
+                            alt="Menu item"
+                            className="w-full h-full object-cover"
+                          />
+                          {menuImages.length > 1 && (
+                            <>
+                              <button
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
+                                onClick={() =>
+                                  setActiveImageIndex((prev) =>
+                                    prev === 0 ? menuImages.length - 1 : prev - 1
+                                  )
+                                }
+                              >
+                                ‹
+                              </button>
+                              <button
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
+                                onClick={() =>
+                                  setActiveImageIndex((prev) =>
+                                    prev === menuImages.length - 1 ? 0 : prev + 1
+                                  )
+                                }
+                              >
+                                ›
+                              </button>
+                              
+                              {/* Dots */}
+                              <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
+                                {menuImages.map((_, idx) => (
+                                  <button
+                                    key={idx}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
+                                      idx === activeImageIndex
+                                        ? "bg-white scale-110"
+                                        : "bg-white/40 hover:bg-white/60"
+                                    }`}
+                                    onClick={() => setActiveImageIndex(idx)}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 rounded-xl border border-dashed border-[#d6cfc7] bg-white">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" className="text-gray-400">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <span className="text-xs text-gray-400 mt-2 font-medium">
+                        メニュー画像はありません
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="sidebar-tags mt-4">
-              <p className="sidebar-tags__title">人気のあるタグ</p>
-              <div className="tag-list">
-                {POPULAR_TAGS.map((tag) => (
+            <>
+              <div className="sidebar-hero">
+                <h1 className="sidebar-hero__title">理想のワークスペース</h1>
+                <p className="sidebar-hero__sub">厳選されたカフェスペース</p>
+              </div>
+
+              <form className="sidebar-search" onSubmit={handleSearchSubmit}>
+                <svg
+                  className="search-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  width="15"
+                  height="15"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  id="search-bar"
+                  className="search-input"
+                  type="text"
+                  placeholder="キーワードやタグで検索..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+
+              <div className="filter-chips">
+                {FILTER_CHIPS.map((f) => (
                   <button
-                    key={tag}
-                    className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
-                    onClick={() => toggleTag(tag)}
+                    key={f}
+                    className={`filter-chip${activeFilters.includes(f) ? " filter-chip--active" : ""}`}
+                    onClick={() => toggleFilter(f)}
                   >
-                    {tag}
+                    {f}
                   </button>
                 ))}
               </div>
-            </div>
+
+              {/* Hiển thị số lượng kết quả và danh sách quán */}
+              {cafes.length > 0 ? (
+                <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
+                  <div className="text-sm text-gray-600 mb-4 font-medium">
+                    <span className="font-bold text-[#614734]">「{searchQuery || "すべて"}」</span>
+                    {" で "}
+                    <span className="font-bold text-[#614734]">{cafes.length}件</span>
+                    {" のカフェが見つかりました"}
+                  </div>
+                  
+                  <div className="flex flex-col gap-4">
+                    {cafes.map((cafe) => {
+                      const isSelected = selectedCafe?.id === cafe.id;
+                      return (
+                        <div
+                          key={cafe.id}
+                          className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
+                            isSelected 
+                              ? "border-[#614734] shadow-md transform scale-[1.02]" 
+                              : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
+                          }`}
+                          onClick={() => handleSelectCafe(cafe)}
+                        >
+                          <div className="flex gap-4">
+                            <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative bg-gray-100">
+                              {cafe.imageUrl ? (
+                                <img src={cafe.imageUrl} alt={cafe.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="24" height="24">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                  </svg>
+                                </div>
+                              )}
+                              <div className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                cafe.isOpenNow ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                              }`}>
+                                {cafe.isOpenNow ? "営業中" : "閉店中"}
+                              </div>
+                            </div>
+                            
+                            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                              <div>
+                                <h3 className="font-bold text-[#3d2c20] text-base truncate" title={cafe.name}>{cafe.name}</h3>
+                                <div className="flex items-center gap-2 mt-1 text-xs">
+                                  <StarRating value={cafe.rating} />
+                                  <span className="text-gray-400">({cafe.reviewCount})</span>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-1 mt-2 text-xs text-gray-500">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
+                                    <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
+                                  </svg>
+                                  <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                                  </svg>
+                                  <span className="truncate">
+                                    {cafe.distance ? `${cafe.distance}km先` : ""}
+                                    {(cafe as any).address ? ` • ${(cafe as any).address.split(',').pop()?.trim()}` : ""}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="sidebar-tags mt-4">
+                  <p className="sidebar-tags__title">人気のあるタグ</p>
+                  <div className="tag-list">
+                    {POPULAR_TAGS.map((tag) => (
+                      <button
+                        key={tag}
+                        className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
+                        onClick={() => toggleTag(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </aside>
 
@@ -302,7 +547,7 @@ const HomePage: FC = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              <MapEventsHandler onMapClick={() => setSelectedCafe(null)} />
+              <MapEventsHandler onMapClick={handleCloseDetail} />
 
               {/* ⑨ Current Location Marker */}
               <Marker
