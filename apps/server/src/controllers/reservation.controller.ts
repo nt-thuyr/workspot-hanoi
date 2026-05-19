@@ -14,12 +14,37 @@ export const createReservation = async (req: Request, res: Response) => {
       });
     }
 
+
+    const guests = typeof num_guests === 'string' ? parseInt(num_guests, 10) : num_guests;
+    if (!Number.isInteger(guests) || guests <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid num_guests',
+      });
+    }
+
+    const resDate = new Date(res_date);
+    if (Number.isNaN(resDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid res_date',
+      });
+    }
+
+    const timePattern = /^\d{2}:\d{2}(:\d{2})?$/;
+    if (!timePattern.test(String(res_time))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid res_time',
+      });
+    }
+
     const reservation = await ReservationModel.createReservation(
       user_id,
       cafe_id,
       res_date,
       res_time,
-      num_guests
+      guests
     );
 
     res.status(201).json({ success: true, data: reservation });
@@ -78,10 +103,10 @@ export const getHistory = async (req: Request, res: Response) => {
       // Xử lý nối giờ (Sử dụng res_time từ model mới)
       const timeSlot = item.res_time ? item.res_time : '00:00 - 00:00';
 
-      // Xử lý status map với Frontend ("PENDING" -> "upcoming", "CONFIRMED" -> "completed", "CANCELLED" -> "cancelled")
+      // Xử lý status map với Frontend ("PENDING" -> "upcoming", "APPROVED" -> "completed", "REJECTED/CANCELLED" -> "cancelled")
       let mappedStatus = 'upcoming';
-      if (item.status === 'CONFIRMED') mappedStatus = 'completed';
-      else if (item.status === 'CANCELLED') mappedStatus = 'cancelled';
+      if (item.status === 'APPROVED') mappedStatus = 'completed';
+      else if (item.status === 'REJECTED' || item.status === 'CANCELLED') mappedStatus = 'cancelled';
 
       return {
         id: item.id,
@@ -156,7 +181,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { status, owner_id } = req.body;
 
-    if (!status || !['PENDING', 'CONFIRMED', 'CANCELLED'].includes(status)) {
+    if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid status',

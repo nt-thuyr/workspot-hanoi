@@ -17,7 +17,6 @@ interface CafeMarker {
 }
 
 interface ReservationForm {
-  name: string;
   date: string;
   time: string;
   guests: number;
@@ -64,7 +63,6 @@ const ReservationPage: FC = () => {
   const centerHanoi: [number, number] = [21.028511, 105.804817];
 
   const [formData, setFormData] = useState<ReservationForm>({
-    name: "",
     date: "",
     time: "",
     guests: 1,
@@ -105,7 +103,9 @@ const ReservationPage: FC = () => {
     }
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -134,7 +134,7 @@ const ReservationPage: FC = () => {
     e.preventDefault();
 
     // Validation
-    if (!formData.name || !formData.date || !formData.time || !selectedCafe) {
+    if (!formData.date || !formData.time || !selectedCafe) {
       setShowAlert("Vui lòng điền đầy đủ thông tin và chọn quán Cafe trên bản đồ.");
       return;
     }
@@ -166,7 +166,7 @@ const ReservationPage: FC = () => {
       if (result.success) {
         setShowAlert("✅ Đặt chỗ thành công! Vui lòng kiểm tra trong Lịch sử.");
         // Reset form sau khi đặt thành công
-        setFormData({ name: "", date: "", time: "", guests: 1 });
+        setFormData({ date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
         setShowAlert("❌ " + (result.message || "Đặt chỗ thất bại"));
@@ -191,23 +191,6 @@ const ReservationPage: FC = () => {
           </div>
 
           <form className="reservation-form" onSubmit={handleSubmit}>
-            {/* Name Field */}
-            <div className="form-group">
-              <label htmlFor="name" className="form-label">
-                氏名
-              </label>
-              <p className="form-hint">名前を入力してください</p>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="山田太郎"
-                className="form-input"
-              />
-            </div>
-
             {/* Date Field */}
             <div className="form-group">
               <label htmlFor="date" className="form-label">
@@ -227,6 +210,7 @@ const ReservationPage: FC = () => {
                 <span className="calendar-icon">📅</span>
               </div>
             </div>
+
 
             {/* Time Field */}
             <div className="form-group">
@@ -264,6 +248,7 @@ const ReservationPage: FC = () => {
                 ))}
               </select>
             </div>
+
 
             {/* Alert Message */}
             {showAlert && <div className="alert-message">{showAlert}</div>}

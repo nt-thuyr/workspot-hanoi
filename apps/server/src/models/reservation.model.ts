@@ -2,7 +2,13 @@ import { supabase } from '../config/supabase';
 
 export class ReservationModel {
   // CREATE - Đặt chỗ
-  static async createReservation(userId: string, cafeId: string, resDate: string, resTime: string, numGuests: number = 1) {
+  static async createReservation(
+    userId: string,
+    cafeId: string,
+    resDate: string,
+    resTime: string,
+    numGuests: number = 1
+  ) {
     const { data, error } = await supabase
       .from('reservations')
       .insert({
