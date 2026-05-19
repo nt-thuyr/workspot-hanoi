@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC } from "react";
+import { useState, useEffect, useRef, type FC } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -6,7 +6,7 @@ import { TopNavBar } from "../components/TopNavBar";
 import "./ReservationPage.css";
 
 interface CafeMarker {
-  id: number;
+  id: string;
   name: string;
   address: string;
   lat: number;
@@ -20,7 +20,7 @@ interface ReservationForm {
   date: string;
   time: string;
   guests: number;
-  cafeId?: number;
+  cafeId?: string;
 }
 
 const createCafeIcon = () => {
@@ -43,11 +43,13 @@ const createUserLocationIcon = () => {
 
 interface MapEventsProps {
   onLocationSelect: (lat: number, lng: number) => void;
+  disabled?: boolean;
 }
 
-function MapEvents({ onLocationSelect }: MapEventsProps) {
+function MapEvents({ onLocationSelect, disabled }: MapEventsProps) {
   const map = useMap();
   useEffect(() => {
+    if (disabled) return undefined;
     const handleMapClick = (e: any) => {
       onLocationSelect(e.latlng.lat, e.latlng.lng);
     };
@@ -74,24 +76,59 @@ const ReservationPage: FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showAlert, setShowAlert] = useState("");
+  const [lockedByQuery, setLockedByQuery] = useState(false);
+  const selectedMarkerRef = useRef<L.Marker | null>(null);
 
   // Fetch cafes from API
   useEffect(() => {
     const fetchCafes = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const cafeId = params.get("cafeId");
+        if (cafeId) {
+          setLockedByQuery(true);
+          const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+          const detailResult = await detailResponse.json();
+          if (detailResult.success && detailResult.data) {
+            const cafe = detailResult.data;
+            const lockedCafe: CafeMarker = {
+              id: cafe.id,
+              name: cafe.name,
+              address: cafe.address,
+              lat: Number(cafe.lat || 0),
+              lng: Number(cafe.lng || 0),
+              rating: cafe.avg_rating || 0,
+              tags: cafe.custom_tags || [],
+              image: cafe.images?.[0]?.image_url,
+            };
+            setCafes([lockedCafe]);
+            setSelectedCafe(lockedCafe);
+            setFormData((prev) => ({ ...prev, cafeId: lockedCafe.id }));
+            if (lockedCafe.lat && lockedCafe.lng) {
+              setMapCenter([lockedCafe.lat, lockedCafe.lng]);
+              setZoomLevel(15);
+            }
+          }
+          return;
+        }
         const response = await fetch(
           `http://localhost:3000/api/cafes?lat=${mapCenter[0]}&lng=${mapCenter[1]}`
         );
         const data = await response.json();
         if (data.success) {
-          setCafes(data.data || []);
+          const cafeList = data.data || [];
+          setCafes(cafeList);
+          if (!lockedByQuery && cafeList.length > 0 && !selectedCafe) {
+            setSelectedCafe(cafeList[0]);
+            setFormData((prev) => ({ ...prev, cafeId: cafeList[0].id }));
+          }
         }
       } catch (error) {
         console.error("Error fetching cafes:", error);
       }
     };
     fetchCafes();
-  }, [mapCenter]);
+  }, [mapCenter, lockedByQuery, selectedCafe]);
 
   // Get user's current location
   useEffect(() => {
@@ -100,7 +137,9 @@ const ReservationPage: FC = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentLocation([latitude, longitude]);
-          setMapCenter([latitude, longitude]);
+          if (!lockedByQuery) {
+            setMapCenter([latitude, longitude]);
+          }
         },
         (error) => {
           console.warn("[ReservationPage] GPS error, falling back to HUST B1:", error);
@@ -120,13 +159,21 @@ const ReservationPage: FC = () => {
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
+    if (lockedByQuery) return;
     setMapCenter([lat, lng]);
   };
 
   const handleCafeSelect = (cafe: CafeMarker) => {
+    if (lockedByQuery) return;
     setSelectedCafe(cafe);
     setFormData((prev) => ({ ...prev, cafeId: cafe.id }));
   };
+
+  useEffect(() => {
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.openPopup();
+    }
+  }, [selectedCafe]);
 
   const handleZoom = (direction: "in" | "out") => {
     setZoomLevel((prev) => {
@@ -141,14 +188,14 @@ const ReservationPage: FC = () => {
 
     // Validation
     if (!formData.date || !formData.time || !selectedCafe) {
-      setShowAlert("Vui lòng điền đầy đủ thông tin và chọn quán Cafe trên bản đồ.");
+      setShowAlert("すべての情報を入力し、カフェを選択してください。");
       return;
     }
 
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
-        setShowAlert("Vui lòng đăng nhập để thực hiện đặt chỗ.");
+        setShowAlert("予約するにはログインしてください。");
         return;
       }
 
@@ -170,15 +217,15 @@ const ReservationPage: FC = () => {
       const result = await response.json();
       
       if (result.success) {
-        setShowAlert("✅ Đặt chỗ thành công! Vui lòng kiểm tra trong Lịch sử.");
+        setShowAlert("✅ 予約が完了しました。履歴をご確認ください。");
         // Reset form sau khi đặt thành công
         setFormData({ date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
-        setShowAlert("❌ " + (result.message || "Đặt chỗ thất bại"));
+        setShowAlert("❌ " + (result.message || "予約に失敗しました"));
       }
     } catch (error) {
-      setShowAlert("Lỗi kết nối máy chủ: " + String(error));
+      setShowAlert("サーバー接続エラー: " + String(error));
     }
   };
 
@@ -213,7 +260,7 @@ const ReservationPage: FC = () => {
                   className="form-input"
                   min={new Date().toISOString().split("T")[0]}
                 />
-                <span className="calendar-icon">📅</span>
+                <span className="calendar-icon">🗓</span>
               </div>
             </div>
 
@@ -224,14 +271,17 @@ const ReservationPage: FC = () => {
                 時間
               </label>
               <p className="form-hint">予約時間を選択してください</p>
-              <input
-                type="time"
-                id="time"
-                name="time"
-                value={formData.time}
-                onChange={handleInputChange}
-                className="form-input"
-              />
+              <div className="time-input-wrapper">
+                <input
+                  type="time"
+                  id="time"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+                <span className="time-icon">🕒</span>
+              </div>
             </div>
 
             {/* Guests Field */}
@@ -269,7 +319,7 @@ const ReservationPage: FC = () => {
             </button>
 
             <p className="reservation-note">
-              予約後の通知に関する案内テキスト
+              予約後、予約状況の通知が送信されます
             </p>
           </form>
         </div>
@@ -304,6 +354,7 @@ const ReservationPage: FC = () => {
                     key={cafe.id}
                     position={[cafe.lat, cafe.lng]}
                     icon={createCafeIcon()}
+                    ref={cafe.id === selectedCafe?.id ? selectedMarkerRef : undefined}
                     eventHandlers={{
                       click: () => handleCafeSelect(cafe),
                     }}
@@ -311,27 +362,26 @@ const ReservationPage: FC = () => {
                     <Popup>
                       <div className="cafe-popup">
                         <strong className="popup-name">{cafe.name}</strong>
-                        <p className="popup-wifi">
-                          {cafe.tags?.includes("wifi") && "📶 無料WiFiあり"}
-                        </p>
                         <p className="popup-distance">0.8 km～ Ba Dinh</p>
                         <div className="popup-tags">
-                          {cafe.tags?.map((tag) => (
+                          {(cafe.tags || []).map((tag) => (
                             <span key={tag} className="popup-tag">
                               {tag}
                             </span>
                           ))}
                         </div>
-                        <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
-                          選択
-                        </button>
+                        {!lockedByQuery && (
+                          <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
+                            選択
+                          </button>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
                 );
               })}
 
-              <MapEvents onLocationSelect={handleLocationSelect} />
+              <MapEvents onLocationSelect={handleLocationSelect} disabled={lockedByQuery} />
             </MapContainer>
 
             {/* Map Controls */}
@@ -355,7 +405,7 @@ const ReservationPage: FC = () => {
               <button
                 className="map-ctrl-btn map-ctrl-btn--location"
                 onClick={() => {
-                  if (currentLocation) {
+                  if (currentLocation && !lockedByQuery) {
                     setMapCenter(currentLocation);
                   }
                 }}
@@ -371,18 +421,29 @@ const ReservationPage: FC = () => {
                 <div className="cafe-info-card">
                   <div className="cafe-card-header">
                     <h3 className="cafe-card-name">{selectedCafe.name}</h3>
-                    <button
-                      className="cafe-card-close"
-                      onClick={() => setSelectedCafe(null)}
-                    >
-                      ✕
-                    </button>
+                    {!lockedByQuery && (
+                      <button
+                        className="cafe-card-close"
+                        onClick={() => setSelectedCafe(null)}
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                   <div className="cafe-card-rating">
                     <span className="stars">★★★★★</span>
                     <span className="rating-value">{selectedCafe.rating || "N/A"}</span>
                   </div>
                   <div className="cafe-card-distance">0.6 km</div>
+                  {(selectedCafe.tags || []).length > 0 && (
+                    <div className="cafe-card-tags">
+                      {selectedCafe.tags.map((tag) => (
+                        <span key={tag} className="cafe-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <button className="cafe-card-btn">詳細を見る →</button>
                 </div>
               </div>
