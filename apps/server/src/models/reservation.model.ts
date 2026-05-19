@@ -44,6 +44,17 @@ export class ReservationModel {
 
   // READ - Lấy danh sách đặt chỗ của quán (owner)
   static async getCafeReservations(cafeId: string, page: number = 1, limit: number = 10) {
+    if (limit <= 0) {
+      const { data, error, count } = await supabase
+        .from('reservations')
+        .select('*, profiles(id, full_name, avatar_url)', { count: 'exact' })
+        .eq('cafe_id', cafeId)
+        .order('res_date', { ascending: false });
+
+      if (error) throw error;
+      return { data, count };
+    }
+
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 

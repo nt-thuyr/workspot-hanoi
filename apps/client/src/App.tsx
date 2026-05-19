@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterCafePage from "./pages/owner/RegisterCafePage";
 import EditCafePage from "./pages/owner/EditCafePage";
+import OwnerCafeListPage from "./pages/owner/OwnerCafeListPage";
 import ReservationPage from "./pages/ReservationPage";
 import ReservationHistoryPage from "./pages/guest/ReservationHistoryPage";
 
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
   {
     path: "/cafes",
     children: [
+      { index: true, element: <OwnerCafeListPage /> },
       { path: "edit", element: <EditCafePage /> },
       { path: "edit/:id", element: <EditCafePage /> },
       { path: "register", element: <RegisterCafePage /> },

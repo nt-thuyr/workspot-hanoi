@@ -22,12 +22,12 @@ router.get('/history', verifyToken, getHistory);
 router.get('/user/:userId', verifyToken, getUserReservations);
 
 // GET /api/reservations/cafe/:cafeId - Lấy danh sách đặt chỗ của quán (owner)
-router.get('/cafe/:cafeId', getCafeReservations);
+router.get('/cafe/:cafeId', verifyToken, getCafeReservations);
 
 // PATCH /api/reservations/:id/cancel - Hủy đặt chỗ (guest tự hủy)
 router.patch('/:id/cancel', verifyToken, cancelReservationByUser);
 
 // PUT /api/reservations/:id/status - Cập nhật status (owner duyệt/từ chối)
-router.put('/:id/status', updateReservationStatus);
+router.put('/:id/status', verifyToken, updateReservationStatus);
 
 export default router;

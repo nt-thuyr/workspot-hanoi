@@ -80,6 +80,16 @@ export class CafeModel {
     page: number = 1,
     limit: number = 10,
   ) {
+    if (limit <= 0) {
+      const { data, error, count } = await supabase
+        .from("cafes")
+        .select("*", { count: "exact" })
+        .eq("owner_id", ownerId);
+
+      if (error) throw error;
+      return { data, count };
+    }
+
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 

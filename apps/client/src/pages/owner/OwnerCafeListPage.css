@@ -1,0 +1,519 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Space+Grotesk:wght@400;500;600&display=swap");
+
+:root {
+  --cream-100: #faf5ef;
+  --cream-200: #f3ebe1;
+  --cream-300: #efe4d7;
+  --ink-900: #22180f;
+  --ink-700: #4c3b2c;
+  --ink-500: #6d5b4b;
+  --accent-700: #2f2620;
+  --accent-500: #c9863c;
+  --accent-200: #f6d9bd;
+}
+
+.owner-cafes {
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 10%, #fff6ec 0%, #f5ecdf 40%, #efe3d5 100%);
+  color: var(--ink-900);
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+
+.cafes-shell {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 1.6rem;
+  padding: 1.75rem 2rem 3rem;
+}
+
+.cafes-rail {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 22px;
+  padding: 1.2rem;
+  border: 1px solid rgba(206, 185, 164, 0.5);
+  box-shadow: 0 18px 32px rgba(55, 39, 19, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rail-header h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.rail-add {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent-700);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.rail-add:hover {
+  transform: translateY(-1px);
+}
+
+.rail-search {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  border: 1px solid #e3d5c5;
+  background: #fff;
+  color: var(--ink-500);
+  font-size: 0.9rem;
+}
+
+.rail-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.rail-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.7rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rail-item:hover {
+  border-color: #dac6b3;
+  transform: translateY(-1px);
+}
+
+.rail-item.active {
+  border-color: var(--accent-700);
+  box-shadow: inset 0 0 0 1px var(--accent-700);
+}
+
+.rail-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #efe2d3, #fdf7f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--ink-700);
+}
+
+.rail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rail-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.rail-address {
+  font-size: 0.75rem;
+  color: var(--ink-500);
+}
+
+.rail-empty {
+  padding: 1rem 0;
+  text-align: center;
+  color: var(--ink-500);
+}
+
+.cafes-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.cafe-detail {
+  padding: 1.35rem 1.6rem 1.6rem;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ebdfd1;
+  margin-bottom: 1.1rem;
+}
+
+.main-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink-500);
+}
+
+.detail-header h1 {
+  font-family: "Fraunces", serif;
+  font-size: 1.9rem;
+  margin: 0.2rem 0 0;
+}
+
+.detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 1.5rem;
+}
+
+.detail-panel {
+  background: #fff8f2;
+  border-radius: 18px;
+  padding: 1rem 1.1rem 1.2rem;
+  border: 1px solid #eddcc8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.detail-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.main-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid #e3d5c5;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--ink-900);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-500);
+}
+
+.icon-button.danger {
+  color: #b0312f;
+}
+
+.card {
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid rgba(216, 198, 179, 0.7);
+  box-shadow: 0 18px 32px rgba(60, 44, 24, 0.08);
+}
+
+.panel-card {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.panel-title h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.panel-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.panel-tabs button {
+  border-radius: 999px;
+  border: 1px solid #e3d5c5;
+  background: #f8f2ea;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.panel-tabs button.active {
+  background: var(--accent-700);
+  border-color: var(--accent-700);
+  color: #fff;
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.panel-empty {
+  text-align: center;
+  padding: 1rem 0;
+  color: var(--ink-500);
+}
+
+.reservation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.6rem;
+  border-bottom: 1px dashed #e9dccd;
+}
+
+.reservation-row:last-child {
+  border-bottom: none;
+}
+
+.reservation-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #efe0d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--ink-700);
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-name {
+  font-weight: 600;
+}
+
+.profile-meta {
+  font-size: 0.75rem;
+  color: var(--ink-500);
+}
+
+.reservation-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-chip {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: #fff1c6;
+  color: #946d00;
+}
+
+.status-approved {
+  background: #d7f4df;
+  color: #1f6a36;
+}
+
+.status-rejected {
+  background: #f8d0cf;
+  color: #8c2e2d;
+}
+
+.status-cancelled {
+  background: #e0dedc;
+  color: #605a54;
+}
+
+.action-group {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-btn.approve {
+  background: var(--accent-700);
+  color: #fff;
+}
+
+.action-btn.reject {
+  background: #f4d1d0;
+  color: #8b2e2c;
+}
+
+.cafes-side {
+  display: none;
+}
+
+.review-card {
+  padding: 0.9rem;
+  border-radius: 16px;
+  border: 1px solid #eadfd2;
+  background: #fffdfb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.review-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #efe3d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-weight: 600;
+}
+
+.review-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.review-name {
+  font-weight: 600;
+}
+
+.review-stars {
+  color: #c4892a;
+  font-size: 0.85rem;
+}
+
+.review-comment {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.review-media {
+  border: none;
+  border-radius: 14px;
+  height: 130px;
+  background: linear-gradient(135deg, #f4e8da 0%, #ecd8c2 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0.75rem;
+  color: var(--ink-700);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8rem;
+}
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 18, 13, 0.7);
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.image-modal img {
+  max-width: min(80vw, 720px);
+  max-height: 80vh;
+  border-radius: 18px;
+  box-shadow: 0 30px 50px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 1100px) {
+  .cafes-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .cafes-shell {
+    padding: 1rem;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reservation-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reservation-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -9,6 +9,7 @@ import {
   deleteCafe,
   getMapCafes,
 } from '../controllers/cafe.controller';
+import { verifyToken } from '../middlewares/auth.middleware';
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -48,7 +49,7 @@ router.get('/map', getMapCafes);
 router.get('/:id', getCafeDetail);
 
 // GET /api/cafes/owner/:ownerId - Danh sách quán của owner
-router.get('/owner/:ownerId', getCafesByOwner);
+router.get('/owner/:ownerId', verifyToken, getCafesByOwner);
 
 // ━━━ CREATE ━━━
 

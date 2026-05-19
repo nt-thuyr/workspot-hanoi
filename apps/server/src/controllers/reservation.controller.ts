@@ -59,7 +59,8 @@ export const getUserReservations = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limitRaw = parseInt(req.query.limit as string);
+    const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
 
     const { data, count } = await ReservationModel.getUserReservations(userId, page, limit);
 
@@ -70,7 +71,7 @@ export const getUserReservations = async (req: Request, res: Response) => {
         page,
         limit,
         total: count,
-        pages: Math.ceil((count || 0) / limit),
+        pages: limit > 0 ? Math.ceil((count || 0) / limit) : 1,
       },
     });
   } catch (error: any) {
@@ -141,24 +142,30 @@ export const getHistory = async (req: Request, res: Response) => {
 export const getCafeReservations = async (req: Request, res: Response) => {
   try {
     const { cafeId } = req.params as { cafeId: string };
-    const { owner_id } = req.query;
+    const ownerIdFromToken = (req as any).user?.id as string | undefined;
+    const ownerIdFromQuery = req.query.owner_id as string | undefined;
+    const ownerId = ownerIdFromToken || ownerIdFromQuery;
+    const role = (req as any).user?.user_metadata?.role as string | undefined;
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limitRaw = parseInt(req.query.limit as string);
+    const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
 
     // Kiểm tra owner
-    if (!owner_id) {
-      return res.status(400).json({
+    if (!ownerId) {
+      return res.status(401).json({
         success: false,
-        message: 'owner_id is required',
+        message: 'Vui lòng đăng nhập.',
       });
     }
 
-    const isOwner = await ReservationModel.isOwner(cafeId, owner_id as string);
-    if (!isOwner) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền xem đơn đặt chỗ của quán này',
-      });
+    if (role !== 'cafe_owner') {
+      const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền xem đơn đặt chỗ của quán này',
+        });
+      }
     }
 
     const { data, count } = await ReservationModel.getCafeReservations(cafeId, page, limit);
@@ -170,7 +177,7 @@ export const getCafeReservations = async (req: Request, res: Response) => {
         page,
         limit,
         total: count,
-        pages: Math.ceil((count || 0) / limit),
+        pages: limit > 0 ? Math.ceil((count || 0) / limit) : 1,
       },
     });
   } catch (error: any) {
@@ -184,6 +191,9 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
     const { status, owner_id } = req.body;
+    const ownerIdFromToken = (req as any).user?.id as string | undefined;
+    const ownerId = ownerIdFromToken || owner_id;
+    const role = (req as any).user?.user_metadata?.role as string | undefined;
 
     if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({
@@ -201,13 +211,22 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Kiểm tra owner
-    const isOwner = await ReservationModel.isOwner(cafeId, owner_id);
-    if (!isOwner) {
-      return res.status(403).json({
+    if (!ownerId) {
+      return res.status(401).json({
         success: false,
-        message: 'Bạn không có quyền cập nhật đơn đặt chỗ này',
+        message: 'Vui lòng đăng nhập.',
       });
+    }
+
+    // Kiểm tra owner
+    if (role !== 'cafe_owner') {
+      const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
+      if (!isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền cập nhật đơn đặt chỗ này',
+        });
+      }
     }
 
     const reservation = await ReservationModel.updateReservationStatus(id, status);
