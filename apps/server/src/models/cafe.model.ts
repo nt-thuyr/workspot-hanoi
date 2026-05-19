@@ -38,7 +38,9 @@ export class CafeModel {
       },
     });
 
-    const { data, error } = await adminClient.from("cafes").select("*");
+    const { data, error } = await adminClient
+      .from("cafes")
+      .select("*, cafe_amenities(amenity_id), cafe_images(image_url, image_type)");
 
     if (error) throw error;
     return data;

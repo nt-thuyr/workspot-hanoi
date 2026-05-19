@@ -87,6 +87,7 @@ const HomePage: FC = () => {
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
       if (activeTags.includes("Fast Wi-Fi")) params.append("hasWifi", "true");
       if (activeTags.includes("Quiet")) params.append("isQuiet", "true");
+      if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
 
       params.append("lat", centerHanoi[0].toString());
       params.append("lng", centerHanoi[1].toString());
@@ -113,8 +114,16 @@ const HomePage: FC = () => {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCafes();
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timer);
+  }, [activeFilters, activeTags, searchQuery]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     fetchCafes();
-  }, [activeFilters, activeTags]);
+  };
 
   const toggleFilter = (f: string) =>
     setActiveFilters((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
@@ -140,13 +149,13 @@ const HomePage: FC = () => {
       <TopNavBar mode="guest" activeTab="home" />
 
       <div className="home-main">
-        <aside className="home-sidebar">
+        <aside className="home-sidebar" id="search-sidebar">
           <div className="sidebar-hero">
             <h1 className="sidebar-hero__title">理想のワークスペース</h1>
             <p className="sidebar-hero__sub">厳選されたカフェスペース</p>
           </div>
 
-          <div className="sidebar-search">
+          <form className="sidebar-search" onSubmit={handleSearchSubmit}>
             <svg
               className="search-icon"
               viewBox="0 0 24 24"
@@ -167,7 +176,7 @@ const HomePage: FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+          </form>
 
           <div className="filter-chips">
             {FILTER_CHIPS.map((f) => (
@@ -181,20 +190,99 @@ const HomePage: FC = () => {
             ))}
           </div>
 
-          <div className="sidebar-tags">
-            <p className="sidebar-tags__title">人気のあるタグ</p>
-            <div className="tag-list">
-              {POPULAR_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </button>
-              ))}
+          {/* Hiển thị số lượng kết quả và danh sách quán */}
+          {cafes.length > 0 ? (
+            <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
+              <div className="text-sm text-gray-600 mb-4 font-medium">
+                <span className="font-bold text-[#614734]">「{searchQuery || "すべて"}」</span>
+                {" で "}
+                <span className="font-bold text-[#614734]">{cafes.length}件</span>
+                {" のカフェが見つかりました"}
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                {cafes.map((cafe) => {
+                  const isSelected = selectedCafe?.id === cafe.id;
+                  return (
+                    <div
+                      key={cafe.id}
+                      className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
+                        isSelected 
+                          ? "border-[#614734] shadow-md transform scale-[1.02]" 
+                          : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
+                      }`}
+                      onClick={() => handleSelectCafe(cafe)}
+                    >
+                      <div className="flex gap-4">
+                        <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative bg-gray-100">
+                          {cafe.imageUrl ? (
+                            <img src={cafe.imageUrl} alt={cafe.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="24" height="24">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                              </svg>
+                            </div>
+                          )}
+                          <div className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            cafe.isOpenNow ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}>
+                            {cafe.isOpenNow ? "営業中" : "閉店中"}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                          <div>
+                            <h3 className="font-bold text-[#3d2c20] text-base truncate" title={cafe.name}>{cafe.name}</h3>
+                            <div className="flex items-center gap-2 mt-1 text-xs">
+                              <StarRating value={cafe.rating} />
+                              <span className="text-gray-400">({cafe.reviewCount})</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1 mt-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
+                                <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
+                              </svg>
+                              <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 truncate">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                              </svg>
+                              <span className="truncate">
+                                {cafe.distance ? `${cafe.distance}km先` : ""}
+                                {(cafe as any).address ? ` • ${(cafe as any).address.split(',').pop()?.trim()}` : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="sidebar-tags mt-4">
+              <p className="sidebar-tags__title">人気のあるタグ</p>
+              <div className="tag-list">
+                {POPULAR_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
 
         <div className="map-area" id="main-map">

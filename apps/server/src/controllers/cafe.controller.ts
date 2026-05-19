@@ -464,58 +464,64 @@ export const getMapCafes = async (req: Request, res: Response) => {
     console.log("[getMapCafes] ===== START =====");
     console.log("[getMapCafes] Query params:", req.query);
 
-    const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance } = req.query;
+    const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance, keyword } = req.query;
 
-    // 1. Fetch toàn bộ dữ liệu từ Supabase
     console.log("[getMapCafes] Fetching all cafes from database...");
-    const allCafes = await CafeModel.getAllCafes();
-    console.log("[getMapCafes] Total cafes in DB:", allCafes?.length || 0);
+    const allCafesRaw = await CafeModel.getAllCafes();
+    console.log("[getMapCafes] Total cafes in DB:", allCafesRaw?.length || 0);
 
-    if (!allCafes || allCafes.length === 0) {
-      console.log("[getMapCafes] No cafes found in database!");
+    if (!allCafesRaw || allCafesRaw.length === 0) {
       return res.status(200).json({ success: true, count: 0, data: [] });
     }
 
-    // Debug: Show first cafe
-    if (allCafes.length > 0) {
-      console.log("[getMapCafes] Sample cafe:", {
-        id: allCafes[0].id,
-        name: allCafes[0].name,
-        lat: allCafes[0].lat,
-        lng: allCafes[0].lng,
+    // Map amenities to string tags
+    const tagMap: Record<number, string> = {
+      1: "Fast Wi-Fi", 2: "コンセント", 3: "Quiet", 4: "禁煙",
+      5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
+      9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
+    };
+
+    // Pre-process cafes to extract tags and imageUrl
+    let filteredCafes = allCafesRaw.map((cafe: any) => {
+      const standardTags = (cafe.cafe_amenities || []).map((a: any) => tagMap[a.amenity_id]).filter(Boolean);
+      const tags = [...standardTags, ...(cafe.custom_tags || [])];
+      
+      let image_url = null;
+      if (cafe.cafe_images && cafe.cafe_images.length > 0) {
+        const cover = cafe.cafe_images.find((img: any) => img.image_type === 'INTERIOR') || cafe.cafe_images[0];
+        image_url = cover.image_url;
+      }
+
+      return { ...cafe, tags, image_url };
+    });
+
+    // 1. Lọc theo Keyword (tìm trong tên, địa chỉ, tags)
+    if (keyword) {
+      const kw = (keyword as string).toLowerCase();
+      filteredCafes = filteredCafes.filter((cafe) => {
+        const nameMatch = cafe.name?.toLowerCase().includes(kw);
+        const addressMatch = cafe.address?.toLowerCase().includes(kw);
+        const tagsMatch = cafe.tags.some((t: string) => t.toLowerCase().includes(kw));
+        return nameMatch || addressMatch || tagsMatch;
       });
     }
 
-    let filteredCafes = [...allCafes];
-
     // 2. Lọc theo trạng thái Đang mở cửa (営業中)
     if (isOpen === "true") {
-      const before = filteredCafes.length;
       filteredCafes = filteredCafes.filter((cafe) =>
         checkIsOpen(cafe.open_time, cafe.close_time),
       );
-      console.log(
-        `[getMapCafes] After isOpen filter: ${before} → ${filteredCafes.length}`,
-      );
     }
 
-    // 3. Lọc theo Wi-Fi (高速Wi-Fi) và Yên tĩnh (静か)
+    // 3. Lọc theo Wi-Fi và Yên tĩnh
     if (hasWifi === "true") {
-      const before = filteredCafes.length;
       filteredCafes = filteredCafes.filter((cafe) =>
-        cafe.tags?.includes("Fast Wi-Fi"),
-      );
-      console.log(
-        `[getMapCafes] After hasWifi filter: ${before} → ${filteredCafes.length}`,
+        cafe.tags?.includes("Fast Wi-Fi") || cafe.tags?.some((t: string) => t.toLowerCase().includes("wifi")),
       );
     }
     if (isQuiet === "true") {
-      const before = filteredCafes.length;
       filteredCafes = filteredCafes.filter((cafe) =>
-        cafe.tags?.includes("Quiet"),
-      );
-      console.log(
-        `[getMapCafes] After isQuiet filter: ${before} → ${filteredCafes.length}`,
+        cafe.tags?.includes("Quiet") || cafe.tags?.some((t: string) => t.toLowerCase().includes("quiet") || t.toLowerCase().includes("静か")),
       );
     }
 
@@ -525,27 +531,15 @@ export const getMapCafes = async (req: Request, res: Response) => {
       const userLng = parseFloat(lng as string);
       const radiusKm = maxDistance ? parseFloat(maxDistance as string) : 5; // Mặc định 5km
 
-      console.log(
-        `[getMapCafes] Calculating distance from (${userLat}, ${userLng}), radius: ${radiusKm}km`,
-      );
-
-      // Map để thêm thuộc tính distance
       filteredCafes = filteredCafes.map((cafe) => {
         const distance = getDistanceFromLatLonInKm(
-          userLat,
-          userLng,
-          cafe.lat,
-          cafe.lng,
+          userLat, userLng, cafe.lat, cafe.lng,
         );
         return { ...cafe, distance };
       });
 
       // Lọc các quán nằm trong bán kính cho phép
-      const before = filteredCafes.length;
       filteredCafes = filteredCafes.filter((cafe) => cafe.distance <= radiusKm);
-      console.log(
-        `[getMapCafes] After distance filter: ${before} → ${filteredCafes.length}`,
-      );
 
       // Sắp xếp ưu tiên quán gần nhất
       filteredCafes.sort((a, b) => a.distance - b.distance);
@@ -564,13 +558,8 @@ export const getMapCafes = async (req: Request, res: Response) => {
       imageUrl: cafe.image_url,
       isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),
       distance: cafe.distance ? parseFloat(cafe.distance.toFixed(1)) : null,
+      address: cafe.address,
     }));
-
-    console.log(
-      "[getMapCafes] Sending response with",
-      responseData.length,
-      "cafes",
-    );
 
     res.status(200).json({
       success: true,
