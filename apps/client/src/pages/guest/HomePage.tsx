@@ -13,20 +13,13 @@ import "leaflet/dist/leaflet.css";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
 
-// 2. Cấu hình Icon cho ghim (Marker) — dùng divIcon giống SearchPage
-const createCafeIcon = (selected = false) => {
-  const cls = selected ? "map-pin map-pin--selected" : "map-pin";
-  return L.divIcon({
-    className: "",
-    html: `<div class="${cls}">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-        <path d="M18.5 9.5A6.5 6.5 0 0 0 5.5 9.5c0 4.5 6.5 11 6.5 11S18.5 14 18.5 9.5z"/>
-        <circle cx="12" cy="9.5" r="2.5" fill="white"/>
-      </svg>
-    </div>`,
+// 2. Cấu hình Icon cho ghim (Marker) — đồng bộ với màn Edit Cafe
+const createCafeIcon = () => {
+  return new L.Icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
     iconSize: [40, 40],
     iconAnchor: [20, 40],
-    popupAnchor: [0, -42],
+    popupAnchor: [0, -40],
   });
 };
 

@@ -325,7 +325,10 @@ const OwnerCafeListPage: FC = () => {
                     <div className="panel-empty">予約はまだありません</div>
                   ) : (
                     filteredReservations.map((item) => (
-                      <div key={item.id} className="reservation-row">
+                      <div
+                        key={item.id}
+                        className={`reservation-row ${item.status === "PENDING" ? "is-pending" : "is-resolved"}`}
+                      >
                         <div className="reservation-profile">
                           <div className="profile-avatar">
                             {item.profiles?.avatar_url ? (
@@ -336,35 +339,35 @@ const OwnerCafeListPage: FC = () => {
                               </span>
                             )}
                           </div>
-                          <div>
+                          <div className="profile-info">
                             <div className="profile-name">{item.profiles?.full_name || "ゲスト"}</div>
                             <div className="profile-meta">
                               {formatDate(item.res_date)} · {formatTime(item.res_time)} · {item.num_guests}名
                             </div>
+                            {item.status === "PENDING" && (
+                              <div className="profile-actions">
+                                <button
+                                  className="action-btn approve"
+                                  disabled={actionLoadingId === item.id}
+                                  onClick={() => handleStatusUpdate(item.id, "APPROVED")}
+                                >
+                                  承認
+                                </button>
+                                <button
+                                  className="action-btn reject"
+                                  disabled={actionLoadingId === item.id}
+                                  onClick={() => handleStatusUpdate(item.id, "REJECTED")}
+                                >
+                                  拒否
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="reservation-actions">
                           <span className={`status-chip status-${item.status.toLowerCase()}`}>
                             {STATUS_LABELS[item.status]}
                           </span>
-                          {item.status === "PENDING" && (
-                            <div className="action-group">
-                              <button
-                                className="action-btn approve"
-                                disabled={actionLoadingId === item.id}
-                                onClick={() => handleStatusUpdate(item.id, "APPROVED")}
-                              >
-                                承認
-                              </button>
-                              <button
-                                className="action-btn reject"
-                                disabled={actionLoadingId === item.id}
-                                onClick={() => handleStatusUpdate(item.id, "REJECTED")}
-                              >
-                                拒否
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     ))
