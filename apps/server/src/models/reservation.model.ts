@@ -118,6 +118,35 @@ export class ReservationModel {
     return data?.user_id || null;
   }
 
+  // HELPER - Lấy đầy đủ thông tin reservation để gửi email
+  // Email được lấy từ auth.users qua Admin API (không có trong bảng profiles)
+  static async getReservationWithDetails(reservationId: string) {
+    // Bước 1: Lấy dữ liệu reservation kèm profile và tên quán
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        id, res_date, res_time, status, user_id,
+        profiles ( full_name ),
+        cafes ( name )
+      `)
+      .eq('id', reservationId)
+      .single();
+
+    if (error || !data) return null;
+
+    // Bước 2: Lấy email từ auth.users bằng Admin API
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(
+      (data as any).user_id
+    );
+
+    if (authError || !authUser?.user) return null;
+
+    return {
+      ...(data as any),
+      email: authUser.user.email || null,
+    };
+  }
+
   // Lấy lịch sử đặt chỗ theo userId
   static async getHistoryByUserId(userId: string) {
     const { data, error } = await supabase

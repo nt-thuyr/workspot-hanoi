@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ReservationModel } from '../models/reservation.model';
+import { sendReservationStatusEmail } from '../utils/email.service';
 
 // POST /api/reservations - Đặt chỗ (user)
 export const createReservation = async (req: Request, res: Response) => {
@@ -224,6 +225,29 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     }
 
     const reservation = await ReservationModel.updateReservationStatus(id, status);
+
+    // Gửi email thông báo nếu status là APPROVED hoặc REJECTED
+    if (status === 'APPROVED' || status === 'REJECTED') {
+      try {
+        const details = await ReservationModel.getReservationWithDetails(id);
+        if (details?.email) {
+          await sendReservationStatusEmail({
+            to: details.email,                                  // email từ auth.users
+            guestName: details.profiles?.full_name || 'Guest', // tên từ profiles
+            cafeName: details.cafes?.name || 'WorkSpot Cafe',
+            date: details.res_date || '',
+            time: details.res_time || '',
+            status: status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED',
+          });
+          console.log(`[Email] Sent ${status} email to: ${details.email}`);
+        } else {
+          console.warn(`[Email] Skipped: no email found for reservation ${id}`);
+        }
+      } catch (emailErr) {
+        // Không block response nếu email lỗi
+        console.error('[Email] Failed to send reservation email:', emailErr);
+      }
+    }
 
     res.status(200).json({ success: true, data: reservation });
   } catch (error: any) {

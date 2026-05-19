@@ -14,12 +14,13 @@ import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
 
 // 2. Cấu hình Icon cho ghim (Marker) — đồng bộ với màn Edit Cafe
-const createCafeIcon = () => {
+const createCafeIcon = (isSelected = false) => {
   return new L.Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
+    iconSize: isSelected ? [50, 50] : [40, 40],
+    iconAnchor: isSelected ? [25, 50] : [20, 40],
     popupAnchor: [0, -40],
+    className: isSelected ? "cafe-marker--selected" : "",
   });
 };
 
