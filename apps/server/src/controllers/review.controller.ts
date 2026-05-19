@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ReviewModel, ReviewImagesModel } from '../models/review.model';
+import { uploadImageToSupabase } from '../utils/imageUpload';
 
 // POST /api/reviews - Viết review (user)
 export const createReview = async (req: Request, res: Response) => {
@@ -76,12 +77,25 @@ export const getUserReviews = async (req: Request, res: Response) => {
 export const createReviewImage = async (req: Request, res: Response) => {
   try {
     const { reviewId } = req.params as { reviewId: string };
-    const { imageUrl } = req.body;
 
+    // Check if files were uploaded via multer
+    const files = req.files as Express.Multer.File[];
+    if (files && files.length > 0) {
+      console.log(`[createReviewImage] Uploading ${files.length} images to Supabase...`);
+      const createdImages = [];
+      for (const file of files) {
+        const imageUrl = await uploadImageToSupabase(file, 'cafe-images', 'reviews');
+        const imageRecord = await ReviewImagesModel.createReviewImage(parseInt(reviewId), imageUrl);
+        createdImages.push(imageRecord);
+      }
+      return res.status(201).json({ success: true, data: createdImages });
+    }
+
+    const { imageUrl } = req.body;
     if (!imageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Missing imageUrl',
+        message: 'Missing imageUrl or files',
       });
     }
 

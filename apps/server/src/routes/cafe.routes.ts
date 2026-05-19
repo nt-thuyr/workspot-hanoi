@@ -24,7 +24,7 @@ const upload = multer({
       size: file.size,
     });
 
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (allowedMimes.includes(file.mimetype)) {
       console.log('[Multer] File accepted');
       cb(null, true);

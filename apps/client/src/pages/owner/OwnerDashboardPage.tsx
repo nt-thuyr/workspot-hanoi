@@ -208,10 +208,6 @@ const OwnerDashboardPage: FC = () => {
               const menuPhotos = (cafe.cafe_images || [])
                 .filter((img) => img.image_type === "MENU")
                 .map((img) => img.image_url);
-              
-              const thumbnails = menuPhotos.length >= 3 
-                ? menuPhotos.slice(0, 3) 
-                : [...menuPhotos, ...DEFAULT_MENU_IMAGES].slice(0, 3);
 
               // Map amenities tags
               const standardTags = (cafe.cafe_amenities || [])
@@ -315,13 +311,15 @@ const OwnerDashboardPage: FC = () => {
                         </div>
                       </div>
 
-                      <div className="thumbnails-container">
-                        {thumbnails.map((thumbUrl, tIdx) => (
-                          <div key={tIdx} className="thumbnail-wrapper">
-                            <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
-                          </div>
-                        ))}
-                      </div>
+                      {menuPhotos.length > 0 && (
+                        <div className="thumbnails-container">
+                          {menuPhotos.slice(0, 3).map((thumbUrl, tIdx) => (
+                            <div key={tIdx} className="thumbnail-wrapper">
+                              <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Stats & Map Block */}

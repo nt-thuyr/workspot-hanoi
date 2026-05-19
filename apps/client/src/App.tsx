@@ -10,6 +10,7 @@ import OwnerCafeListPage from "./pages/owner/OwnerCafeListPage";
 import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import ReservationPage from "./pages/ReservationPage";
 import ReservationHistoryPage from "./pages/guest/ReservationHistoryPage";
+import ReviewPage from "./pages/guest/ReviewPage";
 
 const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/booking", element: <ReservationPage /> },
   { path: "/history", element: <ReservationHistoryPage /> },
+  { path: "/reviews", element: <ReviewPage /> },
   { path: "/dashboard", element: <OwnerDashboardPage /> },
   {
     path: "/cafes",

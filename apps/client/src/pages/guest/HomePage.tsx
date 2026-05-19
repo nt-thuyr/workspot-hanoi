@@ -301,17 +301,15 @@ const HomePage: FC = () => {
                     </svg>
                     席を予約
                   </Link>
-                  <button
-                    className="flex-1 bg-white text-[#3d2f1e] border border-[#d6cfc7] text-xs font-bold py-3 rounded-xl hover:bg-[#faf8f6] hover:border-[#614734] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    onClick={() => {
-                      alert("レビュー機能 là chức năng đang phát triển!");
-                    }}
+                  <Link
+                    to={`/reviews?cafeId=${selectedCafe.id}`}
+                    className="flex-1 bg-white text-[#3d2f1e] border border-[#d6cfc7] text-xs font-bold py-3 rounded-xl hover:bg-[#faf8f6] hover:border-[#614734] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-decoration-none"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                     レビューを書く
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Menu Highlight Section */}
