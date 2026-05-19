@@ -17,7 +17,7 @@ const createLocationIcon = () => {
   });
 };
 
-const centerHanoi: [number, number] = [21.028511, 105.804817];
+const centerHanoi: [number, number] = [21.0056, 105.8433];
 
 function MapClickHandler({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
   useMapEvents({
