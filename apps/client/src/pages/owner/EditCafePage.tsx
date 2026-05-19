@@ -38,7 +38,9 @@ export const EditCafePage: React.FC = () => {
   const [cafeId, setCafeId] = useState<string | null>(urlCafeId || null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [initialCoverImagePreview, setInitialCoverImagePreview] = useState<string | null>(null);
+  const [initialCoverImagePreview, setInitialCoverImagePreview] = useState<
+    string | null
+  >(null);
   const [deletedMenuImageIds, setDeletedMenuImageIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState<CafeFormData>({
@@ -74,7 +76,11 @@ export const EditCafePage: React.FC = () => {
           );
           const ownerResult = await ownerResponse.json();
 
-          if (ownerResult.success && ownerResult.data && ownerResult.data.length > 0) {
+          if (
+            ownerResult.success &&
+            ownerResult.data &&
+            ownerResult.data.length > 0
+          ) {
             targetCafeId = ownerResult.data[0].id;
           }
         }
@@ -82,13 +88,15 @@ export const EditCafePage: React.FC = () => {
         if (targetCafeId) {
           setCafeId(targetCafeId);
           // Step 2: Fetch chi tiết quán bằng ID để lấy amenities & images
-          const detailResponse = await fetch(`http://localhost:3000/api/cafes/${targetCafeId}`);
+          const detailResponse = await fetch(
+            `http://localhost:3000/api/cafes/${targetCafeId}`,
+          );
           const detailResult = await detailResponse.json();
-          
+
           if (detailResult.success && detailResult.data) {
             const cafe = detailResult.data;
             setCafeId(cafe.id);
-            
+
             // Parse address into street and ward using same logic as Register page
             const rawAddress = cafe.address || "";
             const addressParts = rawAddress
@@ -141,41 +149,58 @@ export const EditCafePage: React.FC = () => {
 
             // Map amenities sang tags
             const standardTags = cafe.amenities
-              ? cafe.amenities.map(
-                  (a: any) => {
-                    switch(a.amenity_id) {
-                      case 1: return "高速Wi-Fi";
-                      case 2: return "コンセント";
-                      case 3: return "静かな環境";
-                      case 4: return "禁煙";
-                      case 5: return "エアコン";
-                      case 6: return "ペット可";
-                      case 7: return "駐車場";
-                      case 8: return "テラス席";
-                      case 9: return "飲食可";
-                      case 10: return "プロジェクター";
-                      case 11: return "会議室";
-                      case 12: return "24時間営業";
-                      default: return "";
+              ? cafe.amenities
+                  .map((a: any) => {
+                    switch (a.amenity_id) {
+                      case 1:
+                        return "高速Wi-Fi";
+                      case 2:
+                        return "コンセント";
+                      case 3:
+                        return "静かな環境";
+                      case 4:
+                        return "禁煙";
+                      case 5:
+                        return "エアコン";
+                      case 6:
+                        return "ペット可";
+                      case 7:
+                        return "駐車場";
+                      case 8:
+                        return "テラス席";
+                      case 9:
+                        return "飲食可";
+                      case 10:
+                        return "プロジェクター";
+                      case 11:
+                        return "会議室";
+                      case 12:
+                        return "24時間営業";
+                      default:
+                        return "";
                     }
-                  }
-                ).filter(Boolean)
+                  })
+                  .filter(Boolean)
               : [];
 
             const tags = [...standardTags, ...(cafe.custom_tags || [])];
-            
+
             // Map images
             let initialCoverUrl = null;
             const mappedMenuImages: MenuImage[] = [];
-            
+
             if (cafe.images) {
-              const coverImg = cafe.images.find((img: any) => img.image_type === 'INTERIOR');
+              const coverImg = cafe.images.find(
+                (img: any) => img.image_type === "INTERIOR",
+              );
               if (coverImg) {
                 initialCoverUrl = coverImg.image_url;
                 setInitialCoverImagePreview(initialCoverUrl);
               }
-              
-              const menuImgs = cafe.images.filter((img: any) => img.image_type === 'MENU');
+
+              const menuImgs = cafe.images.filter(
+                (img: any) => img.image_type === "MENU",
+              );
               menuImgs.forEach((img: any) => {
                 mappedMenuImages.push({
                   id: img.id.toString(),
@@ -349,7 +374,7 @@ export const EditCafePage: React.FC = () => {
       menuImages: prev.menuImages.filter((img) => img.id !== id),
     }));
     if (!id.startsWith("new-")) {
-      setDeletedMenuImageIds(prev => [...prev, id]);
+      setDeletedMenuImageIds((prev) => [...prev, id]);
     }
   };
 
@@ -362,14 +387,14 @@ export const EditCafePage: React.FC = () => {
     if (!formData.closeTime.trim()) newErrors.closeTime = "閉店時間は必須です";
 
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length > 0) {
       toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc.");
       // Scroll to top to show error
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return false;
     }
-    
+
     return true;
   };
 
@@ -385,7 +410,7 @@ export const EditCafePage: React.FC = () => {
       if (!ownerId) {
         throw new Error("Vui lòng đăng nhập lại để tiếp tục");
       }
-      
+
       const formDataToSend = new FormData();
       formDataToSend.append("cafeName", formData.cafeName);
       formDataToSend.append("ward", formData.ward);
@@ -396,7 +421,10 @@ export const EditCafePage: React.FC = () => {
       formDataToSend.append("lng", formData.longitude?.toString() || "");
       formDataToSend.append("tags", JSON.stringify(formData.tags));
       formDataToSend.append("owner_id", ownerId);
-      formDataToSend.append("deletedMenuImageIds", JSON.stringify(deletedMenuImageIds));
+      formDataToSend.append(
+        "deletedMenuImageIds",
+        JSON.stringify(deletedMenuImageIds),
+      );
 
       // Add cover image if changed
       if (formData.coverImage) {
@@ -423,7 +451,7 @@ export const EditCafePage: React.FC = () => {
 
       toast.success("Cập nhật thông tin quán thành công!");
       setTimeout(() => {
-        navigate("/");
+        navigate("/dashboard");
       }, 1500);
     } catch (error: any) {
       console.error(error);
