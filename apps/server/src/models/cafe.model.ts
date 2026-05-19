@@ -82,10 +82,12 @@ export class CafeModel {
     page: number = 1,
     limit: number = 10,
   ) {
+    const selectQuery = "*, cafe_amenities(amenity_id), cafe_images(image_url, image_type), reviews(rating), reservations(id)";
+    
     if (limit <= 0) {
       const { data, error, count } = await supabase
         .from("cafes")
-        .select("*", { count: "exact" })
+        .select(selectQuery, { count: "exact" })
         .eq("owner_id", ownerId);
 
       if (error) throw error;
@@ -96,10 +98,10 @@ export class CafeModel {
     const to = from + limit - 1;
 
     const { data, error, count } = await supabase
-      .from("cafes")
-      .select("*", { count: "exact" })
-      .eq("owner_id", ownerId)
-      .range(from, to);
+        .from("cafes")
+        .select(selectQuery, { count: "exact" })
+        .eq("owner_id", ownerId)
+        .range(from, to);
 
     if (error) throw error;
     return { data, count };

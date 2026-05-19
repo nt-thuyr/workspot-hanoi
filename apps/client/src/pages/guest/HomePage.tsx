@@ -37,7 +37,7 @@ const createCurrentLocationIcon = () =>
   });
 
 interface CafeInfo {
-  id: number;
+  id: string | number;
   name: string;
   location: { lat: number; lng: number };
   rating: number;
@@ -46,6 +46,7 @@ interface CafeInfo {
   tags: string[];
   distance: number | null;
   imageUrl?: string;
+  address?: string;
 }
 
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
@@ -359,7 +360,7 @@ const HomePage: FC = () => {
                               
                               {/* Dots */}
                               <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
-                                {menuImages.map((_, idx) => (
+                                {menuImages.map((_: any, idx: number) => (
                                   <button
                                     key={idx}
                                     className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
@@ -445,7 +446,7 @@ const HomePage: FC = () => {
                   
                   <div className="flex flex-col gap-4">
                     {cafes.map((cafe) => {
-                      const isSelected = selectedCafe?.id === cafe.id;
+                      const isSelected = (selectedCafe as any)?.id === cafe.id;
                       return (
                         <div
                           key={cafe.id}

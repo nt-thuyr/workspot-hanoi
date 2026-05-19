@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterCafePage from "./pages/owner/RegisterCafePage";
 import EditCafePage from "./pages/owner/EditCafePage";
 import OwnerCafeListPage from "./pages/owner/OwnerCafeListPage";
+import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import ReservationPage from "./pages/ReservationPage";
 import ReservationHistoryPage from "./pages/guest/ReservationHistoryPage";
 
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/booking", element: <ReservationPage /> },
   { path: "/history", element: <ReservationHistoryPage /> },
+  { path: "/dashboard", element: <OwnerDashboardPage /> },
   {
     path: "/cafes",
     children: [

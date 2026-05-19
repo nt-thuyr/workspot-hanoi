@@ -39,7 +39,7 @@ const LoginPage: FC = () => {
                 localStorage.setItem("user_id", data.data.user.id);
 
                 if (userRole === "cafe_owner") {
-                    navigate("/cafes/edit");
+                    navigate("/dashboard");
                 } else {
                     navigate("/");
                 }
