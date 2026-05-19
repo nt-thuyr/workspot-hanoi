@@ -25,9 +25,10 @@ export async function uploadImageToSupabase(
     // Tạo tên file unique
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(7);
-    const extension = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, extension);
-    const filename = `${folder}/${timestamp}-${randomId}-${basename}${extension}`;
+    const extension = path.extname(file.originalname).toLowerCase();
+    const basename = path.basename(file.originalname, path.extname(file.originalname));
+    const sanitizedBasename = basename.replace(/[^a-zA-Z0-9-_]/g, '') || 'image';
+    const filename = `${folder}/${timestamp}-${randomId}-${sanitizedBasename}${extension}`;
 
     console.log(`[Upload] Uploading to bucket='${bucket}', path='${filename}'`);
 

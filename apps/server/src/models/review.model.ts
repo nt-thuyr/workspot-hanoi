@@ -29,7 +29,7 @@ export class ReviewModel {
 
     const { data, error, count } = await supabase
       .from('reviews')
-      .select('*, profiles(id, full_name, avatar_url)', { count: 'exact' })
+      .select('*, profiles(id, full_name, avatar_url), review_images(id, image_url)', { count: 'exact' })
       .eq('cafe_id', cafeId)
       .order('created_at', { ascending: false })
       .range(from, to);

@@ -333,6 +333,7 @@
 
 .thumbnail-wrapper {
   flex: 1;
+  max-height: 80px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #ebdfd1;
