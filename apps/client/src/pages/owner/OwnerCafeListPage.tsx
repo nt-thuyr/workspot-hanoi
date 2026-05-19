@@ -11,6 +11,7 @@ interface CafeSummary {
   id: string;
   name: string;
   address: string;
+  imageUrl?: string | null;
 }
 
 interface ReservationItem {
@@ -33,6 +34,10 @@ interface ReviewItem {
     full_name: string | null;
     avatar_url: string | null;
   } | null;
+  review_images?: Array<{
+    id: number;
+    image_url: string;
+  }>;
 }
 
 const STATUS_FILTERS: Array<{ key: ReservationFilter; label: string }> = [
@@ -83,9 +88,17 @@ const OwnerCafeListPage: FC = () => {
         const result = await response.json();
         if (result.success) {
           const data = Array.isArray(result.data) ? result.data : [];
-          setCafes(data);
-          if (data.length > 0) {
-            setSelectedCafeId((prev) => prev || data[0].id);
+          const normalized = data.map((cafe: any) => {
+            const images = Array.isArray(cafe.cafe_images) ? cafe.cafe_images : [];
+            const cover = images.find((img: any) => img.image_type === "INTERIOR");
+            return {
+              ...cafe,
+              imageUrl: cover?.image_url || images[0]?.image_url || null,
+            } as CafeSummary;
+          });
+          setCafes(normalized);
+          if (normalized.length > 0) {
+            setSelectedCafeId((prev) => prev || normalized[0].id);
           }
         } else {
           setCafes([]);
@@ -267,7 +280,11 @@ const OwnerCafeListPage: FC = () => {
                   onClick={() => setSelectedCafeId(cafe.id)}
                 >
                   <div className="rail-thumb">
-                    <span>{cafe.name.charAt(0).toUpperCase()}</span>
+                    {cafe.imageUrl ? (
+                      <img src={cafe.imageUrl} alt={cafe.name} />
+                    ) : (
+                      <span>{cafe.name.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
                   <div className="rail-meta">
                     <span className="rail-name">{cafe.name}</span>
@@ -410,13 +427,19 @@ const OwnerCafeListPage: FC = () => {
                           </div>
                         </div>
                         <p className="review-comment">{review.comment || "コメントはありません"}</p>
-                        <button
-                          className="review-media"
-                          type="button"
-                          onClick={() => setPreviewImage("https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=900")}
-                        >
-                          <span>画像を見る</span>
-                        </button>
+                        {review.review_images?.[0]?.image_url ? (
+                          <button
+                            className="review-media"
+                            type="button"
+                            onClick={() => setPreviewImage(review.review_images?.[0]?.image_url || null)}
+                          >
+                            <img src={review.review_images[0].image_url} alt="review" />
+                          </button>
+                        ) : (
+                          <div className="review-media review-media--empty">
+                            画像はありません
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
