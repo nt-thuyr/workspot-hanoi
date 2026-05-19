@@ -145,7 +145,6 @@ export const getCafeReservations = async (req: Request, res: Response) => {
     const ownerIdFromToken = (req as any).user?.id as string | undefined;
     const ownerIdFromQuery = req.query.owner_id as string | undefined;
     const ownerId = ownerIdFromToken || ownerIdFromQuery;
-    const role = (req as any).user?.user_metadata?.role as string | undefined;
     const page = parseInt(req.query.page as string) || 1;
     const limitRaw = parseInt(req.query.limit as string);
     const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
@@ -158,14 +157,12 @@ export const getCafeReservations = async (req: Request, res: Response) => {
       });
     }
 
-    if (role !== 'cafe_owner') {
-      const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
-      if (!isOwner) {
-        return res.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền xem đơn đặt chỗ của quán này',
-        });
-      }
+    const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xem đơn đặt chỗ của quán này',
+      });
     }
 
     const { data, count } = await ReservationModel.getCafeReservations(cafeId, page, limit);
@@ -193,7 +190,6 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     const { status, owner_id } = req.body;
     const ownerIdFromToken = (req as any).user?.id as string | undefined;
     const ownerId = ownerIdFromToken || owner_id;
-    const role = (req as any).user?.user_metadata?.role as string | undefined;
 
     if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({
@@ -219,14 +215,12 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     }
 
     // Kiểm tra owner
-    if (role !== 'cafe_owner') {
-      const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
-      if (!isOwner) {
-        return res.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền cập nhật đơn đặt chỗ này',
-        });
-      }
+    const isOwner = await ReservationModel.isOwner(cafeId, ownerId);
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền cập nhật đơn đặt chỗ này',
+      });
     }
 
     const reservation = await ReservationModel.updateReservationStatus(id, status);

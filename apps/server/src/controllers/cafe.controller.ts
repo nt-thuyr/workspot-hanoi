@@ -85,24 +85,9 @@ export const getCafeDetail = async (req: Request, res: Response) => {
 export const getCafesByOwner = async (req: Request, res: Response) => {
   try {
     const { ownerId } = req.params as { ownerId: string };
-    const role = (req as any).user?.user_metadata?.role as string | undefined;
     const page = parseInt(req.query.page as string) || 1;
     const limitRaw = parseInt(req.query.limit as string);
     const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
-
-    if (role === 'cafe_owner') {
-      const data = await CafeModel.getAllCafes();
-      return res.status(200).json({
-        success: true,
-        data,
-        pagination: {
-          page: 1,
-          limit: 0,
-          total: data?.length || 0,
-          pages: 1,
-        },
-      });
-    }
 
     const { data, count } = await CafeModel.getCafesByOwner(
       ownerId,

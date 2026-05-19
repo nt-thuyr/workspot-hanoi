@@ -118,6 +118,9 @@
 .rail-thumb {
   width: 48px;
   height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
   border-radius: 14px;
   background: linear-gradient(135deg, #efe2d3, #fdf7f1);
   display: flex;
