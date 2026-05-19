@@ -1,7 +1,12 @@
 import { useState, useEffect, type FC, useCallback } from "react";
 import { Link } from "react-router-dom";
-// 1. Import Leaflet và CSS (Bắt buộc phải có CSS để bản đồ không bị vỡ)
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -10,9 +15,9 @@ import "./HomePage.css";
 
 // 2. Cấu hình Icon cho ghim (Marker) — dùng divIcon giống SearchPage
 const createCafeIcon = (selected = false) => {
-  const cls = selected ? 'map-pin map-pin--selected' : 'map-pin';
+  const cls = selected ? "map-pin map-pin--selected" : "map-pin";
   return L.divIcon({
-    className: '',
+    className: "",
     html: `<div class="${cls}">
       <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
         <path d="M18.5 9.5A6.5 6.5 0 0 0 5.5 9.5c0 4.5 6.5 11 6.5 11S18.5 14 18.5 9.5z"/>
@@ -50,8 +55,14 @@ interface CafeInfo {
 }
 
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
-const POPULAR_TAGS = ["Fast Wi-Fi", "Quiet", "コンセント", "エアコン", "テラス席"];
-const centerHanoi: [number, number] = [21.028511, 105.804817];
+const POPULAR_TAGS = [
+  "Fast Wi-Fi",
+  "Quiet",
+  "コンセント",
+  "エアコン",
+  "テラス席",
+];
+const centerHanoi: [number, number] = [21.004519737728625, 105.84671270832611];
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -83,6 +94,68 @@ const HomePage: FC = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
 
+  const [userCoords, setUserCoords] = useState<[number, number]>(centerHanoi);
+  const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
+
+  // Lấy GPS người dùng khi mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log(
+            "[HomePage] GPS successfully retrieved:",
+            latitude,
+            longitude,
+          );
+          setUserCoords([latitude, longitude]);
+        },
+        (error) => {
+          console.warn("[HomePage] GPS error, falling back to HUST B1:", error);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
+      );
+    }
+  }, []);
+
+  // Xoay bản đồ tới vị trí người dùng khi có GPS mới
+  useEffect(() => {
+    if (map && userCoords !== centerHanoi) {
+      map.setView(userCoords, 14);
+    }
+  }, [map, userCoords]);
+
+  // Chuyển đổi tọa độ sang địa chỉ
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&language=vi`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const addr = data.address || {};
+        const district =
+          addr.suburb ||
+          addr.city_district ||
+          addr.district ||
+          addr.county ||
+          "";
+        const city = addr.city || addr.town || addr.province || "Hà Nội";
+        if (district) {
+          setLocationName(`${district}, ${city}`);
+        } else {
+          setLocationName(city);
+        }
+      }
+    } catch (error) {
+      console.error("[HomePage] Error reverse geocoding:", error);
+    }
+  };
+
+  useEffect(() => {
+    reverseGeocode(userCoords[0], userCoords[1]);
+  }, [userCoords]);
+
   // 3. Gọi API lấy dữ liệu từ Backend
   const fetchCafes = async () => {
     try {
@@ -92,24 +165,24 @@ const HomePage: FC = () => {
       if (activeTags.includes("Quiet")) params.append("isQuiet", "true");
       if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
 
-      params.append("lat", centerHanoi[0].toString());
-      params.append("lng", centerHanoi[1].toString());
+      params.append("lat", userCoords[0].toString());
+      params.append("lng", userCoords[1].toString());
       params.append("maxDistance", "30"); //bán kính tìm kiếm 30km
 
       // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
       const url = `http://localhost:3000/api/cafes/map?${params.toString()}`;
-      console.log('[HomePage] Fetching cafes from:', url);
+      console.log("[HomePage] Fetching cafes from:", url);
 
       const response = await fetch(url);
       const result = await response.json();
 
-      console.log('[HomePage] API Response:', result);
+      console.log("[HomePage] API Response:", result);
 
       if (result.success) {
-        console.log('[HomePage] Cafes loaded:', result.data?.length || 0);
+        console.log("[HomePage] Cafes loaded:", result.data?.length || 0);
         setCafes(result.data);
       } else {
-        console.error('[HomePage] API failed:', result.message);
+        console.error("[HomePage] API failed:", result.message);
       }
     } catch (error) {
       console.error("[HomePage] Error fetching cafes:", error);
@@ -121,7 +194,7 @@ const HomePage: FC = () => {
       fetchCafes();
     }, 400); // 400ms debounce
     return () => clearTimeout(timer);
-  }, [activeFilters, activeTags, searchQuery]);
+  }, [activeFilters, activeTags, searchQuery, userCoords]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,28 +202,40 @@ const HomePage: FC = () => {
   };
 
   const toggleFilter = (f: string) =>
-    setActiveFilters((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
+    setActiveFilters((prev) =>
+      prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f],
+    );
 
   const toggleTag = (t: string) =>
-    setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+    setActiveTags((prev) =>
+      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
+    );
 
-  const handleSelectCafe = useCallback(async (cafe: CafeInfo) => {
-    setSelectedCafe(cafe);
-    setFullCafeDetail(null);
-    setActiveImageIndex(0);
-    if (map) {
-      map.flyTo([cafe.location.lat, cafe.location.lng], 15, { animate: true, duration: 0.6 });
-    }
-    try {
-      const response = await fetch(`http://localhost:3000/api/cafes/${cafe.id}`);
-      const result = await response.json();
-      if (result.success) {
-        setFullCafeDetail(result.data);
+  const handleSelectCafe = useCallback(
+    async (cafe: CafeInfo) => {
+      setSelectedCafe(cafe);
+      setFullCafeDetail(null);
+      setActiveImageIndex(0);
+      if (map) {
+        map.flyTo([cafe.location.lat, cafe.location.lng], 15, {
+          animate: true,
+          duration: 0.6,
+        });
       }
-    } catch (error) {
-      console.error("Error fetching cafe detail:", error);
-    }
-  }, [map]);
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/cafes/${cafe.id}`,
+        );
+        const result = await response.json();
+        if (result.success) {
+          setFullCafeDetail(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching cafe detail:", error);
+      }
+    },
+    [map],
+  );
 
   const handleCloseDetail = useCallback(() => {
     setSelectedCafe(null);
@@ -160,7 +245,7 @@ const HomePage: FC = () => {
 
   const handlePanToCurrent = () => {
     if (map) {
-      map.flyTo(centerHanoi, 14, { animate: true });
+      map.flyTo(userCoords, 14, { animate: true });
     }
   };
 
@@ -169,7 +254,10 @@ const HomePage: FC = () => {
       <TopNavBar mode="guest" activeTab="home" />
 
       <div className="home-main">
-        <aside className={`home-sidebar ${selectedCafe ? "home-sidebar--detail" : ""}`} id="search-sidebar">
+        <aside
+          className={`home-sidebar ${selectedCafe ? "home-sidebar--detail" : ""}`}
+          id="search-sidebar"
+        >
           {selectedCafe ? (
             <div className="cafe-detail-panel flex flex-col h-full bg-[#fbf9f6]">
               {/* Cover Image */}
@@ -202,7 +290,7 @@ const HomePage: FC = () => {
                       </svg>
                     </button>
                   </div>
-                  
+
                   {/* Title & subtitle inside cover */}
                   <div className="text-white text-center pb-2">
                     <h2 className="text-xl font-extrabold tracking-tight drop-shadow-md">
@@ -221,20 +309,38 @@ const HomePage: FC = () => {
                   <h3 className="text-xl font-extrabold text-[#1a1208] leading-snug">
                     {selectedCafe.name}
                   </h3>
-                  
+
                   {/* Distance & Time */}
                   <div className="flex items-center gap-4 mt-2 text-xs text-[#a0896b] font-medium">
                     {selectedCafe.distance !== null && (
                       <div className="flex items-center gap-1">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-[#c8843a]">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          width="13"
+                          height="13"
+                          className="text-[#c8843a]"
+                        >
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
                         </svg>
                         <span>{selectedCafe.distance} km 先</span>
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-[#c8843a]">
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        width="13"
+                        height="13"
+                        className="text-[#c8843a]"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                       </svg>
                       <span>
                         {fullCafeDetail?.open_time && fullCafeDetail?.close_time
@@ -246,10 +352,23 @@ const HomePage: FC = () => {
 
                   {/* Address */}
                   <div className="flex items-start gap-1.5 mt-2.5 text-xs text-[#6b5e4e] leading-relaxed">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" className="text-gray-400 shrink-0 mt-0.5">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="13"
+                      height="13"
+                      className="text-gray-400 shrink-0 mt-0.5"
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span>{fullCafeDetail?.address || selectedCafe.address || "Hanoi, Vietnam"}</span>
+                    <span>
+                      {fullCafeDetail?.address ||
+                        selectedCafe.address ||
+                        "Hanoi, Vietnam"}
+                    </span>
                   </div>
                 </div>
 
@@ -277,14 +396,15 @@ const HomePage: FC = () => {
 
                 {/* Feature Tags / Amenities */}
                 <div className="flex flex-wrap gap-1.5">
-                  {selectedCafe.tags && selectedCafe.tags.map((tag: string, index: number) => (
-                    <span
-                      key={index}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#f5ede2] text-[#a0522d] border border-[#ebdcc7]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  {selectedCafe.tags &&
+                    selectedCafe.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#f5ede2] text-[#a0522d] border border-[#ebdcc7]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                 </div>
 
                 {/* Action Buttons */}
@@ -293,7 +413,14 @@ const HomePage: FC = () => {
                     to={`/booking?cafeId=${selectedCafe.id}`}
                     className="flex-1 bg-gradient-to-r from-[#3d2f1e] to-[#1a1208] text-white text-xs font-bold text-center py-3 rounded-xl hover:from-[#c8843a] hover:to-[#a0522d] transition-all shadow-sm flex items-center justify-center gap-1.5 border-0 cursor-pointer decoration-none"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      width="14"
+                      height="14"
+                    >
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                       <line x1="16" y1="2" x2="16" y2="6" />
                       <line x1="8" y1="2" x2="8" y2="6" />
@@ -307,7 +434,14 @@ const HomePage: FC = () => {
                       alert("レビュー機能 là chức năng đang phát triển!");
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      width="14"
+                      height="14"
+                    >
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                     レビューを書く
@@ -319,10 +453,12 @@ const HomePage: FC = () => {
                   <h4 className="text-xs font-bold text-[#c8843a] uppercase tracking-wider mb-3">
                     メニューハイライト
                   </h4>
-                  
+
                   {/* Image Carousel */}
                   {fullCafeDetail?.images &&
-                  fullCafeDetail.images.filter((img: any) => img.image_type === "MENU").length > 0 ? (
+                  fullCafeDetail.images.filter(
+                    (img: any) => img.image_type === "MENU",
+                  ).length > 0 ? (
                     (() => {
                       const menuImages = fullCafeDetail.images
                         .filter((img: any) => img.image_type === "MENU")
@@ -341,7 +477,9 @@ const HomePage: FC = () => {
                                 className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
                                 onClick={() =>
                                   setActiveImageIndex((prev) =>
-                                    prev === 0 ? menuImages.length - 1 : prev - 1
+                                    prev === 0
+                                      ? menuImages.length - 1
+                                      : prev - 1,
                                   )
                                 }
                               >
@@ -351,13 +489,15 @@ const HomePage: FC = () => {
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
                                 onClick={() =>
                                   setActiveImageIndex((prev) =>
-                                    prev === menuImages.length - 1 ? 0 : prev + 1
+                                    prev === menuImages.length - 1
+                                      ? 0
+                                      : prev + 1,
                                   )
                                 }
                               >
                                 ›
                               </button>
-                              
+
                               {/* Dots */}
                               <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
                                 {menuImages.map((_: any, idx: number) => (
@@ -379,8 +519,23 @@ const HomePage: FC = () => {
                     })()
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 px-4 rounded-xl border border-dashed border-[#d6cfc7] bg-white">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" className="text-gray-400">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        width="28"
+                        height="28"
+                        className="text-gray-400"
+                      >
+                        <rect
+                          x="3"
+                          y="3"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                        />
                         <circle cx="8.5" cy="8.5" r="1.5" />
                         <polyline points="21 15 16 10 5 21" />
                       </svg>
@@ -438,12 +593,16 @@ const HomePage: FC = () => {
               {cafes.length > 0 ? (
                 <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
-                    <span className="font-bold text-[#614734]">「{searchQuery || "すべて"}」</span>
+                    <span className="font-bold text-[#614734]">
+                      「{searchQuery || "すべて"}」
+                    </span>
                     {" で "}
-                    <span className="font-bold text-[#614734]">{cafes.length}件</span>
+                    <span className="font-bold text-[#614734]">
+                      {cafes.length}件
+                    </span>
                     {" のカフェが見つかりました"}
                   </div>
-                  
+
                   <div className="flex flex-col gap-4">
                     {cafes.map((cafe) => {
                       const isSelected = (selectedCafe as any)?.id === cafe.id;
@@ -451,8 +610,8 @@ const HomePage: FC = () => {
                         <div
                           key={cafe.id}
                           className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
-                            isSelected 
-                              ? "border-[#614734] shadow-md transform scale-[1.02]" 
+                            isSelected
+                              ? "border-[#614734] shadow-md transform scale-[1.02]"
                               : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
                           }`}
                           onClick={() => handleSelectCafe(cafe)}
@@ -460,47 +619,106 @@ const HomePage: FC = () => {
                           <div className="flex gap-4">
                             <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative bg-gray-100">
                               {cafe.imageUrl ? (
-                                <img src={cafe.imageUrl} alt={cafe.name} className="w-full h-full object-cover" />
+                                <img
+                                  src={cafe.imageUrl}
+                                  alt={cafe.name}
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="24" height="24">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    width="24"
+                                    height="24"
+                                  >
+                                    <rect
+                                      x="3"
+                                      y="3"
+                                      width="18"
+                                      height="18"
+                                      rx="2"
+                                      ry="2"
+                                    ></rect>
                                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                     <polyline points="21 15 16 10 5 21"></polyline>
                                   </svg>
                                 </div>
                               )}
-                              <div className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                cafe.isOpenNow ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                              }`}>
+                              <div
+                                className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  cafe.isOpenNow
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
                                 {cafe.isOpenNow ? "営業中" : "閉店中"}
                               </div>
                             </div>
-                            
+
                             <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                               <div>
-                                <h3 className="font-bold text-[#3d2c20] text-base truncate" title={cafe.name}>{cafe.name}</h3>
+                                <h3
+                                  className="font-bold text-[#3d2c20] text-base truncate"
+                                  title={cafe.name}
+                                >
+                                  {cafe.name}
+                                </h3>
                                 <div className="flex items-center gap-2 mt-1 text-xs">
                                   <StarRating value={cafe.rating} />
-                                  <span className="text-gray-400">({cafe.reviewCount})</span>
+                                  <span className="text-gray-400">
+                                    ({cafe.reviewCount})
+                                  </span>
                                 </div>
                               </div>
-                              
+
                               <div className="space-y-1 mt-2 text-xs text-gray-500">
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
-                                    <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
-                                  </svg>
-                                  <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 truncate">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    width="12"
+                                    height="12"
+                                    className="text-[#614734]"
+                                  >
+                                    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                                    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                                    <circle
+                                      cx="12"
+                                      cy="20"
+                                      r="1"
+                                      fill="currentColor"
+                                    />
                                   </svg>
                                   <span className="truncate">
-                                    {cafe.distance ? `${cafe.distance}km先` : ""}
-                                    {(cafe as any).address ? ` • ${(cafe as any).address.split(',').pop()?.trim()}` : ""}
+                                    {cafe.tags?.[0] || "Wi-Fi"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    width="12"
+                                    height="12"
+                                    className="text-gray-400"
+                                  >
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                  </svg>
+                                  <span className="truncate">
+                                    {cafe.distance
+                                      ? `${cafe.distance}km先`
+                                      : ""}
+                                    {(cafe as any).address
+                                      ? ` • ${(cafe as any).address.split(",").pop()?.trim()}`
+                                      : ""}
                                   </span>
                                 </div>
                               </div>
@@ -533,10 +751,9 @@ const HomePage: FC = () => {
 
         <div className="map-area" id="main-map">
           <div className="map-inner" style={{ height: "100%", width: "100%" }}>
-
             {/* 4. RENDER BẢN ĐỒ OPENSTREETMAP */}
             <MapContainer
-              center={centerHanoi}
+              center={userCoords}
               zoom={14}
               scrollWheelZoom={true}
               style={{ height: "100%", width: "100%" }}
@@ -552,7 +769,7 @@ const HomePage: FC = () => {
 
               {/* ⑨ Current Location Marker */}
               <Marker
-                position={centerHanoi}
+                position={userCoords}
                 icon={createCurrentLocationIcon()}
               />
 
@@ -563,7 +780,10 @@ const HomePage: FC = () => {
                 return (
                   <Marker
                     key={cafe.id}
-                    position={[Number(cafe.location.lat), Number(cafe.location.lng)]}
+                    position={[
+                      Number(cafe.location.lat),
+                      Number(cafe.location.lng),
+                    ]}
                     icon={createCafeIcon(selectedCafe?.id === cafe.id)}
                     eventHandlers={{
                       click: () => handleSelectCafe(cafe),
@@ -573,15 +793,26 @@ const HomePage: FC = () => {
                       <div className="popup-inner">
                         <div className="popup-header">
                           <p className="popup-name">{cafe.name}</p>
-                          <span className={`popup-badge ${cafe.isOpenNow ? "popup-badge--open" : "popup-badge--closed"}`}>
+                          <span
+                            className={`popup-badge ${cafe.isOpenNow ? "popup-badge--open" : "popup-badge--closed"}`}
+                          >
                             {cafe.isOpenNow ? "営業中" : "閉店中"}
                           </span>
                         </div>
                         <StarRating value={cafe.rating} />
                         <div className="popup-row">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                            <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><circle cx="12" cy="20" r="1" fill="currentColor" />
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            width="12"
+                            height="12"
+                          >
+                            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                            <circle cx="12" cy="20" r="1" fill="currentColor" />
                           </svg>
                           {cafe.tags?.[0] ?? "Wi-Fi"}
                         </div>
@@ -598,24 +829,50 @@ const HomePage: FC = () => {
             {/* KHU VỰC ĐANG XEM — bottom-center */}
             <div className="location-card" id="location-info-card">
               <span className="location-card__label">現在表示中</span>
-              <span className="location-card__name">Ba Dinh, Ha Noi</span>
+              <span className="location-card__name">{locationName}</span>
             </div>
           </div>
 
           <div className="map-controls" style={{ zIndex: 1000 }}>
             <button className="map-ctrl-btn" onClick={() => map?.zoomIn()}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-            <button className="map-ctrl-btn" onClick={() => map?.zoomOut()}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
-            <button className="map-ctrl-btn map-ctrl-btn--location" onClick={handlePanToCurrent}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="3" /><path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+            <button className="map-ctrl-btn" onClick={() => map?.zoomOut()}>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <button
+              className="map-ctrl-btn map-ctrl-btn--location"
+              onClick={handlePanToCurrent}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
               </svg>
             </button>
           </div>

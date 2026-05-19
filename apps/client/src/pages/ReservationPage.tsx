@@ -60,7 +60,7 @@ function MapEvents({ onLocationSelect }: MapEventsProps) {
 }
 
 const ReservationPage: FC = () => {
-  const centerHanoi: [number, number] = [21.028511, 105.804817];
+  const centerHanoi: [number, number] = [21.0056, 105.8433];
 
   const [formData, setFormData] = useState<ReservationForm>({
     date: "",
@@ -96,10 +96,16 @@ const ReservationPage: FC = () => {
   // Get user's current location
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        setCurrentLocation([latitude, longitude]);
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLocation([latitude, longitude]);
+          setMapCenter([latitude, longitude]);
+        },
+        (error) => {
+          console.warn("[ReservationPage] GPS error, falling back to HUST B1:", error);
+        }
+      );
     }
   }, []);
 
