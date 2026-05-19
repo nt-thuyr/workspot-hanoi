@@ -118,12 +118,10 @@ export class ReservationModel {
         status,
         num_guests,
         created_at,
-        amount,
-        seat_number,
         cafes (
           id,
           name,
-          image_url
+          cafe_images ( image_url )
         )
       `)
       .eq('user_id', userId)

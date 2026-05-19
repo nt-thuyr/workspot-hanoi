@@ -100,6 +100,10 @@ export const getHistory = async (req: Request, res: Response) => {
       // Xử lý an toàn nếu quán bị xóa
       const cafeInfo = item.cafes || {};
 
+      // Lấy ảnh đầu tiên từ bảng cafe_images (array)
+      const cafeImages: any[] = Array.isArray(cafeInfo.cafe_images) ? cafeInfo.cafe_images : [];
+      const firstImage = cafeImages.length > 0 ? cafeImages[0].image_url : null;
+
       // Xử lý nối giờ (Sử dụng res_time từ model mới)
       const timeSlot = item.res_time ? item.res_time : '00:00 - 00:00';
 
@@ -112,13 +116,13 @@ export const getHistory = async (req: Request, res: Response) => {
         id: item.id,
         cafeId: cafeInfo.id || 0,
         cafeName: cafeInfo.name || 'Quán Cafe đã ẩn',
-        imageUrl: cafeInfo.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
+        imageUrl: firstImage || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
         reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
         timeSlot: timeSlot,
-        seatNumber: item.seat_number || 'フリー席 (Chỗ ngồi tự do)',
+        seatNumber: 'フリー席 (Chỗ ngồi tự do)',
         status: mappedStatus,
         createdAt: createdDate.toISOString().slice(0, 10).replace(/-/g, '/'),
-        amount: item.amount || 0
+        amount: 0
       };
     });
 
