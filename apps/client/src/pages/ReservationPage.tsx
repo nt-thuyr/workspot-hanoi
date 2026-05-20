@@ -80,10 +80,12 @@ const ReservationPage: FC = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
+  const [map, setMap] = useState<L.Map | null>(null);
   const [showAlert, setShowAlert] = useState("");
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
+  const hasCenteredRef = useRef(false);
 
   const openNativePicker = (inputRef: React.RefObject<HTMLInputElement>) => {
     const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
@@ -140,9 +142,10 @@ const ReservationPage: FC = () => {
           if (nextSelected) {
             setSelectedCafe(nextSelected);
             setFormData((prev) => ({ ...prev, cafeId: nextSelected!.id }));
-            if (nextSelected.lat && nextSelected.lng) {
+            if (!hasCenteredRef.current && nextSelected.lat && nextSelected.lng) {
               setMapCenter([nextSelected.lat, nextSelected.lng]);
               setZoomLevel(15);
+              hasCenteredRef.current = true;
             }
           }
         }
@@ -194,13 +197,31 @@ const ReservationPage: FC = () => {
     }
   }, [selectedCafe]);
 
-  const handleZoom = (direction: "in" | "out") => {
-    setZoomLevel((prev) => {
-      if (direction === "in" && prev < 18) return prev + 1;
-      if (direction === "out" && prev > 1) return prev - 1;
-      return prev;
-    });
+  const handlePanToCurrent = () => {
+    if (!map) return;
+    if (currentLocation) {
+      map.flyTo(currentLocation, 14, { animate: true });
+      return;
+    }
+    map.flyTo(mapCenter, 14, { animate: true });
   };
+
+  useEffect(() => {
+    if (!map) return;
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      setMapCenter([center.lat, center.lng]);
+    };
+    const handleZoomEnd = () => {
+      setZoomLevel(map.getZoom());
+    };
+    map.on("moveend", handleMoveEnd);
+    map.on("zoomend", handleZoomEnd);
+    return () => {
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleZoomEnd);
+    };
+  }, [map]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -382,8 +403,10 @@ const ReservationPage: FC = () => {
             <MapContainer
               center={mapCenter}
               zoom={zoomLevel}
+              scrollWheelZoom={true}
               style={{ height: "100%", width: "100%" }}
               zoomControl={false}
+              ref={setMap}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -437,8 +460,7 @@ const ReservationPage: FC = () => {
             <div className="map-controls">
               <button
                 className="map-ctrl-btn"
-                onClick={() => handleZoom("in")}
-                disabled={zoomLevel >= 18}
+                onClick={() => map?.zoomIn()}
                 title="Phóng to"
               >
                 <svg
@@ -455,8 +477,7 @@ const ReservationPage: FC = () => {
               </button>
               <button
                 className="map-ctrl-btn"
-                onClick={() => handleZoom("out")}
-                disabled={zoomLevel <= 1}
+                onClick={() => map?.zoomOut()}
                 title="Thu nhỏ"
               >
                 <svg
@@ -472,11 +493,7 @@ const ReservationPage: FC = () => {
               </button>
               <button
                 className="map-ctrl-btn map-ctrl-btn--location"
-                onClick={() => {
-                  if (currentLocation) {
-                    setMapCenter(currentLocation);
-                  }
-                }}
+                onClick={handlePanToCurrent}
                 title="Về vị trí hiện tại"
               >
                 <svg
@@ -488,10 +505,7 @@ const ReservationPage: FC = () => {
                   strokeWidth="2.5"
                 >
                   <circle cx="12" cy="12" r="3" />
-                  <line x1="12" y1="2" x2="12" y2="5" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                  <line x1="2" y1="12" x2="5" y2="12" />
-                  <line x1="19" y1="12" x2="22" y2="12" />
+                  <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
                 </svg>
               </button>
             </div>

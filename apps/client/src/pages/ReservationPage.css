@@ -3,6 +3,16 @@
   flex-direction: column;
   height: 100vh;
   background-color: #fdf9f4;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.reservation-page .nav-logo__text {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.reservation-page .nav-profile-btn {
+  font-size: 0.85rem;
 }
 
 .reservation-container {
@@ -236,7 +246,7 @@
   border: none;
   z-index: 9999;
   width: 100%;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .cafe-info-card {
@@ -250,6 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  pointer-events: auto;
 }
 
 .cafe-card-header {
