@@ -149,6 +149,57 @@ const HomePage: FC = () => {
   useEffect(() => {
     reverseGeocode(userCoords[0], userCoords[1]);
   }, [userCoords]);
+  // Tự động hiển thị chi tiết quán khi có query param ?cafeId=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cafeId = params.get("cafeId");
+    if (!cafeId) return;
+
+    const selectCafeFromUrl = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          const cafeData = result.data;
+          const cafeInfo: CafeInfo = {
+            id: cafeData.id,
+            name: cafeData.name,
+            location: {
+              lat: Number(cafeData.lat || 0),
+              lng: Number(cafeData.lng || 0),
+            },
+            rating: cafeData.avg_rating || 0,
+            reviewCount: cafeData.reviews?.length || 0,
+            isOpenNow: true,
+            tags: cafeData.custom_tags || [],
+            distance: null,
+            imageUrl: cafeData.images?.[0]?.image_url,
+            address: cafeData.address,
+          };
+
+          setSelectedCafe(cafeInfo);
+          setFullCafeDetail(cafeData);
+
+          // Đảm bảo Marker của quán hiển thị trên bản đồ bằng cách đưa vào danh sách cafes
+          setCafes((prev) => {
+            if (prev.some((c) => c.id === cafeInfo.id)) return prev;
+            return [cafeInfo, ...prev];
+          });
+
+          if (map && cafeInfo.location.lat && cafeInfo.location.lng) {
+            map.flyTo([cafeInfo.location.lat, cafeInfo.location.lng], 15, {
+              animate: true,
+              duration: 0.6,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-selecting cafe from URL:", error);
+      }
+    };
+
+    selectCafeFromUrl();
+  }, [map]);
 
   // 3. Gọi API lấy dữ liệu từ Backend
   const fetchCafes = async () => {
