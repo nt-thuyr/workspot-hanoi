@@ -117,8 +117,8 @@ const ReservationHistoryPage: FC = () => {
     // Hủy đặt chỗ
     const executeCancel = async () => {
         if (!cancelTargetId) return;
+        const toastId = toast.loading("キャンセル処理中...");
         try {
-            const toastId = toast.loading("キャンセル処理中...");
             const response = await fetch(
                 `http://localhost:3000/api/reservations/${cancelTargetId}/cancel`,
                 {
@@ -136,8 +136,11 @@ const ReservationHistoryPage: FC = () => {
             } else {
                 toast.error(result.message || "キャンセルに失敗しました。", { id: toastId });
             }
-        } catch {
-            toast.error("サーバーエラーが発生しました。");
+        } catch (err) {
+            console.error("Lỗi hủy đặt chỗ:", err);
+            toast.error("サーバーエラーが発生しました。", { id: toastId });
+        } finally {
+            setCancelTargetId(null);
         }
     };
 
