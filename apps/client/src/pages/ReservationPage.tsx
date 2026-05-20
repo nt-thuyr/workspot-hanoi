@@ -34,11 +34,14 @@ const createCafeIcon = () => {
 };
 
 const createUserLocationIcon = () => {
-  return new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
+  return L.divIcon({
+    className: "",
+    html: `<div class="current-pin">
+      <div class="current-pin__pulse"></div>
+      <div class="current-pin__dot"></div>
+    </div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -78,7 +81,6 @@ const ReservationPage: FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [showAlert, setShowAlert] = useState("");
-  const [lockedByQuery, setLockedByQuery] = useState(false);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
@@ -100,32 +102,6 @@ const ReservationPage: FC = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const cafeId = params.get("cafeId");
-        if (cafeId) {
-          setLockedByQuery(true);
-          const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
-          const detailResult = await detailResponse.json();
-          if (detailResult.success && detailResult.data) {
-            const cafe = detailResult.data;
-            const lockedCafe: CafeMarker = {
-              id: cafe.id,
-              name: cafe.name,
-              address: cafe.address,
-              lat: Number(cafe.lat || 0),
-              lng: Number(cafe.lng || 0),
-              rating: cafe.avg_rating || 0,
-              tags: cafe.custom_tags || [],
-              image: cafe.images?.[0]?.image_url,
-            };
-            setCafes([lockedCafe]);
-            setSelectedCafe(lockedCafe);
-            setFormData((prev) => ({ ...prev, cafeId: lockedCafe.id }));
-            if (lockedCafe.lat && lockedCafe.lng) {
-              setMapCenter([lockedCafe.lat, lockedCafe.lng]);
-              setZoomLevel(15);
-            }
-          }
-          return;
-        }
         const response = await fetch(
           `http://localhost:3000/api/cafes?lat=${mapCenter[0]}&lng=${mapCenter[1]}`
         );
@@ -133,9 +109,41 @@ const ReservationPage: FC = () => {
         if (data.success) {
           const cafeList = data.data || [];
           setCafes(cafeList);
-          if (!lockedByQuery && cafeList.length > 0 && !selectedCafe) {
-            setSelectedCafe(cafeList[0]);
-            setFormData((prev) => ({ ...prev, cafeId: cafeList[0].id }));
+          let nextSelected = selectedCafe;
+
+          if (cafeId) {
+            nextSelected = cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
+            if (!nextSelected) {
+              const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+              const detailResult = await detailResponse.json();
+              if (detailResult.success && detailResult.data) {
+                const cafe = detailResult.data;
+                nextSelected = {
+                  id: cafe.id,
+                  name: cafe.name,
+                  address: cafe.address,
+                  lat: Number(cafe.lat || 0),
+                  lng: Number(cafe.lng || 0),
+                  rating: cafe.avg_rating || 0,
+                  tags: cafe.custom_tags || [],
+                  image: cafe.images?.[0]?.image_url,
+                } as CafeMarker;
+                setCafes((prev) => [nextSelected as CafeMarker, ...prev]);
+              }
+            }
+          }
+
+          if (!nextSelected && cafeList.length > 0) {
+            nextSelected = cafeList[0];
+          }
+
+          if (nextSelected) {
+            setSelectedCafe(nextSelected);
+            setFormData((prev) => ({ ...prev, cafeId: nextSelected!.id }));
+            if (nextSelected.lat && nextSelected.lng) {
+              setMapCenter([nextSelected.lat, nextSelected.lng]);
+              setZoomLevel(15);
+            }
           }
         }
       } catch (error) {
@@ -143,7 +151,7 @@ const ReservationPage: FC = () => {
       }
     };
     fetchCafes();
-  }, [mapCenter, lockedByQuery, selectedCafe]);
+  }, [mapCenter]);
 
   // Get user's current location
   useEffect(() => {
@@ -152,9 +160,7 @@ const ReservationPage: FC = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentLocation([latitude, longitude]);
-          if (!lockedByQuery) {
-            setMapCenter([latitude, longitude]);
-          }
+          setMapCenter([latitude, longitude]);
         },
         (error) => {
           console.warn("[ReservationPage] GPS error, falling back to HUST B1:", error);
@@ -174,12 +180,10 @@ const ReservationPage: FC = () => {
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
-    if (lockedByQuery) return;
     setMapCenter([lat, lng]);
   };
 
   const handleCafeSelect = (cafe: CafeMarker) => {
-    if (lockedByQuery) return;
     setSelectedCafe(cafe);
     setFormData((prev) => ({ ...prev, cafeId: cafe.id }));
   };
@@ -417,18 +421,16 @@ const ReservationPage: FC = () => {
                             </span>
                           ))}
                         </div>
-                        {!lockedByQuery && (
-                          <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
-                            選択
-                          </button>
-                        )}
+                        <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
+                          選択
+                        </button>
                       </div>
                     </Popup>
                   </Marker>
                 );
               })}
 
-              <MapEvents onLocationSelect={handleLocationSelect} disabled={lockedByQuery} />
+              <MapEvents onLocationSelect={handleLocationSelect} />
             </MapContainer>
 
             {/* Map Controls */}
@@ -439,7 +441,17 @@ const ReservationPage: FC = () => {
                 disabled={zoomLevel >= 18}
                 title="Phóng to"
               >
-                +
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
               <button
                 className="map-ctrl-btn"
@@ -447,18 +459,40 @@ const ReservationPage: FC = () => {
                 disabled={zoomLevel <= 1}
                 title="Thu nhỏ"
               >
-                −
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
               <button
                 className="map-ctrl-btn map-ctrl-btn--location"
                 onClick={() => {
-                  if (currentLocation && !lockedByQuery) {
+                  if (currentLocation) {
                     setMapCenter(currentLocation);
                   }
                 }}
                 title="Về vị trí hiện tại"
               >
-                📍
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <line x1="12" y1="2" x2="12" y2="5" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="5" y2="12" />
+                  <line x1="19" y1="12" x2="22" y2="12" />
+                </svg>
               </button>
             </div>
 
@@ -468,14 +502,12 @@ const ReservationPage: FC = () => {
                 <div className="cafe-info-card">
                   <div className="cafe-card-header">
                     <h3 className="cafe-card-name">{selectedCafe.name}</h3>
-                    {!lockedByQuery && (
-                      <button
-                        className="cafe-card-close"
-                        onClick={() => setSelectedCafe(null)}
-                      >
-                        ✕
-                      </button>
-                    )}
+                    <button
+                      className="cafe-card-close"
+                      onClick={() => setSelectedCafe(null)}
+                    >
+                      ✕
+                    </button>
                   </div>
                   <div className="cafe-card-rating">
                     <span className="stars">★★★★★</span>
