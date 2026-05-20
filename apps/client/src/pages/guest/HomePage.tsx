@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, useCallback } from "react";
+import { useState, useEffect, type FC, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   MapContainer,
@@ -87,6 +87,17 @@ const HomePage: FC = () => {
   const [fullCafeDetail, setFullCafeDetail] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
+  const lastProcessedCafeIdRef = useRef<string | null>(null);
+  const selectedMarkerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.openPopup();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [selectedCafe, cafes]);
 
   const [userCoords, setUserCoords] = useState<[number, number]>(centerHanoi);
   const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
@@ -112,9 +123,11 @@ const HomePage: FC = () => {
     }
   }, []);
 
-  // Xoay bản đồ tới vị trí người dùng khi có GPS mới
+  // Xoay bản đồ tới vị trí người dùng khi có GPS mới (chỉ tự động chạy nếu không có cafeId trên URL)
   useEffect(() => {
-    if (map && userCoords !== centerHanoi) {
+    const params = new URLSearchParams(window.location.search);
+    const urlCafeId = params.get("cafeId");
+    if (!urlCafeId && map && userCoords !== centerHanoi) {
       map.setView(userCoords, 14);
     }
   }, [map, userCoords]);
@@ -242,6 +255,57 @@ const HomePage: FC = () => {
       map.flyTo(userCoords, 14, { animate: true });
     }
   };
+
+  useEffect(() => {
+    const checkAndSelectUrlCafe = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlCafeId = params.get("cafeId");
+      if (!urlCafeId) return;
+
+      if (lastProcessedCafeIdRef.current === urlCafeId) return;
+
+      const existing = cafes.find((c) => String(c.id) === urlCafeId);
+      if (existing) {
+        lastProcessedCafeIdRef.current = urlCafeId;
+        handleSelectCafe(existing);
+      } else {
+        try {
+          const response = await fetch(`http://localhost:3000/api/cafes/${urlCafeId}`);
+          const result = await response.json();
+          if (result.success && result.data) {
+            const cafe = result.data;
+            const mappedCafe: CafeInfo = {
+              id: cafe.id,
+              name: cafe.name,
+              location: {
+                lat: Number(cafe.lat || 0),
+                lng: Number(cafe.lng || 0),
+              },
+              rating: cafe.avg_rating || 0,
+              reviewCount: cafe.review_count || 0,
+              isOpenNow: true,
+              tags: cafe.custom_tags || [],
+              distance: null,
+              imageUrl: cafe.images?.[0]?.image_url,
+              address: cafe.address,
+            };
+            setCafes((prev) => {
+              if (prev.some((c) => c.id === mappedCafe.id)) return prev;
+              return [mappedCafe, ...prev];
+            });
+            lastProcessedCafeIdRef.current = urlCafeId;
+            handleSelectCafe(mappedCafe);
+          }
+        } catch (err) {
+          console.error("Error fetching URL cafe:", err);
+        }
+      }
+    };
+
+    if (map) {
+      checkAndSelectUrlCafe();
+    }
+  }, [cafes, map, window.location.search, handleSelectCafe]);
 
   return (
     <div className="home-root">
@@ -777,6 +841,7 @@ const HomePage: FC = () => {
                       Number(cafe.location.lng),
                     ]}
                     icon={createCafeIcon(selectedCafe?.id === cafe.id)}
+                    ref={cafe.id === selectedCafe?.id ? selectedMarkerRef : undefined}
                     eventHandlers={{
                       click: () => handleSelectCafe(cafe),
                     }}
