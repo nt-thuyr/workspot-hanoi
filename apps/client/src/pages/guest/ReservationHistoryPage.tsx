@@ -117,8 +117,8 @@ const ReservationHistoryPage: FC = () => {
     // Hủy đặt chỗ
     const executeCancel = async () => {
         if (!cancelTargetId) return;
+        const toastId = toast.loading("キャンセル処理中...");
         try {
-            const toastId = toast.loading("キャンセル処理中...");
             const response = await fetch(
                 `http://localhost:3000/api/reservations/${cancelTargetId}/cancel`,
                 {
@@ -136,8 +136,11 @@ const ReservationHistoryPage: FC = () => {
             } else {
                 toast.error(result.message || "キャンセルに失敗しました。", { id: toastId });
             }
-        } catch {
-            toast.error("サーバーエラーが発生しました。");
+        } catch (err) {
+            console.error("Lỗi hủy đặt chỗ:", err);
+            toast.error("サーバーエラーが発生しました。", { id: toastId });
+        } finally {
+            setCancelTargetId(null);
         }
     };
 
@@ -228,16 +231,10 @@ const ReservationHistoryPage: FC = () => {
         return <span className="rhp-badge rhp-badge--past" id={`badge-past-${item.id}`}>過去の履歴</span>;
     };
 
-    // Kiểm tra card có thể hủy hay không (trước giờ đặt chỗ 24 tiếng)
+    // Kiểm tra card có thể hủy hay không (chỉ cần không ở trạng thái hủy/từ chối)
     const canCancel = (item: ReservationInfo) => {
         const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
-        if (appStatus === "CANCELLED" || appStatus === "REJECTED") return false;
-
-        const resDateTime = parseReservationDateTime(item.reservationDate, item.timeSlot);
-        const diffMs = resDateTime.getTime() - new Date().getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-
-        return diffHours >= 24;
+        return appStatus !== "CANCELLED" && appStatus !== "REJECTED";
     };
 
     return (
@@ -330,7 +327,7 @@ const ReservationHistoryPage: FC = () => {
                                     key={item.id}
                                     className="rhp-card"
                                     id={`reservation-card-${item.id}`}
-                                    onClick={() => navigate(`/cafes/${item.cafeId}`)}
+                                    onClick={() => navigate(`/?cafeId=${item.cafeId}`)}
                                     style={{ cursor: "pointer" }}
                                 >
                                     {/* Khu vực 15: Ảnh cafe */}
@@ -378,6 +375,11 @@ const ReservationHistoryPage: FC = () => {
                                     {/* Khu vực 17: Arrow icon (phải) */}
                                     <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
 
+                                        {/* Khu vực 17: Mũi tên điều hướng */}
+                                        <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+
                                         {/* Khu vực 22: Nút hủy đặt chỗ */}
                                         {canCancel(item) && (
                                             <button
@@ -394,11 +396,6 @@ const ReservationHistoryPage: FC = () => {
                                                 予約をキャンセル
                                             </button>
                                         )}
-
-                                        {/* Khu vực 17: Mũi tên điều hướng */}
-                                        <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="9 18 15 12 9 6" />
-                                        </svg>
                                     </div>
                                 </div>
                             ))}

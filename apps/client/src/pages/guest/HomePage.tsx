@@ -162,6 +162,57 @@ const HomePage: FC = () => {
   useEffect(() => {
     reverseGeocode(userCoords[0], userCoords[1]);
   }, [userCoords]);
+  // Tự động hiển thị chi tiết quán khi có query param ?cafeId=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cafeId = params.get("cafeId");
+    if (!cafeId) return;
+
+    const selectCafeFromUrl = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          const cafeData = result.data;
+          const cafeInfo: CafeInfo = {
+            id: cafeData.id,
+            name: cafeData.name,
+            location: {
+              lat: Number(cafeData.lat || 0),
+              lng: Number(cafeData.lng || 0),
+            },
+            rating: cafeData.avg_rating || 0,
+            reviewCount: cafeData.reviews?.length || 0,
+            isOpenNow: true,
+            tags: cafeData.custom_tags || [],
+            distance: null,
+            imageUrl: cafeData.images?.[0]?.image_url,
+            address: cafeData.address,
+          };
+
+          setSelectedCafe(cafeInfo);
+          setFullCafeDetail(cafeData);
+
+          // Đảm bảo Marker của quán hiển thị trên bản đồ bằng cách đưa vào danh sách cafes
+          setCafes((prev) => {
+            if (prev.some((c) => c.id === cafeInfo.id)) return prev;
+            return [cafeInfo, ...prev];
+          });
+
+          if (map && cafeInfo.location.lat && cafeInfo.location.lng) {
+            map.flyTo([cafeInfo.location.lat, cafeInfo.location.lng], 15, {
+              animate: true,
+              duration: 0.6,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-selecting cafe from URL:", error);
+      }
+    };
+
+    selectCafeFromUrl();
+  }, [map]);
 
   // 3. Gọi API lấy dữ liệu từ Backend
   const fetchCafes = async () => {
@@ -322,10 +373,9 @@ const HomePage: FC = () => {
               <div
                 className="cafe-detail-cover relative h-48 w-full bg-cover bg-center shrink-0"
                 style={{
-                  backgroundImage: `url(${
-                    selectedCafe.imageUrl ||
+                  backgroundImage: `url(${selectedCafe.imageUrl ||
                     "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500&auto=format&fit=crop&q=60"
-                  })`,
+                    })`,
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30 flex flex-col justify-between p-4">
@@ -433,11 +483,10 @@ const HomePage: FC = () => {
                 {/* Status & Rating */}
                 <div className="flex items-center justify-between border-t border-b border-[#f0ebe3] py-3 my-1">
                   <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      selectedCafe.isOpenNow
-                        ? "bg-green-50 text-green-700 border border-green-200"
-                        : "bg-red-50 text-red-700 border border-red-200"
-                    }`}
+                    className={`text-xs font-bold px-3 py-1 rounded-full ${selectedCafe.isOpenNow
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                      }`}
                   >
                     {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
                   </span>
@@ -512,9 +561,9 @@ const HomePage: FC = () => {
 
                   {/* Image Carousel */}
                   {fullCafeDetail?.images &&
-                  fullCafeDetail.images.filter(
-                    (img: any) => img.image_type === "MENU",
-                  ).length > 0 ? (
+                    fullCafeDetail.images.filter(
+                      (img: any) => img.image_type === "MENU",
+                    ).length > 0 ? (
                     (() => {
                       const menuImages = fullCafeDetail.images
                         .filter((img: any) => img.image_type === "MENU")
@@ -559,11 +608,10 @@ const HomePage: FC = () => {
                                 {menuImages.map((_: any, idx: number) => (
                                   <button
                                     key={idx}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
-                                      idx === activeImageIndex
-                                        ? "bg-white scale-110"
-                                        : "bg-white/40 hover:bg-white/60"
-                                    }`}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${idx === activeImageIndex
+                                      ? "bg-white scale-110"
+                                      : "bg-white/40 hover:bg-white/60"
+                                      }`}
                                     onClick={() => setActiveImageIndex(idx)}
                                   />
                                 ))}
@@ -645,12 +693,29 @@ const HomePage: FC = () => {
                 ))}
               </div>
 
-              {/* Hiển thị số lượng kết quả và danh sách quán */}
-              {cafes.length > 0 ? (
+              {/* Chưa tìm kiếm: hiện tags phổ biến | Đã tìm kiếm: hiện danh sách quán */}
+              {searchQuery.trim() === "" && activeFilters.length === 0 && activeTags.length === 0 ? (
+                /* Popular Tags (17, 18) — hiển thị khi chưa tìm kiếm */
+                <div className="sidebar-tags mt-4">
+                  <p className="sidebar-tags__title">人気のあるタグ</p>
+                  <div className="tag-list">
+                    {POPULAR_TAGS.map((tag) => (
+                      <button
+                        key={tag}
+                        className="search-tag"
+                        onClick={() => toggleTag(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */
                 <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
                     <span className="font-bold text-[#614734]">
-                      「{searchQuery || "すべて"}」
+                      「{searchQuery || (activeTags[0] ?? activeFilters[0] ?? "すべて")}」
                     </span>
                     {" で "}
                     <span className="font-bold text-[#614734]">
@@ -665,11 +730,10 @@ const HomePage: FC = () => {
                       return (
                         <div
                           key={cafe.id}
-                          className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
-                            isSelected
-                              ? "border-[#614734] shadow-md transform scale-[1.02]"
-                              : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
-                          }`}
+                          className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${isSelected
+                            ? "border-[#614734] shadow-md transform scale-[1.02]"
+                            : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
+                            }`}
                           onClick={() => handleSelectCafe(cafe)}
                         >
                           <div className="flex gap-4">
@@ -690,25 +754,17 @@ const HomePage: FC = () => {
                                     width="24"
                                     height="24"
                                   >
-                                    <rect
-                                      x="3"
-                                      y="3"
-                                      width="18"
-                                      height="18"
-                                      rx="2"
-                                      ry="2"
-                                    ></rect>
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                     <polyline points="21 15 16 10 5 21"></polyline>
                                   </svg>
                                 </div>
                               )}
                               <div
-                                className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  cafe.isOpenNow
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
+                                className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${cafe.isOpenNow
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                                  }`}
                               >
                                 {cafe.isOpenNow ? "営業中" : "閉店中"}
                               </div>
@@ -724,57 +780,28 @@ const HomePage: FC = () => {
                                 </h3>
                                 <div className="flex items-center gap-2 mt-1 text-xs">
                                   <StarRating value={cafe.rating} />
-                                  <span className="text-gray-400">
-                                    ({cafe.reviewCount})
-                                  </span>
+                                  <span className="text-gray-400">({cafe.reviewCount})</span>
                                 </div>
                               </div>
 
                               <div className="space-y-1 mt-2 text-xs text-gray-500">
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    width="12"
-                                    height="12"
-                                    className="text-[#614734]"
-                                  >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
                                     <path d="M5 12.55a11 11 0 0 1 14.08 0" />
                                     <path d="M1.42 9a16 16 0 0 1 21.16 0" />
                                     <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                                    <circle
-                                      cx="12"
-                                      cy="20"
-                                      r="1"
-                                      fill="currentColor"
-                                    />
+                                    <circle cx="12" cy="20" r="1" fill="currentColor" />
                                   </svg>
-                                  <span className="truncate">
-                                    {cafe.tags?.[0] || "Wi-Fi"}
-                                  </span>
+                                  <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    width="12"
-                                    height="12"
-                                    className="text-gray-400"
-                                  >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />
                                   </svg>
                                   <span className="truncate">
-                                    {cafe.distance
-                                      ? `${cafe.distance}km先`
-                                      : ""}
-                                    {(cafe as any).address
-                                      ? ` • ${(cafe as any).address.split(",").pop()?.trim()}`
-                                      : ""}
+                                    {cafe.distance ? `${cafe.distance}km先` : ""}
+                                    {(cafe as any).address ? ` • ${(cafe as any).address.split(",").pop()?.trim()}` : ""}
                                   </span>
                                 </div>
                               </div>
@@ -783,21 +810,6 @@ const HomePage: FC = () => {
                         </div>
                       );
                     })}
-                  </div>
-                </div>
-              ) : (
-                <div className="sidebar-tags mt-4">
-                  <p className="sidebar-tags__title">人気のあるタグ</p>
-                  <div className="tag-list">
-                    {POPULAR_TAGS.map((tag) => (
-                      <button
-                        key={tag}
-                        className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
-                        onClick={() => toggleTag(tag)}
-                      >
-                        {tag}
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}

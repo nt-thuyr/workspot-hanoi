@@ -16,18 +16,20 @@
 /* ── Body: sidebar + main ────────────────────────────────── */
 .rhp-body {
     display: flex;
-    max-width: 1100px;
+    max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
-    padding: 28px 20px 60px;
-    gap: 24px;
+    padding: 28px 40px 60px;
+    gap: 32px;
     align-items: flex-start;
+    box-sizing: border-box;
 }
 
 /* ============================================================
    SIDEBAR (trái)
    ============================================================ */
 .rhp-sidebar {
-    width: 220px;
+    width: 260px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -383,6 +385,7 @@
     white-space: nowrap;
     font-family: 'Noto Sans JP', sans-serif;
     transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-top: auto;
 }
 
 .rhp-btn-cancel:hover {
@@ -398,7 +401,6 @@
 .rhp-card-arrow {
     color: #c0b4ac;
     flex-shrink: 0;
-    margin-top: auto;
 }
 
 /* ============================================================
