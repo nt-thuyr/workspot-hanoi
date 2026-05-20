@@ -163,6 +163,7 @@ export class ReservationModel {
         cafes (
           id,
           name,
+          address,
           cafe_images ( image_url )
         )
       `)

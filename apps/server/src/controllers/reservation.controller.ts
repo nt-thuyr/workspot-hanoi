@@ -127,11 +127,13 @@ export const getHistory = async (req: Request, res: Response) => {
         id: item.id,
         cafeId: cafeInfo.id || 0,
         cafeName: cafeInfo.name || 'Quán Cafe đã ẩn',
+        cafeAddress: cafeInfo.address || '',
         imageUrl: firstImage || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
         reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
         timeSlot: timeSlot,
         seatNumber: 'フリー席 (Chỗ ngồi tự do)',
         status: mappedStatus,
+        approvalStatus: item.status, // "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
         createdAt: createdDate.toISOString().slice(0, 10).replace(/-/g, '/'),
         amount: 0
       };

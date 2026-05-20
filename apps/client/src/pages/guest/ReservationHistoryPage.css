@@ -1,271 +1,539 @@
-.history-root {
+/* ============================================================
+   ReservationHistoryPage.css
+   Layout: TopNavBar + sidebar trái + nội dung phải
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+/* ── Root wrapper ────────────────────────────────────────── */
+.rhp-root {
     min-height: 100vh;
-    background-color: #fcfbf9;
+    background-color: #f5f2ef;
     font-family: 'Noto Sans JP', sans-serif;
+    color: #3a322b;
 }
 
-.history-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 40px 20px;
-}
-
-.history-header {
-    margin-bottom: 32px;
-}
-
-.history-title {
-    font-size: 28px;
-    color: #4f453e;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.history-subtitle {
-    color: #8c827a;
-    font-size: 14px;
-}
-
-/* Tabs điều hướng */
-.history-tabs {
+/* ── Body: sidebar + main ────────────────────────────────── */
+.rhp-body {
     display: flex;
-    gap: 12px;
-    border-bottom: 2px solid #ebdcd0;
-    padding-bottom: 0px;
-    margin-bottom: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+    gap: 24px;
+    align-items: flex-start;
 }
 
-.history-tab-btn {
-    background: none;
-    border: none;
-    padding: 12px 16px;
-    font-size: 15px;
-    color: #8c827a;
-    cursor: pointer;
-    font-weight: 500;
-    position: relative;
-    transition: all 0.2s ease;
-}
-
-.history-tab-btn:hover {
-    color: #614734;
-}
-
-.history-tab-btn--active {
-    color: #614734;
-    font-weight: 700;
-}
-
-.history-tab-btn--active::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background-color: #614734;
-    border-radius: 3px 3px 0 0;
-}
-
-/* Các trạng thái trống / loading */
-.history-state-view {
-    text-align: center;
-    padding: 60px 20px;
-    background-color: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #ebdcd0;
-    color: #8c827a;
-}
-
-.empty-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-    color: #ebdcd0;
-}
-
-/* Danh sách thẻ đặt lịch */
-.reservation-list {
+/* ============================================================
+   SIDEBAR (trái)
+   ============================================================ */
+.rhp-sidebar {
+    width: 220px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-.reservation-card {
-    background-color: #ffffff;
-    border: 1px solid #ebdcd0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(97, 71, 52, 0.04);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.reservation-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(97, 71, 52, 0.08);
-}
-
-.res-card-main {
+.rhp-sidebar-section {
     display: flex;
-    padding: 20px;
-    gap: 20px;
-    border-bottom: 1px solid #f5ede6;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.res-image-wrapper {
-    width: 140px;
-    height: 100px;
-    border-radius: 8px;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.res-cafe-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.res-info-content {
-    flex-grow: 1;
-}
-
-.res-info-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-}
-
-.res-cafe-name {
-    font-size: 18px;
-    color: #4f453e;
+/* Nhãn tiêu đề section sidebar (表示内容 / 並べ替え) */
+.rhp-sidebar-label {
+    font-size: 12px;
     font-weight: 700;
+    color: #7a6e67;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     margin: 0;
 }
 
-/* Trạng thái Badges */
-.res-badge {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.res-badge--upcoming {
-    background-color: #e6f7ed;
-    color: #2e7d32;
-}
-
-.res-badge--completed {
-    background-color: #f5f5f5;
-    color: #616161;
-}
-
-.res-badge--cancelled {
-    background-color: #ffebee;
-    color: #c62828;
-}
-
-/* Grid thông tin chi tiết */
-.res-details-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px 16px;
-}
-
-.res-detail-item {
+/* ── Tab lọc 予約済み / 評価済み ── */
+.rhp-tab-group {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #6d625a;
-    font-size: 14px;
+    background: #e8e0d8;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
 }
 
-.detail-icon {
-    font-size: 18px;
-    color: #a89c93;
-}
-
-/* Khu vực nút hành động ở bottom card */
-.res-card-actions {
-    background-color: #faf7f4;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.res-created-date {
-    font-size: 12px;
-    color: #a89c93;
-}
-
-.res-btn-group {
-    display: flex;
-    gap: 10px;
-}
-
-.res-action-btn {
-    padding: 6px 14px;
+.rhp-tab-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
+    color: #7a6e67;
     cursor: pointer;
-    border: none;
-    transition: background-color 0.15s ease;
+    transition: background 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+    font-family: 'Noto Sans JP', sans-serif;
 }
 
-.res-btn--primary {
-    background-color: #614734;
+.rhp-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.6);
+    color: #4f3929;
+}
+
+.rhp-tab-btn--active {
+    background: #3d2b1f;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(61, 43, 31, 0.3);
+}
+
+/* ── Thanh tìm kiếm ── */
+.rhp-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1.5px solid #d8cfc9;
+    border-radius: 8px;
+    padding: 9px 12px;
+    transition: border-color 0.2s ease;
+}
+
+.rhp-search-bar:focus-within {
+    border-color: #8b6f5e;
+    box-shadow: 0 0 0 3px rgba(139, 111, 94, 0.12);
+}
+
+.rhp-search-icon {
+    color: #a89c93;
+    flex-shrink: 0;
+}
+
+.rhp-search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: #3a322b;
+    width: 100%;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+.rhp-search-input::placeholder {
+    color: #b8aca4;
+}
+
+/* ── Dropdown sắp xếp ── */
+.rhp-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.rhp-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: #ffffff;
+    border: 1.5px solid #d8cfc9;
+    border-radius: 8px;
+    padding: 9px 36px 9px 12px;
+    font-size: 13px;
+    color: #3a322b;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.rhp-select:focus {
+    outline: none;
+    border-color: #8b6f5e;
+    box-shadow: 0 0 0 3px rgba(139, 111, 94, 0.12);
+}
+
+.rhp-select-arrow {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: #a89c93;
+}
+
+/* ============================================================
+   MAIN (phải)
+   ============================================================ */
+.rhp-main {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Khu vực 13: Tiêu đề trang */
+.rhp-page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #3a322b;
+    margin: 0 0 20px 0;
+}
+
+/* ── Trạng thái loading / empty ── */
+.rhp-state-view {
+    background: #ffffff;
+    border: 1px solid #e5ddd6;
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+    color: #a89c93;
+}
+
+.rhp-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e5ddd6;
+    border-top-color: #8b6f5e;
+    border-radius: 50%;
+    animation: rhp-spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes rhp-spin {
+    to { transform: rotate(360deg); }
+}
+
+.rhp-empty-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.rhp-empty-text {
+    font-size: 14px;
+    color: #a89c93;
+    margin: 0;
+}
+
+/* ============================================================
+   CARD (khu vực 14 – từng thẻ đặt chỗ)
+   ============================================================ */
+.rhp-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rhp-card {
+    background: #ffffff;
+    border: 1px solid #e5ddd6;
+    border-radius: 12px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(61, 43, 31, 0.05);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    position: relative;
+}
+
+.rhp-card:hover {
+    box-shadow: 0 4px 16px rgba(61, 43, 31, 0.10);
+    transform: translateY(-1px);
+}
+
+/* Khu vực 15: Ảnh cafe */
+.rhp-card-img-wrap {
+    width: 120px;
+    min-height: 120px;
+    flex-shrink: 0;
+}
+
+.rhp-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Thân card - nội dung text */
+.rhp-card-body {
+    flex: 1;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* Khu vực 16: Tên cafe */
+.rhp-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2e2520;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Khu vực 18: Badge ngày giờ */
+.rhp-card-datetime {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rhp-datetime-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #fff4e6;
+    border: 1.5px solid #f0c38e;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #7a4f1e;
+}
+
+/* Khu vực 19: Địa chỉ */
+.rhp-card-address {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #7a6e67;
+}
+
+.rhp-addr-icon {
+    flex-shrink: 0;
+    color: #a89c93;
+}
+
+/* Khu vực 20-25: Badges trạng thái */
+.rhp-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.rhp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+/* 拒否済み (số 20) – đỏ, chữ trắng */
+.rhp-badge--rejected {
+    background-color: #FF4D4F;
     color: #ffffff;
 }
 
-.res-btn--primary:hover {
-    background-color: #4f3929;
+/* 承認済み (số 23) – xanh dương, chữ trắng */
+.rhp-badge--approved {
+    background-color: #1890FF;
+    color: #ffffff;
 }
 
-.res-btn--secondary {
-    background-color: #ffffff;
-    color: #614734;
-    border: 1px solid #ebdcd0;
+/* 未承認 (số 25) – vàng, chữ đen */
+.rhp-badge--pending {
+    background-color: #FAAD14;
+    color: #000000;
 }
 
-.res-btn--secondary:hover {
-    background-color: #faf7f4;
+/* キャンセル済み – xám */
+.rhp-badge--cancelled {
+    background-color: #e2e8f0;
+    color: #4a5568;
 }
 
-.res-btn--danger {
-    background-color: #ffebee;
+/* 今後の予定 (số 21) – xanh lá, chữ trắng */
+.rhp-badge--upcoming {
+    background-color: #52C41A;
+    color: #ffffff;
+}
+
+/* 過去の履歴 (số 24) – xám, chữ trắng */
+.rhp-badge--past {
+    background-color: #a0aec0;
+    color: #ffffff;
+}
+
+/* ── Phần phải của card (arrow + cancel button) ── */
+.rhp-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 14px 16px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Khu vực 22: Nút × 予約をキャンセル */
+.rhp-btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: none;
+    background-color: #3d2b1f;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.rhp-btn-cancel:hover {
+    background-color: #5a3e2d;
+    transform: translateY(-1px);
+}
+
+.rhp-btn-cancel:active {
+    transform: translateY(0);
+}
+
+/* Khu vực 17: Mũi tên > */
+.rhp-card-arrow {
+    color: #c0b4ac;
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+/* ============================================================
+   MODAL XÁC NHẬN HỦY
+   ============================================================ */
+.rhp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 14, 10, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.rhp-modal-box {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 36px 32px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(20, 14, 10, 0.2);
+    animation: rhp-modal-in 0.25s ease;
+}
+
+@keyframes rhp-modal-in {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.rhp-modal-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.rhp-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2e2520;
+    margin: 0 0 12px;
+}
+
+.rhp-modal-desc {
+    font-size: 13px;
+    color: #7a6e67;
+    line-height: 1.6;
+    margin: 0 0 24px;
+}
+
+.rhp-modal-warn {
     color: #c62828;
+    font-weight: 600;
 }
 
-.res-btn--danger:hover {
-    background-color: #ffcdd2;
+.rhp-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
 }
 
-/* Responsive cho điện thoại */
-@media (max-width: 600px) {
-    .res-card-main {
+.rhp-modal-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: background-color 0.2s ease;
+}
+
+.rhp-modal-btn--back {
+    background: #f0eeec;
+    color: #4f453e;
+}
+
+.rhp-modal-btn--back:hover {
+    background: #e5ddd6;
+}
+
+.rhp-modal-btn--confirm {
+    background: #c62828;
+    color: #ffffff;
+}
+
+.rhp-modal-btn--confirm:hover {
+    background: #a71e1e;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .rhp-body {
         flex-direction: column;
+        padding: 16px;
+        gap: 16px;
     }
 
-    .res-image-wrapper {
+    .rhp-sidebar {
+        width: 100%;
+    }
+
+    .rhp-tab-group {
+        flex-direction: row;
+    }
+
+    .rhp-card-img-wrap {
+        width: 90px;
+        min-height: 90px;
+    }
+
+    .rhp-card-name {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rhp-card {
+        flex-wrap: wrap;
+    }
+
+    .rhp-card-img-wrap {
         width: 100%;
         height: 140px;
+        min-height: unset;
     }
 
-    .res-details-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .res-card-actions {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .res-btn-group {
+    .rhp-card-right {
+        flex-direction: row;
         width: 100%;
+        padding: 8px 14px;
+        border-top: 1px solid #f0eeec;
         justify-content: flex-end;
     }
 }
