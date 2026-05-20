@@ -17,6 +17,7 @@ interface CafeMarker {
 }
 
 interface ReservationForm {
+  guestName: string;
   date: string;
   time: string;
   guests: number;
@@ -65,6 +66,7 @@ const ReservationPage: FC = () => {
   const centerHanoi: [number, number] = [21.0056, 105.8433];
 
   const [formData, setFormData] = useState<ReservationForm>({
+    guestName: "",
     date: "",
     time: "",
     guests: 1,
@@ -78,6 +80,19 @@ const ReservationPage: FC = () => {
   const [showAlert, setShowAlert] = useState("");
   const [lockedByQuery, setLockedByQuery] = useState(false);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const timeInputRef = useRef<HTMLInputElement | null>(null);
+
+  const openNativePicker = (inputRef: React.RefObject<HTMLInputElement>) => {
+    const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!input) return;
+    if (input.showPicker) {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+    input.click();
+  };
 
   // Fetch cafes from API
   useEffect(() => {
@@ -187,7 +202,7 @@ const ReservationPage: FC = () => {
     e.preventDefault();
 
     // Validation
-    if (!formData.date || !formData.time || !selectedCafe) {
+    if (!formData.guestName.trim() || !formData.date || !formData.time || !selectedCafe) {
       setShowAlert("すべての情報を入力し、カフェを選択してください。");
       return;
     }
@@ -206,6 +221,7 @@ const ReservationPage: FC = () => {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
+          guest_name: formData.guestName.trim(),
           res_date: formData.date,
           res_time: formData.time,
           num_guests: formData.guests,
@@ -219,7 +235,7 @@ const ReservationPage: FC = () => {
       if (result.success) {
         setShowAlert("✅ 予約が完了しました。履歴をご確認ください。");
         // Reset form sau khi đặt thành công
-        setFormData({ date: "", time: "", guests: 1 });
+        setFormData({ guestName: "", date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
         setShowAlert("❌ " + (result.message || "予約に失敗しました"));
@@ -237,13 +253,32 @@ const ReservationPage: FC = () => {
         {/* Left Panel - Reservation Form */}
         <div className="reservation-panel">
           <div className="reservation-header">
-            <button className="back-btn" onClick={() => window.history.back()}>
-              ← 席を予約する
+            <button className="reservation-back-btn" onClick={() => window.history.back()}>
+              <span className="reservation-back-btn__icon" aria-hidden="true">←</span>
+              <span className="reservation-back-btn__label">席を予約する</span>
             </button>
             <p className="reservation-subtitle">予約情報をご入力ください</p>
           </div>
 
           <form className="reservation-form" onSubmit={handleSubmit}>
+            {/* Date Field */}
+            <div className="form-group">
+              <label htmlFor="guestName" className="form-label">
+                氏名
+              </label>
+              <p className="form-hint">名前を入力してください</p>
+              <input
+                type="text"
+                id="guestName"
+                name="guestName"
+                value={formData.guestName}
+                onChange={handleInputChange}
+                className="form-input"
+                placeholder="名前を入力"
+                autoComplete="name"
+              />
+            </div>
+
             {/* Date Field */}
             <div className="form-group">
               <label htmlFor="date" className="form-label">
@@ -258,9 +293,15 @@ const ReservationPage: FC = () => {
                   value={formData.date}
                   onChange={handleInputChange}
                   className="form-input"
+                  ref={dateInputRef}
                   min={new Date().toISOString().split("T")[0]}
                 />
-                <span className="calendar-icon">🗓</span>
+                <span
+                  className="calendar-icon"
+                  onClick={() => openNativePicker(dateInputRef)}
+                >
+                  🗓
+                </span>
               </div>
             </div>
 
@@ -279,8 +320,14 @@ const ReservationPage: FC = () => {
                   value={formData.time}
                   onChange={handleInputChange}
                   className="form-input"
+                  ref={timeInputRef}
                 />
-                <span className="time-icon">🕒</span>
+                <span
+                  className="time-icon"
+                  onClick={() => openNativePicker(timeInputRef)}
+                >
+                  🕒
+                </span>
               </div>
             </div>
 

@@ -16,6 +16,7 @@ interface CafeSummary {
 
 interface ReservationItem {
   id: string;
+  guest_name?: string | null;
   res_date: string;
   res_time: string;
   num_guests: number;
@@ -183,6 +184,12 @@ const OwnerCafeListPage: FC = () => {
     return reservations.filter((item) => item.status === activeFilter);
   }, [activeFilter, reservations]);
 
+  const getDisplayName = (item: ReservationItem) => {
+    const rawName = item.guest_name || item.profiles?.full_name || "";
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    return name || "ゲスト";
+  };
+
   const formatDate = (rawDate: string) => {
     if (!rawDate) return "--";
     const date = new Date(rawDate);
@@ -349,15 +356,15 @@ const OwnerCafeListPage: FC = () => {
                         <div className="reservation-profile">
                           <div className="profile-avatar">
                             {item.profiles?.avatar_url ? (
-                              <img src={item.profiles.avatar_url} alt={item.profiles.full_name || "guest"} />
+                              <img src={item.profiles.avatar_url} alt={getDisplayName(item)} />
                             ) : (
                               <span>
-                                {(item.profiles?.full_name || "U").charAt(0).toUpperCase()}
+                                {getDisplayName(item).charAt(0).toUpperCase()}
                               </span>
                             )}
                           </div>
                           <div className="profile-info">
-                            <div className="profile-name">{item.profiles?.full_name || "ゲスト"}</div>
+                            <div className="profile-name">{getDisplayName(item)}</div>
                             <div className="profile-meta">
                               {formatDate(item.res_date)} · {formatTime(item.res_time)} · {item.num_guests}名
                             </div>

@@ -6,12 +6,20 @@ import { sendReservationStatusEmail } from '../utils/email.service';
 export const createReservation = async (req: Request, res: Response) => {
   try {
     const user_id = (req as any).user?.id;
-    const { cafe_id, res_date, res_time, num_guests = 1 } = req.body;
+    const { cafe_id, res_date, res_time, num_guests = 1, guest_name } = req.body;
 
-    if (!user_id || !cafe_id || !res_date || !res_time) {
+    if (!user_id || !cafe_id || !res_date || !res_time || !guest_name) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
+      });
+    }
+
+    const guestName = typeof guest_name === 'string' ? guest_name.trim() : '';
+    if (!guestName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid guest_name',
       });
     }
 
@@ -45,7 +53,8 @@ export const createReservation = async (req: Request, res: Response) => {
       cafe_id,
       res_date,
       res_time,
-      guests
+      guests,
+      guestName
     );
 
     res.status(201).json({ success: true, data: reservation });
@@ -233,7 +242,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
         if (details?.email) {
           await sendReservationStatusEmail({
             to: details.email,                                  // email từ auth.users
-            guestName: details.profiles?.full_name || 'Guest', // tên từ profiles
+            guestName: details.guest_name || details.profiles?.full_name || 'Guest',
             cafeName: details.cafes?.name || 'WorkSpot Cafe',
             date: details.res_date || '',
             time: details.res_time || '',
