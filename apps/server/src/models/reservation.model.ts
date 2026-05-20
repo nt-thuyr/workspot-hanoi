@@ -7,7 +7,8 @@ export class ReservationModel {
     cafeId: string,
     resDate: string,
     resTime: string,
-    numGuests: number = 1
+    numGuests: number = 1,
+    guestName: string
   ) {
     const { data, error } = await supabase
       .from('reservations')
@@ -17,6 +18,7 @@ export class ReservationModel {
         res_date: resDate,
         res_time: resTime,
         num_guests: numGuests,
+        guest_name: guestName,
         status: 'PENDING',
       })
       .select()
@@ -125,7 +127,7 @@ export class ReservationModel {
     const { data, error } = await supabase
       .from('reservations')
       .select(`
-        id, res_date, res_time, status, user_id,
+        id, res_date, res_time, status, user_id, guest_name,
         profiles ( full_name ),
         cafes ( name )
       `)
@@ -161,6 +163,7 @@ export class ReservationModel {
         cafes (
           id,
           name,
+          address,
           cafe_images ( image_url )
         )
       `)

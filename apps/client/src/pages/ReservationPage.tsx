@@ -17,6 +17,7 @@ interface CafeMarker {
 }
 
 interface ReservationForm {
+  guestName: string;
   date: string;
   time: string;
   guests: number;
@@ -33,11 +34,14 @@ const createCafeIcon = () => {
 };
 
 const createUserLocationIcon = () => {
-  return new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
+  return L.divIcon({
+    className: "",
+    html: `<div class="current-pin">
+      <div class="current-pin__pulse"></div>
+      <div class="current-pin__dot"></div>
+    </div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -65,6 +69,7 @@ const ReservationPage: FC = () => {
   const centerHanoi: [number, number] = [21.0056, 105.8433];
 
   const [formData, setFormData] = useState<ReservationForm>({
+    guestName: "",
     date: "",
     time: "",
     guests: 1,
@@ -75,9 +80,23 @@ const ReservationPage: FC = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
+  const [map, setMap] = useState<L.Map | null>(null);
   const [showAlert, setShowAlert] = useState("");
-  const [lockedByQuery, setLockedByQuery] = useState(false);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const timeInputRef = useRef<HTMLInputElement | null>(null);
+  const hasCenteredRef = useRef(false);
+
+  const openNativePicker = (inputRef: React.RefObject<HTMLInputElement>) => {
+    const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!input) return;
+    if (input.showPicker) {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+    input.click();
+  };
 
   // Fetch cafes from API
   useEffect(() => {
@@ -85,32 +104,6 @@ const ReservationPage: FC = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const cafeId = params.get("cafeId");
-        if (cafeId) {
-          setLockedByQuery(true);
-          const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
-          const detailResult = await detailResponse.json();
-          if (detailResult.success && detailResult.data) {
-            const cafe = detailResult.data;
-            const lockedCafe: CafeMarker = {
-              id: cafe.id,
-              name: cafe.name,
-              address: cafe.address,
-              lat: Number(cafe.lat || 0),
-              lng: Number(cafe.lng || 0),
-              rating: cafe.avg_rating || 0,
-              tags: cafe.custom_tags || [],
-              image: cafe.images?.[0]?.image_url,
-            };
-            setCafes([lockedCafe]);
-            setSelectedCafe(lockedCafe);
-            setFormData((prev) => ({ ...prev, cafeId: lockedCafe.id }));
-            if (lockedCafe.lat && lockedCafe.lng) {
-              setMapCenter([lockedCafe.lat, lockedCafe.lng]);
-              setZoomLevel(15);
-            }
-          }
-          return;
-        }
         const response = await fetch(
           `http://localhost:3000/api/cafes?lat=${mapCenter[0]}&lng=${mapCenter[1]}`
         );
@@ -118,9 +111,42 @@ const ReservationPage: FC = () => {
         if (data.success) {
           const cafeList = data.data || [];
           setCafes(cafeList);
-          if (!lockedByQuery && cafeList.length > 0 && !selectedCafe) {
-            setSelectedCafe(cafeList[0]);
-            setFormData((prev) => ({ ...prev, cafeId: cafeList[0].id }));
+          let nextSelected = selectedCafe;
+
+          if (cafeId) {
+            nextSelected = cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
+            if (!nextSelected) {
+              const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+              const detailResult = await detailResponse.json();
+              if (detailResult.success && detailResult.data) {
+                const cafe = detailResult.data;
+                nextSelected = {
+                  id: cafe.id,
+                  name: cafe.name,
+                  address: cafe.address,
+                  lat: Number(cafe.lat || 0),
+                  lng: Number(cafe.lng || 0),
+                  rating: cafe.avg_rating || 0,
+                  tags: cafe.custom_tags || [],
+                  image: cafe.images?.[0]?.image_url,
+                } as CafeMarker;
+                setCafes((prev) => [nextSelected as CafeMarker, ...prev]);
+              }
+            }
+          }
+
+          if (!nextSelected && cafeList.length > 0) {
+            nextSelected = cafeList[0];
+          }
+
+          if (nextSelected) {
+            setSelectedCafe(nextSelected);
+            setFormData((prev) => ({ ...prev, cafeId: nextSelected!.id }));
+            if (!hasCenteredRef.current && nextSelected.lat && nextSelected.lng) {
+              setMapCenter([nextSelected.lat, nextSelected.lng]);
+              setZoomLevel(15);
+              hasCenteredRef.current = true;
+            }
           }
         }
       } catch (error) {
@@ -128,7 +154,7 @@ const ReservationPage: FC = () => {
       }
     };
     fetchCafes();
-  }, [mapCenter, lockedByQuery, selectedCafe]);
+  }, [mapCenter]);
 
   // Get user's current location
   useEffect(() => {
@@ -137,9 +163,7 @@ const ReservationPage: FC = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentLocation([latitude, longitude]);
-          if (!lockedByQuery) {
-            setMapCenter([latitude, longitude]);
-          }
+          setMapCenter([latitude, longitude]);
         },
         (error) => {
           console.warn("[ReservationPage] GPS error, falling back to HUST B1:", error);
@@ -159,12 +183,10 @@ const ReservationPage: FC = () => {
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
-    if (lockedByQuery) return;
     setMapCenter([lat, lng]);
   };
 
   const handleCafeSelect = (cafe: CafeMarker) => {
-    if (lockedByQuery) return;
     setSelectedCafe(cafe);
     setFormData((prev) => ({ ...prev, cafeId: cafe.id }));
   };
@@ -175,19 +197,37 @@ const ReservationPage: FC = () => {
     }
   }, [selectedCafe]);
 
-  const handleZoom = (direction: "in" | "out") => {
-    setZoomLevel((prev) => {
-      if (direction === "in" && prev < 18) return prev + 1;
-      if (direction === "out" && prev > 1) return prev - 1;
-      return prev;
-    });
+  const handlePanToCurrent = () => {
+    if (!map) return;
+    if (currentLocation) {
+      map.flyTo(currentLocation, 14, { animate: true });
+      return;
+    }
+    map.flyTo(mapCenter, 14, { animate: true });
   };
+
+  useEffect(() => {
+    if (!map) return;
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      setMapCenter([center.lat, center.lng]);
+    };
+    const handleZoomEnd = () => {
+      setZoomLevel(map.getZoom());
+    };
+    map.on("moveend", handleMoveEnd);
+    map.on("zoomend", handleZoomEnd);
+    return () => {
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleZoomEnd);
+    };
+  }, [map]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
-    if (!formData.date || !formData.time || !selectedCafe) {
+    if (!formData.guestName.trim() || !formData.date || !formData.time || !selectedCafe) {
       setShowAlert("すべての情報を入力し、カフェを選択してください。");
       return;
     }
@@ -206,6 +246,7 @@ const ReservationPage: FC = () => {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
+          guest_name: formData.guestName.trim(),
           res_date: formData.date,
           res_time: formData.time,
           num_guests: formData.guests,
@@ -219,7 +260,7 @@ const ReservationPage: FC = () => {
       if (result.success) {
         setShowAlert("✅ 予約が完了しました。履歴をご確認ください。");
         // Reset form sau khi đặt thành công
-        setFormData({ date: "", time: "", guests: 1 });
+        setFormData({ guestName: "", date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
         setShowAlert("❌ " + (result.message || "予約に失敗しました"));
@@ -237,13 +278,32 @@ const ReservationPage: FC = () => {
         {/* Left Panel - Reservation Form */}
         <div className="reservation-panel">
           <div className="reservation-header">
-            <button className="back-btn" onClick={() => window.history.back()}>
-              ← 席を予約する
+            <button className="reservation-back-btn" onClick={() => window.history.back()}>
+              <span className="reservation-back-btn__icon" aria-hidden="true">←</span>
+              <span className="reservation-back-btn__label">席を予約する</span>
             </button>
             <p className="reservation-subtitle">予約情報をご入力ください</p>
           </div>
 
           <form className="reservation-form" onSubmit={handleSubmit}>
+            {/* Date Field */}
+            <div className="form-group">
+              <label htmlFor="guestName" className="form-label">
+                氏名
+              </label>
+              <p className="form-hint">名前を入力してください</p>
+              <input
+                type="text"
+                id="guestName"
+                name="guestName"
+                value={formData.guestName}
+                onChange={handleInputChange}
+                className="form-input"
+                placeholder="名前を入力"
+                autoComplete="name"
+              />
+            </div>
+
             {/* Date Field */}
             <div className="form-group">
               <label htmlFor="date" className="form-label">
@@ -258,9 +318,15 @@ const ReservationPage: FC = () => {
                   value={formData.date}
                   onChange={handleInputChange}
                   className="form-input"
+                  ref={dateInputRef}
                   min={new Date().toISOString().split("T")[0]}
                 />
-                <span className="calendar-icon">🗓</span>
+                <span
+                  className="calendar-icon"
+                  onClick={() => openNativePicker(dateInputRef)}
+                >
+                  🗓
+                </span>
               </div>
             </div>
 
@@ -279,8 +345,14 @@ const ReservationPage: FC = () => {
                   value={formData.time}
                   onChange={handleInputChange}
                   className="form-input"
+                  ref={timeInputRef}
                 />
-                <span className="time-icon">🕒</span>
+                <span
+                  className="time-icon"
+                  onClick={() => openNativePicker(timeInputRef)}
+                >
+                  🕒
+                </span>
               </div>
             </div>
 
@@ -331,8 +403,10 @@ const ReservationPage: FC = () => {
             <MapContainer
               center={mapCenter}
               zoom={zoomLevel}
+              scrollWheelZoom={true}
               style={{ height: "100%", width: "100%" }}
               zoomControl={false}
+              ref={setMap}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -370,48 +444,69 @@ const ReservationPage: FC = () => {
                             </span>
                           ))}
                         </div>
-                        {!lockedByQuery && (
-                          <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
-                            選択
-                          </button>
-                        )}
+                        <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
+                          選択
+                        </button>
                       </div>
                     </Popup>
                   </Marker>
                 );
               })}
 
-              <MapEvents onLocationSelect={handleLocationSelect} disabled={lockedByQuery} />
+              <MapEvents onLocationSelect={handleLocationSelect} />
             </MapContainer>
 
             {/* Map Controls */}
             <div className="map-controls">
               <button
                 className="map-ctrl-btn"
-                onClick={() => handleZoom("in")}
-                disabled={zoomLevel >= 18}
+                onClick={() => map?.zoomIn()}
                 title="Phóng to"
               >
-                +
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
               <button
                 className="map-ctrl-btn"
-                onClick={() => handleZoom("out")}
-                disabled={zoomLevel <= 1}
+                onClick={() => map?.zoomOut()}
                 title="Thu nhỏ"
               >
-                −
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
               <button
                 className="map-ctrl-btn map-ctrl-btn--location"
-                onClick={() => {
-                  if (currentLocation && !lockedByQuery) {
-                    setMapCenter(currentLocation);
-                  }
-                }}
+                onClick={handlePanToCurrent}
                 title="Về vị trí hiện tại"
               >
-                📍
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                </svg>
               </button>
             </div>
 
@@ -421,14 +516,12 @@ const ReservationPage: FC = () => {
                 <div className="cafe-info-card">
                   <div className="cafe-card-header">
                     <h3 className="cafe-card-name">{selectedCafe.name}</h3>
-                    {!lockedByQuery && (
-                      <button
-                        className="cafe-card-close"
-                        onClick={() => setSelectedCafe(null)}
-                      >
-                        ✕
-                      </button>
-                    )}
+                    <button
+                      className="cafe-card-close"
+                      onClick={() => setSelectedCafe(null)}
+                    >
+                      ✕
+                    </button>
                   </div>
                   <div className="cafe-card-rating">
                     <span className="stars">★★★★★</span>

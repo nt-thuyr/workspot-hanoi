@@ -4,87 +4,107 @@ import toast from "react-hot-toast";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./ReservationHistoryPage.css";
 
-// Định nghĩa cấu trúc dữ liệu Lịch sử đặt chỗ (Khớp với các trường từ reservation.model.ts)
+// Định nghĩa cấu trúc dữ liệu Lịch sử đặt chỗ
 interface ReservationInfo {
     id: number;
     cafeId: number;
     cafeName: string;
+    cafeAddress?: string;
     imageUrl?: string;
-    reservationDate: string;
-    timeSlot: string; // Ví dụ: "09:00 - 12:00"
+    reservationDate: string;   // yyyy-mm-dd
+    timeSlot: string;          // "09:00 AM"
     seatNumber: string;
-    status: "upcoming" | "completed" | "cancelled";
+    status: "pending" | "approved" | "rejected" | "cancelled" | "completed";
+    approvalStatus?: "pending" | "approved" | "rejected";
+    timeCategory?: "upcoming" | "past";
     createdAt: string;
     amount: number;
 }
 
-// Các tab bộ lọc bằng tiếng Nhật đúng theo đặc tả yêu cầu
-const TABS = [
-    { key: "all", label: "すべて" },          // Tất cả
-    { key: "upcoming", label: "予約中" },     // Sắp tới / Đang đặt
-    { key: "completed", label: "利用完了" },   // Đã hoàn thành
-    { key: "cancelled", label: "キャンセル済" } // Đã hủy
+// Tab bộ lọc nội dung hiển thị (khu vực 7)
+const DISPLAY_TABS = [
+    { key: "reserved", label: "予約済み" },   // Đã đặt chỗ
+    { key: "reviewed", label: "評価済み" },   // Đã đánh giá
 ];
 
-// Component Hộp thoại Xác nhận Hủy
+// Tùy chọn sắp xếp (khu vực 12)
+const SORT_OPTIONS = [
+    { key: "name", label: "店名" },           // Tên quán
+    { key: "date_desc", label: "日付（新しい順）" }, // Ngày mới nhất
+    { key: "date_asc", label: "日付（古い順）" },  // Ngày cũ nhất
+];
+
+// Component Modal Xác nhận Hủy đặt chỗ
 function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-icon">🗓️</div>
-                <h3 className="modal-title">予約をキャンセルしますか？</h3>
-                <p className="modal-subtitle">Bạn có chắc chắn muốn hủy đặt chỗ?</p>
-                <p className="modal-warning">
+        <div className="rhp-modal-overlay" onClick={onClose}>
+            <div className="rhp-modal-box" onClick={(e) => e.stopPropagation()}>
+                <div className="rhp-modal-icon">🗓️</div>
+                <h3 className="rhp-modal-title">予約をキャンセルしますか？</h3>
+                <p className="rhp-modal-desc">
                     本当にこの予約をキャンセルしてもよろしいですか？<br />
-                    <span>キャンセルすると元に戻すことはできません。</span>
+                    <span className="rhp-modal-warn">キャンセルすると元に戻すことはできません。</span>
                 </p>
-                <div className="modal-actions">
-                    <button onClick={onClose} className="btn-modal-cancel">戻る / Quay lại</button>
-                    <button onClick={() => { onConfirm(); onClose(); }} className="btn-modal-confirm">キャンセルする / Hủy</button>
+                <div className="rhp-modal-actions">
+                    <button onClick={onClose} className="rhp-modal-btn rhp-modal-btn--back" id="modal-btn-back">
+                        戻る
+                    </button>
+                    <button
+                        onClick={() => { onConfirm(); onClose(); }}
+                        className="rhp-modal-btn rhp-modal-btn--confirm"
+                        id="modal-btn-confirm"
+                    >
+                        キャンセルする
+                    </button>
                 </div>
             </div>
         </div>
     );
 }
 
+// Định dạng ngày từ ISO thành "yyyy年M月d日"
+function formatDate(dateStr: string): string {
+    try {
+        const d = new Date(dateStr);
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    } catch {
+        return dateStr;
+    }
+}
+
 const ReservationHistoryPage: FC = () => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<string>("all");
+    const [displayTab, setDisplayTab] = useState<string>("reserved");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [sortKey, setSortKey] = useState<string>("date_desc");
     const [reservations, setReservations] = useState<ReservationInfo[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
 
-    // Lấy trạng thái đăng nhập
+    // Kiểm tra trạng thái đăng nhập
     const isLoggedIn = !!localStorage.getItem("access_token");
     const userRole = localStorage.getItem("user_role");
-    const navMode = isLoggedIn && userRole === 'cafe_owner' ? 'owner' : 'guest';
+    const navMode = isLoggedIn && userRole === "cafe_owner" ? "owner" : "guest";
 
-    // Gọi API Backend lấy danh sách lịch sử đặt chỗ
+    // Gọi API lấy danh sách lịch sử đặt chỗ
     const fetchReservationHistory = async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem("access_token");
-
             if (!token) {
                 setReservations([]);
                 setLoading(false);
                 return;
             }
-
-            // Gọi lên route api của tầng server
             const response = await fetch("http://localhost:3000/api/reservations/history", {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` },
             });
-            
             const result = await response.json();
-
             if (result.success) {
-                setReservations(result.data); // Dữ liệu thật từ DB
+                setReservations(result.data);
             } else {
                 console.error("Lấy lịch sử thất bại:", result.message);
-                setReservations([]); 
+                setReservations([]);
             }
         } catch (error) {
             console.error("Lỗi khi tải lịch sử đặt chỗ:", error);
@@ -94,27 +114,29 @@ const ReservationHistoryPage: FC = () => {
         }
     };
 
-    // Logic Hủy Đặt Chỗ
+    // Hủy đặt chỗ
     const executeCancel = async () => {
         if (!cancelTargetId) return;
         try {
             const toastId = toast.loading("キャンセル処理中...");
-            const response = await fetch(`http://localhost:3000/api/reservations/${cancelTargetId}/cancel`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            const response = await fetch(
+                `http://localhost:3000/api/reservations/${cancelTargetId}/cancel`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+                    },
                 }
-            });
+            );
             const result = await response.json();
-
             if (result.success) {
                 toast.success("予約をキャンセルしました。", { id: toastId });
                 fetchReservationHistory();
             } else {
                 toast.error(result.message || "キャンセルに失敗しました。", { id: toastId });
             }
-        } catch (error) {
+        } catch {
             toast.error("サーバーエラーが発生しました。");
         }
     };
@@ -123,145 +145,269 @@ const ReservationHistoryPage: FC = () => {
         fetchReservationHistory();
     }, []);
 
-    // Lọc danh sách theo Tab đang chọn
-    const filteredReservations = reservations.filter((item) => {
-        if (activeTab === "all") return true;
-        return item.status === activeTab;
+    // Lọc: tab "reviewed" = completed; tab "reserved" = còn lại
+    const tabFiltered = reservations.filter((item) => {
+        if (displayTab === "reviewed") return item.status === "completed";
+        return item.status !== "completed";
     });
 
-    // Hàm hiển thị Badge trạng thái tương ứng
-    const renderStatusBadge = (status: string) => {
-        switch (status) {
-            case "upcoming":
-                return <span className="res-badge res-badge--upcoming">予約確定</span>;
-            case "completed":
-                return <span className="res-badge res-badge--completed">利用完了</span>;
-            case "cancelled":
-                return <span className="res-badge res-badge--cancelled">キャンセル済</span>;
-            default:
-                return null;
+    // Tìm kiếm theo tên cơ sở
+    const searchFiltered = tabFiltered.filter((item) =>
+        item.cafeName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Hàm parse ngày và giờ thành đối tượng Date
+    const parseReservationDateTime = (dateStr: string, timeStr: string): Date => {
+        try {
+            const normalizedDate = dateStr.replace(/\//g, '-'); // YYYY-MM-DD
+            const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            if (match) {
+                let hour = parseInt(match[1] || "0", 10);
+                const min = parseInt(match[2] || "0", 10);
+                const ampm = (match[3] || "").toUpperCase();
+                if (ampm === "PM" && hour < 12) hour += 12;
+                if (ampm === "AM" && hour === 12) hour = 0;
+                
+                const [year = 0, month = 1, day = 1] = normalizedDate.split('-').map(Number);
+                return new Date(year, month - 1, day, hour, min);
+            }
+            
+            const hhmmMatch = timeStr.match(/^(\d{1,2}):(\d{2})/);
+            if (hhmmMatch) {
+                const hour = parseInt(hhmmMatch[1] || "0", 10);
+                const min = parseInt(hhmmMatch[2] || "0", 10);
+                const [year = 0, month = 1, day = 1] = normalizedDate.split('-').map(Number);
+                return new Date(year, month - 1, day, hour, min);
+            }
+
+            return new Date(normalizedDate);
+        } catch {
+            return new Date(dateStr);
         }
     };
 
-    // Định dạng tiền tệ VND sang chuỗi hiển thị
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+    // Sắp xếp
+    const sorted = [...searchFiltered].sort((a, b) => {
+        if (sortKey === "name") return a.cafeName.localeCompare(b.cafeName);
+        if (sortKey === "date_asc")
+            return new Date(a.reservationDate).getTime() - new Date(b.reservationDate).getTime();
+        // date_desc (default)
+        return new Date(b.reservationDate).getTime() - new Date(a.reservationDate).getTime();
+    });
+
+    // Badge phê duyệt (số 20 = 拒否済み / 23 = 承認済み / 25 = 未承認 / キャンセル済み)
+    const renderApprovalBadge = (item: ReservationInfo) => {
+        const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
+        
+        if (appStatus === "REJECTED") {
+            return <span className="rhp-badge rhp-badge--rejected" id={`badge-rejected-${item.id}`}>拒否済み</span>;
+        }
+        if (appStatus === "APPROVED") {
+            return <span className="rhp-badge rhp-badge--approved" id={`badge-approved-${item.id}`}>承認済み</span>;
+        }
+        if (appStatus === "PENDING") {
+            return <span className="rhp-badge rhp-badge--pending" id={`badge-pending-${item.id}`}>未承認</span>;
+        }
+        if (appStatus === "CANCELLED") {
+            return <span className="rhp-badge rhp-badge--cancelled" id={`badge-cancelled-${item.id}`}>キャンセル済み</span>;
+        }
+        return null;
+    };
+
+    // Badge thời gian (số 21 = 今後の予定 / 24 = 過去の履歴)
+    const renderTimeBadge = (item: ReservationInfo) => {
+        const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
+        if (appStatus === "CANCELLED") return null;
+
+        const resDateTime = parseReservationDateTime(item.reservationDate, item.timeSlot);
+        const isUpcoming = resDateTime.getTime() >= new Date().getTime();
+        
+        if (isUpcoming) {
+            return <span className="rhp-badge rhp-badge--upcoming" id={`badge-upcoming-${item.id}`}>今後の予定</span>;
+        }
+        return <span className="rhp-badge rhp-badge--past" id={`badge-past-${item.id}`}>過去の履歴</span>;
+    };
+
+    // Kiểm tra card có thể hủy hay không (trước giờ đặt chỗ 24 tiếng)
+    const canCancel = (item: ReservationInfo) => {
+        const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
+        if (appStatus === "CANCELLED" || appStatus === "REJECTED") return false;
+
+        const resDateTime = parseReservationDateTime(item.reservationDate, item.timeSlot);
+        const diffMs = resDateTime.getTime() - new Date().getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        return diffHours >= 24;
     };
 
     return (
-        <div className="history-root">
+        <div className="rhp-root">
             {/* THANH NAVBAR */}
             <TopNavBar mode={navMode} activeTab="history" />
 
-            {/* NỘI DUNG CHÍNH */}
-            <main className="history-container">
-                <header className="history-header">
-                    <h1 className="history-title">予約履歴</h1>
-                    <p className="history-subtitle">これまでのワークスペースの予約・利用履歴を確認できます。</p>
-                </header>
+            {/* LAYOUT CHÍNH: sidebar trái + nội dung phải */}
+            <div className="rhp-body">
 
-                {/* CÁC TAB BỘ LỌC */}
-                <div className="history-tabs">
-                    {TABS.map((tab) => (
-                        <button
-                            key={tab.key}
-                            className={`history-tab-btn ${activeTab === tab.key ? "history-tab-btn--active" : ""}`}
-                            onClick={() => setActiveTab(tab.key)}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+                {/* ===== SIDEBAR TRÁI ===== */}
+                <aside className="rhp-sidebar">
 
-                {/* DANH SÁCH LỊCH SỬ */}
-                {loading ? (
-                    <div className="history-state-view">
-                        <p>読み込み中...</p>
+                    {/* Khu vực 7: Nhãn "表示内容" + Tab lọc */}
+                    <div className="rhp-sidebar-section">
+                        <p className="rhp-sidebar-label" id="display-label">表示内容</p>
+                        <div className="rhp-tab-group" id="display-tab-group">
+                            {DISPLAY_TABS.map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    id={`tab-${tab.key}`}
+                                    className={`rhp-tab-btn ${displayTab === tab.key ? "rhp-tab-btn--active" : ""}`}
+                                    onClick={() => setDisplayTab(tab.key)}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                ) : filteredReservations.length === 0 ? (
-                    <div className="history-state-view">
-                        <span className="material-symbols-outlined empty-icon">calendar_today</span>
-                        <p className="empty-text">該当する予約履歴が見つかりません。</p>
+
+                    {/* Khu vực 10: Thanh tìm kiếm */}
+                    <div className="rhp-sidebar-section">
+                        <div className="rhp-search-bar" id="search-bar">
+                            <svg className="rhp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input
+                                id="search-input"
+                                type="text"
+                                className="rhp-search-input"
+                                placeholder="施設名で検索"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
-                ) : (
-                    <div className="reservation-list">
-                        {filteredReservations.map((item) => (
-                            <div key={item.id} className="reservation-card">
-                                <div className="res-card-main">
-                                    {/* Ảnh quán cafe */}
-                                    <div className="res-image-wrapper">
+
+                    {/* Khu vực 11-12: Nhãn "並べ替え" + Dropdown sắp xếp */}
+                    <div className="rhp-sidebar-section">
+                        <p className="rhp-sidebar-label" id="sort-label">並べ替え</p>
+                        <div className="rhp-select-wrapper" id="sort-select-wrapper">
+                            <select
+                                id="sort-select"
+                                className="rhp-select"
+                                value={sortKey}
+                                onChange={(e) => setSortKey(e.target.value)}
+                            >
+                                {SORT_OPTIONS.map((opt) => (
+                                    <option key={opt.key} value={opt.key}>{opt.label}</option>
+                                ))}
+                            </select>
+                            <svg className="rhp-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* ===== KHU VỰC PHẢI: Danh sách ===== */}
+                <main className="rhp-main" id="reservation-main">
+
+                    {/* Khu vực 13: Tiêu đề */}
+                    <h1 className="rhp-page-title" id="page-title">予約の履歴</h1>
+
+                    {/* Khu vực 14: Danh sách thẻ */}
+                    {loading ? (
+                        <div className="rhp-state-view" id="loading-view">
+                            <div className="rhp-spinner" />
+                            <p>読み込み中...</p>
+                        </div>
+                    ) : sorted.length === 0 ? (
+                        <div className="rhp-state-view" id="empty-view">
+                            <span className="rhp-empty-icon">📅</span>
+                            <p className="rhp-empty-text">該当する予約履歴が見つかりません。</p>
+                        </div>
+                    ) : (
+                        <div className="rhp-card-list" id="reservation-card-list">
+                            {sorted.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="rhp-card"
+                                    id={`reservation-card-${item.id}`}
+                                    onClick={() => navigate(`/cafes/${item.cafeId}`)}
+                                    style={{ cursor: "pointer" }}
+                                >
+                                    {/* Khu vực 15: Ảnh cafe */}
+                                    <div className="rhp-card-img-wrap" id={`card-img-${item.id}`}>
                                         <img
                                             src={item.imageUrl || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500"}
                                             alt={item.cafeName}
-                                            className="res-cafe-img"
+                                            className="rhp-card-img"
                                         />
                                     </div>
 
-                                    {/* Thông tin chi tiết lịch đặt */}
-                                    <div className="res-info-content">
-                                        <div className="res-info-top">
-                                            <h2 className="res-cafe-name">{item.cafeName}</h2>
-                                            {renderStatusBadge(item.status)}
+                                    {/* Nội dung card */}
+                                    <div className="rhp-card-body">
+
+                                        {/* Khu vực 16: Tên cafe */}
+                                        <h2 className="rhp-card-name" id={`card-name-${item.id}`}>
+                                            {item.cafeName}
+                                        </h2>
+
+                                        {/* Khu vực 18: Ngày + giờ badge */}
+                                        <div className="rhp-card-datetime" id={`card-datetime-${item.id}`}>
+                                            <span className="rhp-datetime-badge">
+                                                {formatDate(item.reservationDate)}&nbsp;&nbsp;{item.timeSlot}
+                                            </span>
                                         </div>
 
-                                        <div className="res-details-grid">
-                                            <div className="res-detail-item">
-                                                <span className="material-symbols-outlined detail-icon">event</span>
-                                                <span className="detail-text"><strong>利用制限日:</strong> {item.reservationDate}</span>
+                                        {/* Khu vực 19: Địa chỉ */}
+                                        {item.cafeAddress && (
+                                            <div className="rhp-card-address" id={`card-address-${item.id}`}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="rhp-addr-icon">
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                    <circle cx="12" cy="10" r="3" />
+                                                </svg>
+                                                <span>{item.cafeAddress}</span>
                                             </div>
-                                            <div className="res-detail-item">
-                                                <span className="material-symbols-outlined detail-icon">schedule</span>
-                                                <span className="detail-text"><strong>時間帯:</strong> {item.timeSlot}</span>
-                                            </div>
-                                            <div className="res-detail-item">
-                                                <span className="material-symbols-outlined detail-icon">chair</span>
-                                                <span className="detail-text"><strong>座席番号:</strong> {item.seatNumber}</span>
-                                            </div>
-                                            <div className="res-detail-item">
-                                                <span className="material-symbols-outlined detail-icon">payments</span>
-                                                <span className="detail-text"><strong>料金:</strong> {formatCurrency(item.amount)}</span>
-                                            </div>
+                                        )}
+
+                                        {/* Khu vực 20-25: Badges trạng thái */}
+                                        <div className="rhp-card-badges" id={`card-badges-${item.id}`}>
+                                            {renderApprovalBadge(item)}
+                                            {renderTimeBadge(item)}
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Các nút hành động phía dưới thẻ */}
-                                <div className="res-card-actions">
-                                    <span className="res-created-date">予約日: {item.createdAt}</span>
-                                    <div className="res-btn-group">
-                                        <button
-                                            className="res-action-btn res-btn--secondary"
-                                            onClick={() => navigate(`/cafes/${item.cafeId}`)}
-                                        >
-                                            店舗詳細
-                                        </button>
+                                    {/* Khu vực 17: Arrow icon (phải) */}
+                                    <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
 
-                                        {item.status === "upcoming" && (
-                                            <button 
-                                                className="res-action-btn res-btn--danger"
-                                                onClick={() => setCancelTargetId(item.id)}
+                                        {/* Khu vực 22: Nút hủy đặt chỗ */}
+                                        {canCancel(item) && (
+                                            <button
+                                                id={`btn-cancel-${item.id}`}
+                                                className="rhp-btn-cancel"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCancelTargetId(item.id);
+                                                }}
                                             >
-                                                予約キャンセル
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                                </svg>
+                                                予約をキャンセル
                                             </button>
                                         )}
 
-                                        {item.status === "completed" && (
-                                            <button 
-                                                className="res-action-btn res-btn--primary"
-                                                onClick={() => toast("レビュー機能は開発中です！", { icon: '✍️' })}
-                                            >
-                                                レビューを書く
-                                            </button>
-                                        )}
+                                        {/* Khu vực 17: Mũi tên điều hướng */}
+                                        <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </main>
+                            ))}
+                        </div>
+                    )}
+                </main>
+            </div>
 
-            {/* Modal Hủy Đặt chỗ */}
+            {/* Modal Xác nhận Hủy */}
             {cancelTargetId && (
                 <CancelModal
                     onConfirm={executeCancel}

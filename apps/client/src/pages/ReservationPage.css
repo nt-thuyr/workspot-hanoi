@@ -3,6 +3,16 @@
   flex-direction: column;
   height: 100vh;
   background-color: #fdf9f4;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.reservation-page .nav-logo__text {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.reservation-page .nav-profile-btn {
+  font-size: 0.85rem;
 }
 
 .reservation-container {
@@ -22,16 +32,19 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .reservation-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   flex-shrink: 0;
+  margin-top: 32px;
 }
 
-.back-btn {
+.reservation-back-btn {
   background: white;
   border: 2px solid #e6e2dd;
   border-radius: 8px;
@@ -43,9 +56,26 @@
   transition: all 0.3s ease;
   text-align: left;
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  white-space: normal;
+  word-break: keep-all;
+  line-height: 1.2;
 }
 
-.back-btn:hover {
+.reservation-back-btn__icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reservation-back-btn__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reservation-back-btn:hover {
   background: #f5f2ed;
   border-color: #614734;
 }
@@ -108,7 +138,8 @@
 }
 
 .date-input-wrapper input::-webkit-calendar-picker-indicator {
-  display: none;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .calendar-icon {
@@ -116,9 +147,12 @@
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  pointer-events: none;
+  pointer-events: auto;
   font-size: 13px;
   color: #a0958e;
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
 }
 
 .time-input-wrapper {
@@ -133,7 +167,8 @@
 }
 
 .time-input-wrapper input::-webkit-calendar-picker-indicator {
-  display: none;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .time-icon {
@@ -141,9 +176,11 @@
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  pointer-events: none;
+  pointer-events: auto;
   font-size: 13px;
   color: #a0958e;
+  cursor: pointer;
+  user-select: none;
   z-index: 2;
 }
 
@@ -209,7 +246,7 @@
   border: none;
   z-index: 9999;
   width: 100%;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .cafe-info-card {
@@ -223,6 +260,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  pointer-events: auto;
 }
 
 .cafe-card-header {
@@ -334,6 +372,37 @@
   min-height: 0;
 }
 
+/* Current location marker */
+.current-pin {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-pin__pulse {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.2);
+  animation: none;
+}
+
+.current-pin__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+
 /* Map controls */
 .map-controls {
   position: absolute;
@@ -342,7 +411,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 20;
+  z-index: 1000;
+  pointer-events: auto;
 }
 
 .map-ctrl-btn {

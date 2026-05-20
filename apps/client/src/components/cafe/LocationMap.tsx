@@ -211,11 +211,24 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           },
           (error) => {
             console.error("Lỗi lấy vị trí:", error);
-            alert(
-              "Không thể lấy vị trí của bạn. Vui lòng cấp quyền truy cập GPS.",
-            );
+            let errorMessage = "Không thể lấy vị trí của bạn lúc này. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.";
+            
+            if (error.code === error.PERMISSION_DENIED) {
+              errorMessage = "Vui lòng cấp quyền truy cập GPS trong cài đặt trình duyệt để xác định vị trí của bạn.";
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+              errorMessage = "Không thể xác định vị trí hiện tại của thiết bị. Vui lòng chọn vị trí thủ công trên bản đồ.";
+            } else if (error.code === error.TIMEOUT) {
+              errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
+            }
+            
+            alert(errorMessage);
             setLoading(false);
           },
+          {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 60000,
+          }
         );
       } else {
         alert("Trình duyệt của bạn không hỗ trợ GPS.");
