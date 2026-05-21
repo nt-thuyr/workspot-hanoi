@@ -578,26 +578,50 @@ const HomePage: FC = () => {
                 ))}
               </div>
 
-              {/* Chưa tìm kiếm: hiện tags phổ biến | Đã tìm kiếm: hiện danh sách quán */}
-              {searchQuery.trim() === "" && activeFilters.length === 0 && activeTags.length === 0 ? (
-                /* Popular Tags (17, 18) — hiển thị khi chưa tìm kiếm */
-                <div className="sidebar-tags mt-4">
-                  <p className="sidebar-tags__title">人気のあるタグ</p>
-                  <div className="tag-list">
-                    {POPULAR_TAGS.map((tag) => (
-                      <button
-                        key={tag}
-                        className="search-tag"
-                        onClick={() => toggleTag(tag)}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
+              {/* Tags section — luôn hiện, active state khi đã chọn */}
+              <div className="sidebar-tags mt-4">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                  <p className="sidebar-tags__title" style={{ margin: 0 }}>人気のあるタグ</p>
+                  {activeTags.length > 0 && (
+                    <button
+                      onClick={() => setActiveTags([])}
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "#a0896b",
+                        background: "none",
+                        border: "1px solid #e5d9cc",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={e => { (e.target as HTMLElement).style.color = "#c8843a"; (e.target as HTMLElement).style.borderColor = "#c8843a"; }}
+                      onMouseLeave={e => { (e.target as HTMLElement).style.color = "#a0896b"; (e.target as HTMLElement).style.borderColor = "#e5d9cc"; }}
+                    >
+                      クリア ✕
+                    </button>
+                  )}
                 </div>
-              ) : (
-                /* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */
-                <div className="search-results-section mt-4 flex-1 overflow-y-auto pr-2 pb-4">
+                <div className="tag-list">
+                  {POPULAR_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {activeTags.includes(tag) && (
+                        <span style={{ marginRight: "4px", fontSize: "0.75rem" }}>✓</span>
+                      )}
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */}
+              {(searchQuery.trim() !== "" || activeFilters.length > 0 || activeTags.length > 0) && (
+                <div className="search-results-section flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
                     <span className="font-bold text-[#614734]">
                       「{searchQuery || (activeTags[0] ?? activeFilters[0] ?? "すべて")}」
