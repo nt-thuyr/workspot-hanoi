@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, type FC } from "react";
+import { useState, useEffect, useRef, type FC, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,6 +15,18 @@ interface CafeMarker {
   rating: number;
   tags: string[];
   image?: string;
+  isOpenNow?: boolean;
+  distance?: number | null;
+}
+
+function StarRating({ value }: { value: number }) {
+  return (
+    <span className="star-rating">
+      {"★".repeat(Math.floor(value))}
+      {"☆".repeat(5 - Math.floor(value))}
+      <span className="star-value">{value.toFixed(1)}</span>
+    </span>
+  );
 }
 
 interface ReservationForm {
@@ -47,25 +60,36 @@ const createUserLocationIcon = () => {
 
 interface MapEventsProps {
   onLocationSelect: (lat: number, lng: number) => void;
+  onMapMoveEnd: (lat: number, lng: number) => void;
   disabled?: boolean;
 }
 
-function MapEvents({ onLocationSelect, disabled }: MapEventsProps) {
+function MapEvents({ onLocationSelect, onMapMoveEnd, disabled }: MapEventsProps) {
   const map = useMap();
   useEffect(() => {
     if (disabled) return undefined;
     const handleMapClick = (e: any) => {
       onLocationSelect(e.latlng.lat, e.latlng.lng);
     };
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      onMapMoveEnd(center.lat, center.lng);
+    };
     map.on("click", handleMapClick);
+    map.on("moveend", handleMoveEnd);
+
+
+
     return () => {
       map.off("click", handleMapClick);
+      map.off("moveend", handleMoveEnd);
     };
-  }, [map, onLocationSelect]);
+  }, [map, onLocationSelect, onMapMoveEnd, disabled]);
   return null;
 }
 
 const ReservationPage: FC = () => {
+  const navigate = useNavigate();
   const centerHanoi: [number, number] = [21.0056, 105.8433];
 
   const [formData, setFormData] = useState<ReservationForm>({
@@ -77,6 +101,7 @@ const ReservationPage: FC = () => {
 
   const [cafes, setCafes] = useState<CafeMarker[]>([]);
   const [selectedCafe, setSelectedCafe] = useState<CafeMarker | null>(null);
+  const [bookingCafe, setBookingCafe] = useState<CafeMarker | null>(null);
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -86,6 +111,40 @@ const ReservationPage: FC = () => {
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
   const hasCenteredRef = useRef(false);
+  const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&language=vi`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const addr = data.address || {};
+        const district =
+          addr.suburb ||
+          addr.city_district ||
+          addr.district ||
+          addr.county ||
+          "";
+        const city = addr.city || addr.town || addr.province || "Hà Nội";
+        if (district) {
+          setLocationName(`${district}, ${city}`);
+        } else {
+          setLocationName(city);
+        }
+      }
+    } catch (error) {
+      console.error("[ReservationPage] Error reverse geocoding:", error);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      reverseGeocode(mapCenter[0], mapCenter[1]);
+    }, 400); // 400ms debounce to prevent spamming OSM Nominatim API
+    return () => clearTimeout(timer);
+  }, [mapCenter]);
 
   const openNativePicker = (inputRef: React.RefObject<HTMLInputElement>) => {
     const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
@@ -105,45 +164,77 @@ const ReservationPage: FC = () => {
         const params = new URLSearchParams(window.location.search);
         const cafeId = params.get("cafeId");
         const response = await fetch(
-          `http://localhost:3000/api/cafes?lat=${mapCenter[0]}&lng=${mapCenter[1]}`
+          `http://localhost:3000/api/cafes/map?lat=${mapCenter[0]}&lng=${mapCenter[1]}&maxDistance=30`
         );
         const data = await response.json();
         if (data.success) {
-          const cafeList = data.data || [];
+          const cafeList = (data.data || []).map((cafe: any) => ({
+            id: cafe.id,
+            name: cafe.name,
+            address: cafe.address,
+            lat: Number(cafe.location?.lat || 0),
+            lng: Number(cafe.location?.lng || 0),
+            rating: cafe.rating || 0,
+            tags: cafe.tags || [],
+            image: cafe.imageUrl,
+            isOpenNow: cafe.isOpenNow,
+            distance: cafe.distance,
+          }));
           setCafes(cafeList);
-          let nextSelected = selectedCafe;
+          
+          let targetCafe: CafeMarker | null = null;
 
           if (cafeId) {
-            nextSelected = cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
-            if (!nextSelected) {
+            targetCafe = cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
+            if (!targetCafe) {
               const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
               const detailResult = await detailResponse.json();
               if (detailResult.success && detailResult.data) {
                 const cafe = detailResult.data;
-                nextSelected = {
+                
+                const tagMap: Record<number, string> = {
+                  1: "高速Wi-Fi", 2: "コンセント", 3: "静か", 4: "禁煙",
+                  5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
+                  9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
+                };
+                const standardTags = (cafe.amenities || []).map((a: any) => tagMap[a.amenity_id]).filter(Boolean);
+                const combinedTags = [...standardTags, ...(cafe.custom_tags || [])];
+
+                const checkIsOpen = (openTime: string, closeTime: string) => {
+                  if (!openTime || !closeTime) return false;
+                  const now = new Date();
+                  const currentTimeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+                  return currentTimeStr >= openTime && currentTimeStr <= closeTime;
+                };
+
+                targetCafe = {
                   id: cafe.id,
                   name: cafe.name,
                   address: cafe.address,
                   lat: Number(cafe.lat || 0),
                   lng: Number(cafe.lng || 0),
                   rating: cafe.avg_rating || 0,
-                  tags: cafe.custom_tags || [],
+                  tags: combinedTags,
                   image: cafe.images?.[0]?.image_url,
+                  isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),
+                  distance: null,
                 } as CafeMarker;
-                setCafes((prev) => [nextSelected as CafeMarker, ...prev]);
+                setCafes((prev) => [targetCafe as CafeMarker, ...prev]);
               }
             }
           }
 
-          if (!nextSelected && cafeList.length > 0) {
-            nextSelected = cafeList[0];
+          if (!targetCafe && cafeList.length > 0) {
+            targetCafe = cafeList[0];
           }
 
-          if (nextSelected) {
-            setSelectedCafe(nextSelected);
-            setFormData((prev) => ({ ...prev, cafeId: nextSelected!.id }));
-            if (!hasCenteredRef.current && nextSelected.lat && nextSelected.lng) {
-              setMapCenter([nextSelected.lat, nextSelected.lng]);
+          if (targetCafe) {
+            // Set initial selected and booking cafe
+            setBookingCafe(targetCafe);
+            setSelectedCafe(targetCafe);
+            setFormData((prev) => ({ ...prev, cafeId: targetCafe!.id }));
+            if (!hasCenteredRef.current && targetCafe.lat && targetCafe.lng) {
+              setMapCenter([targetCafe.lat, targetCafe.lng]);
               setZoomLevel(15);
               hasCenteredRef.current = true;
             }
@@ -154,7 +245,7 @@ const ReservationPage: FC = () => {
       }
     };
     fetchCafes();
-  }, [mapCenter]);
+  }, []);
 
   // Get user's current location
   useEffect(() => {
@@ -182,20 +273,30 @@ const ReservationPage: FC = () => {
     }));
   };
 
-  const handleLocationSelect = (lat: number, lng: number) => {
+  const handleLocationSelect = useCallback((lat: number, lng: number) => {
     setMapCenter([lat, lng]);
-  };
+  }, []);
+
+  const handleMapMoveEnd = useCallback((lat: number, lng: number) => {
+    setMapCenter([lat, lng]);
+  }, []);
 
   const handleCafeSelect = (cafe: CafeMarker) => {
-    setSelectedCafe(cafe);
-    setFormData((prev) => ({ ...prev, cafeId: cafe.id }));
+    if (bookingCafe && cafe.id !== bookingCafe.id) {
+      navigate(`/?cafeId=${cafe.id}`);
+    } else {
+      setSelectedCafe(cafe);
+    }
   };
 
   useEffect(() => {
-    if (selectedMarkerRef.current) {
-      selectedMarkerRef.current.openPopup();
-    }
-  }, [selectedCafe]);
+    const timer = setTimeout(() => {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.openPopup();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [selectedCafe, cafes]);
 
   const handlePanToCurrent = () => {
     if (!map) return;
@@ -206,22 +307,7 @@ const ReservationPage: FC = () => {
     map.flyTo(mapCenter, 14, { animate: true });
   };
 
-  useEffect(() => {
-    if (!map) return;
-    const handleMoveEnd = () => {
-      const center = map.getCenter();
-      setMapCenter([center.lat, center.lng]);
-    };
-    const handleZoomEnd = () => {
-      setZoomLevel(map.getZoom());
-    };
-    map.on("moveend", handleMoveEnd);
-    map.on("zoomend", handleZoomEnd);
-    return () => {
-      map.off("moveend", handleMoveEnd);
-      map.off("zoomend", handleZoomEnd);
-    };
-  }, [map]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,7 +358,7 @@ const ReservationPage: FC = () => {
 
   return (
     <div className="reservation-page">
-      <TopNavBar mode="guest" activeTab="booking" />
+      <TopNavBar mode="guest" activeTab="home" />
 
       <div className="reservation-container">
         {/* Left Panel - Reservation Form */}
@@ -280,9 +366,13 @@ const ReservationPage: FC = () => {
           <div className="reservation-header">
             <button className="reservation-back-btn" onClick={() => window.history.back()}>
               <span className="reservation-back-btn__icon" aria-hidden="true">←</span>
-              <span className="reservation-back-btn__label">席を予約する</span>
+              <span className="reservation-back-btn__label">
+                {bookingCafe ? `${bookingCafe.name} の席を予約` : "席を予約する"}
+              </span>
             </button>
-            <p className="reservation-subtitle">予約情報をご入力ください</p>
+            <p className="reservation-subtitle">
+              {bookingCafe ? `「${bookingCafe.name}」の予約情報をご入力ください` : "予約情報をご入力ください"}
+            </p>
           </div>
 
           <form className="reservation-form" onSubmit={handleSubmit}>
@@ -433,28 +523,62 @@ const ReservationPage: FC = () => {
                       click: () => handleCafeSelect(cafe),
                     }}
                   >
-                    <Popup>
-                      <div className="cafe-popup">
-                        <strong className="popup-name">{cafe.name}</strong>
-                        <p className="popup-distance">0.8 km～ Ba Dinh</p>
-                        <div className="popup-tags">
-                          {(cafe.tags || []).map((tag) => (
-                            <span key={tag} className="popup-tag">
-                              {tag}
-                            </span>
-                          ))}
+                    <Popup className="cafe-popup" closeButton={false}>
+                      <div className="popup-inner">
+                        <div className="popup-header">
+                          <p className="popup-name">{cafe.name}</p>
+                          <span
+                            className={`popup-badge ${cafe.isOpenNow ? "popup-badge--open" : "popup-badge--closed"}`}
+                          >
+                            {cafe.isOpenNow ? "営業中" : "閉店中"}
+                          </span>
                         </div>
-                        <button onClick={() => handleCafeSelect(cafe)} className="popup-select-btn">
-                          選択
-                        </button>
+                        <StarRating value={cafe.rating} />
+                        <div className="popup-row">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            width="12"
+                            height="12"
+                          >
+                            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                            <circle cx="12" cy="20" r="1" fill="currentColor" />
+                          </svg>
+                          {cafe.tags?.[0] ?? "Wi-Fi"}
+                        </div>
+                        <div className="popup-row popup-dist">
+                          {cafe.distance ? `${cafe.distance} km` : ""}
+                        </div>
+                        {cafe.id === bookingCafe?.id ? (
+                          <div className="popup-booking-status" style={{ textAlign: "center", color: "#614734", fontWeight: "bold", fontSize: "11px", marginTop: "8px" }}>
+                            選択中
+                          </div>
+                        ) : (
+                          <Link to={`/?cafeId=${cafe.id}`} className="popup-select-btn text-center decoration-none" style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: "8px" }}>
+                            詳細を見る →
+                          </Link>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
                 );
               })}
 
-              <MapEvents onLocationSelect={handleLocationSelect} />
+              <MapEvents
+                onLocationSelect={handleLocationSelect}
+                onMapMoveEnd={handleMapMoveEnd}
+              />
             </MapContainer>
+
+            {/* KHU VỰC ĐANG XEM — bottom-center */}
+            <div className="location-card" id="location-info-card">
+              <span className="location-card__label">現在表示中</span>
+              <span className="location-card__name">{locationName}</span>
+            </div>
 
             {/* Map Controls */}
             <div className="map-controls">
@@ -510,37 +634,6 @@ const ReservationPage: FC = () => {
               </button>
             </div>
 
-            {/* Selected Cafe Info - Below Map */}
-            {selectedCafe && (
-              <div className="cafe-info-bottom">
-                <div className="cafe-info-card">
-                  <div className="cafe-card-header">
-                    <h3 className="cafe-card-name">{selectedCafe.name}</h3>
-                    <button
-                      className="cafe-card-close"
-                      onClick={() => setSelectedCafe(null)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="cafe-card-rating">
-                    <span className="stars">★★★★★</span>
-                    <span className="rating-value">{selectedCafe.rating || "N/A"}</span>
-                  </div>
-                  <div className="cafe-card-distance">0.6 km</div>
-                  {(selectedCafe.tags || []).length > 0 && (
-                    <div className="cafe-card-tags">
-                      {selectedCafe.tags.map((tag) => (
-                        <span key={tag} className="cafe-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <button className="cafe-card-btn">詳細を見る →</button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
