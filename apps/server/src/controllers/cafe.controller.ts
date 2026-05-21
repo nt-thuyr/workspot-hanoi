@@ -449,7 +449,7 @@ export const getMapCafes = async (req: Request, res: Response) => {
     console.log("[getMapCafes] ===== START =====");
     console.log("[getMapCafes] Query params:", req.query);
 
-    const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance, keyword } = req.query;
+    const { lat, lng, hasWifi, isQuiet, isOpen, maxDistance, keyword, minRating } = req.query;
 
     console.log("[getMapCafes] Fetching all cafes from database...");
     const allCafesRaw = await CafeModel.getAllCafes();
@@ -495,6 +495,14 @@ export const getMapCafes = async (req: Request, res: Response) => {
     if (isOpen === "true") {
       filteredCafes = filteredCafes.filter((cafe) =>
         checkIsOpen(cafe.open_time, cafe.close_time),
+      );
+    }
+
+    // 2b. Lọc theo đánh giá tối thiểu (高評価: minRating >= 4)
+    if (minRating) {
+      const minRatingNum = parseFloat(minRating as string);
+      filteredCafes = filteredCafes.filter((cafe) =>
+        cafe.avg_rating != null && Number(cafe.avg_rating) >= minRatingNum,
       );
     }
 

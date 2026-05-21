@@ -219,13 +219,19 @@ const HomePage: FC = () => {
     try {
       const params = new URLSearchParams();
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
+      if (activeFilters.includes("高評価")) params.append("minRating", "4");
       if (activeTags.includes("Fast Wi-Fi")) params.append("hasWifi", "true");
       if (activeTags.includes("Quiet")) params.append("isQuiet", "true");
       if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
 
       params.append("lat", userCoords[0].toString());
       params.append("lng", userCoords[1].toString());
-      params.append("maxDistance", "30"); //bán kính tìm kiếm 30km
+      // 近くの店: bán kính 10km; mặc định 30km
+      if (activeFilters.includes("近くの店")) {
+        params.append("maxDistance", "10");
+      } else {
+        params.append("maxDistance", "30");
+      }
 
       // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
       const url = `http://localhost:3000/api/cafes/map?${params.toString()}`;
@@ -247,12 +253,18 @@ const HomePage: FC = () => {
     }
   };
 
+  // Debounce chỉ cho search text (300ms), filter/tag gọi ngay
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchCafes();
-    }, 400); // 400ms debounce
+    }, 300); // debounce khi gõ text
     return () => clearTimeout(timer);
-  }, [activeFilters, activeTags, searchQuery, userCoords]);
+  }, [searchQuery]);
+
+  // Filter chip và tag: gọi API ngay, không debounce
+  useEffect(() => {
+    fetchCafes();
+  }, [activeFilters, activeTags, userCoords]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

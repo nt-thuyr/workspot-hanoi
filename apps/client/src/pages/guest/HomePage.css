@@ -133,7 +133,9 @@
 
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 .home-sidebar {
-  width: 300px;
+  width: 33.333%;
+  min-width: 400px;
+  max-width: 500px;
   flex-shrink: 0;
   background: #fff;
   border-right: 1px solid #ede8e0;
@@ -159,7 +161,8 @@
 
 .cafe-detail-cover {
   position: relative;
-  height: 12rem; /* h-48 */
+  height: 12rem;
+  /* h-48 */
   width: 100%;
   background-size: cover;
   background-position: center;
@@ -180,8 +183,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem; /* w-8 */
-  height: 2rem; /* h-8 */
+  width: 2rem;
+  /* w-8 */
+  height: 2rem;
+  /* h-8 */
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.4);
   color: #fff;
@@ -727,8 +732,15 @@
 }
 
 @keyframes pulse-ring {
-  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
 }
 
 /* ── Leaflet custom pins (from SearchPage) ─────────────────── */
@@ -790,8 +802,15 @@
 }
 
 @keyframes pulse-ring-lf {
-  0%   { transform: scale(0.4); opacity: 1; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 /* Leaflet popup styling */
@@ -808,8 +827,13 @@
   padding: 0;
 }
 
-.cafe-popup .leaflet-popup-tip-container { margin-top: -1px; }
-.cafe-popup .leaflet-popup-tip { background: #fff; }
+.cafe-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+.cafe-popup .leaflet-popup-tip {
+  background: #fff;
+}
 
 .popup-inner {
   padding: 0.7rem 0.9rem;
@@ -858,8 +882,15 @@
 }
 
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .info-card__header {
@@ -1073,8 +1104,13 @@
   padding: 0;
 }
 
-.cafe-popup .leaflet-popup-tip-container { margin-top: -1px; }
-.cafe-popup .leaflet-popup-tip { background: #fff; }
+.cafe-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+.cafe-popup .leaflet-popup-tip {
+  background: #fff;
+}
 
 .popup-inner {
   padding: 0.75rem 0.9rem;
@@ -1099,8 +1135,15 @@
   flex-shrink: 0;
 }
 
-.popup-badge--open  { background: #d1fae5; color: #065f46; }
-.popup-badge--closed { background: #fee2e2; color: #991b1b; }
+.popup-badge--open {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.popup-badge--closed {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .popup-name {
   font-size: 0.88rem;
