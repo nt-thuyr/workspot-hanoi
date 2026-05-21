@@ -21,6 +21,8 @@ interface ReservationInfo {
     amount: number;
 }
 
+
+
 // Tab bộ lọc nội dung hiển thị (khu vực 7)
 const DISPLAY_TABS = [
     { key: "reserved", label: "予約済み" },   // Đã đặt chỗ
@@ -148,10 +150,12 @@ const ReservationHistoryPage: FC = () => {
         fetchReservationHistory();
     }, []);
 
-    // Lọc: tab "reviewed" = completed; tab "reserved" = còn lại
+    // Lọc: tab "reviewed" (評価済み) để trống; tab "reserved" (予約済み) hiện tất cả (bao gồm completed)
     const tabFiltered = reservations.filter((item) => {
-        if (displayTab === "reviewed") return item.status === "completed";
-        return item.status !== "completed";
+        if (displayTab === "reviewed") {
+            return false; // Để trống danh sách quán cafe ở mục 評価済み theo yêu cầu của người dùng
+        }
+        return true; // tab "reserved" hiển thị tất cả cả đã hoàn thành và đang xử lý
     });
 
     // Tìm kiếm theo tên cơ sở
@@ -231,10 +235,10 @@ const ReservationHistoryPage: FC = () => {
         return <span className="rhp-badge rhp-badge--past" id={`badge-past-${item.id}`}>過去の履歴</span>;
     };
 
-    // Kiểm tra card có thể hủy hay không (chỉ cần không ở trạng thái hủy/từ chối)
+    // Kiểm tra card có thể hủy hay không (không ở trạng thái hủy/từ chối/hoàn thành)
     const canCancel = (item: ReservationInfo) => {
         const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
-        return appStatus !== "CANCELLED" && appStatus !== "REJECTED";
+        return appStatus !== "CANCELLED" && appStatus !== "REJECTED" && item.status !== "completed";
     };
 
     return (
