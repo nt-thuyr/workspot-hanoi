@@ -21,6 +21,24 @@ interface ReservationInfo {
     amount: number;
 }
 
+interface ReviewCafeInfo {
+    id: string;
+    name: string;
+    address?: string;
+    avg_rating?: number;
+    cafe_images?: Array<{ image_url: string }>;
+}
+
+interface ReviewInfo {
+    id: number;
+    user_id: string;
+    cafe_id: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+    cafes?: ReviewCafeInfo;
+}
+
 
 
 // Tab bộ lọc nội dung hiển thị (khu vực 7)
@@ -80,6 +98,7 @@ const ReservationHistoryPage: FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [sortKey, setSortKey] = useState<string>("date_desc");
     const [reservations, setReservations] = useState<ReservationInfo[]>([]);
+    const [reviews, setReviews] = useState<ReviewInfo[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
 
@@ -88,16 +107,19 @@ const ReservationHistoryPage: FC = () => {
     const userRole = localStorage.getItem("user_role");
     const navMode = isLoggedIn && userRole === "cafe_owner" ? "owner" : "guest";
 
-    // Gọi API lấy danh sách lịch sử đặt chỗ
+    // Gọi API lấy danh sách lịch sử đặt chỗ và danh sách đánh giá
     const fetchReservationHistory = async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem("access_token");
             if (!token) {
                 setReservations([]);
+                setReviews([]);
                 setLoading(false);
                 return;
             }
+            
+            // 1. Lấy lịch sử đặt chỗ
             const response = await fetch("http://localhost:3000/api/reservations/history", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -108,9 +130,23 @@ const ReservationHistoryPage: FC = () => {
                 console.error("Lấy lịch sử thất bại:", result.message);
                 setReservations([]);
             }
+
+            // 2. Lấy danh sách đánh giá của user
+            const userId = localStorage.getItem("user_id");
+            if (userId) {
+                const reviewsRes = await fetch(`http://localhost:3000/api/reviews/user/${userId}`);
+                const reviewsResult = await reviewsRes.json();
+                if (reviewsResult.success) {
+                    setReviews(reviewsResult.data || []);
+                } else {
+                    console.error("Lấy lịch sử đánh giá thất bại:", reviewsResult.message);
+                    setReviews([]);
+                }
+            }
         } catch (error) {
-            console.error("Lỗi khi tải lịch sử đặt chỗ:", error);
+            console.error("Lỗi khi tải lịch sử đặt chỗ và đánh giá:", error);
             setReservations([]);
+            setReviews([]);
         } finally {
             setLoading(false);
         }
@@ -150,20 +186,32 @@ const ReservationHistoryPage: FC = () => {
         fetchReservationHistory();
     }, []);
 
-    // Lọc: tab "reviewed" (評価済み) để trống; tab "reserved" (予約済み) hiện tất cả (bao gồm completed)
-    const tabFiltered = reservations.filter((item) => {
-        if (displayTab === "reviewed") {
-            return false; // Để trống danh sách quán cafe ở mục 評価済み theo yêu cầu của người dùng
-        }
-        return true; // tab "reserved" hiển thị tất cả cả đã hoàn thành và đang xử lý
-    });
-
-    // Tìm kiếm theo tên cơ sở
-    const searchFiltered = tabFiltered.filter((item) =>
+    // Xử lý Lọc và Sắp xếp cho Tab Đặt chỗ (reserved)
+    const reservedFiltered = reservations.filter((item) =>
         item.cafeName.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const reservedSorted = [...reservedFiltered].sort((a, b) => {
+        if (sortKey === "name") return a.cafeName.localeCompare(b.cafeName);
+        if (sortKey === "date_asc")
+            return new Date(a.reservationDate).getTime() - new Date(b.reservationDate).getTime();
+        return new Date(b.reservationDate).getTime() - new Date(a.reservationDate).getTime();
+    });
 
-    // Hàm parse ngày và giờ thành đối tượng Date
+    // Xử lý Lọc và Sắp xếp cho Tab Đánh giá (reviewed)
+    const reviewedFiltered = reviews.filter((item) => {
+        const name = item.cafes?.name || "";
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+    const reviewedSorted = [...reviewedFiltered].sort((a, b) => {
+        const nameA = a.cafes?.name || "";
+        const nameB = b.cafes?.name || "";
+        if (sortKey === "name") return nameA.localeCompare(nameB);
+        if (sortKey === "date_asc")
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    // Hàm parse ngày và giờ thành đối tượng Date (vẫn giữ lại cho badges nếu cần)
     const parseReservationDateTime = (dateStr: string, timeStr: string): Date => {
         try {
             const normalizedDate = dateStr.replace(/\//g, '-'); // YYYY-MM-DD
@@ -192,15 +240,6 @@ const ReservationHistoryPage: FC = () => {
             return new Date(dateStr);
         }
     };
-
-    // Sắp xếp
-    const sorted = [...searchFiltered].sort((a, b) => {
-        if (sortKey === "name") return a.cafeName.localeCompare(b.cafeName);
-        if (sortKey === "date_asc")
-            return new Date(a.reservationDate).getTime() - new Date(b.reservationDate).getTime();
-        // date_desc (default)
-        return new Date(b.reservationDate).getTime() - new Date(a.reservationDate).getTime();
-    });
 
     // Badge phê duyệt (số 20 = 拒否済み / 23 = 承認済み / 25 = 未承認 / キャンセル済み)
     const renderApprovalBadge = (item: ReservationInfo) => {
@@ -319,90 +358,165 @@ const ReservationHistoryPage: FC = () => {
                             <div className="rhp-spinner" />
                             <p>読み込み中...</p>
                         </div>
-                    ) : sorted.length === 0 ? (
+                    ) : (displayTab === "reserved" ? reservedSorted.length === 0 : reviewedSorted.length === 0) ? (
                         <div className="rhp-state-view" id="empty-view">
                             <span className="rhp-empty-icon">📅</span>
-                            <p className="rhp-empty-text">該当する予約履歴が見つかりません。</p>
+                            <p className="rhp-empty-text">
+                                {displayTab === "reserved" 
+                                    ? "該当する予約履歴が見つかりません。" 
+                                    : "該当する評価履歴が見つかりません。"}
+                            </p>
                         </div>
                     ) : (
                         <div className="rhp-card-list" id="reservation-card-list">
-                            {sorted.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="rhp-card"
-                                    id={`reservation-card-${item.id}`}
-                                    onClick={() => navigate(`/?cafeId=${item.cafeId}`)}
-                                    style={{ cursor: "pointer" }}
-                                >
-                                    {/* Khu vực 15: Ảnh cafe */}
-                                    <div className="rhp-card-img-wrap" id={`card-img-${item.id}`}>
-                                        <img
-                                            src={item.imageUrl || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500"}
-                                            alt={item.cafeName}
-                                            className="rhp-card-img"
-                                        />
-                                    </div>
-
-                                    {/* Nội dung card */}
-                                    <div className="rhp-card-body">
-
-                                        {/* Khu vực 16: Tên cafe */}
-                                        <h2 className="rhp-card-name" id={`card-name-${item.id}`}>
-                                            {item.cafeName}
-                                        </h2>
-
-                                        {/* Khu vực 18: Ngày + giờ badge */}
-                                        <div className="rhp-card-datetime" id={`card-datetime-${item.id}`}>
-                                            <span className="rhp-datetime-badge">
-                                                {formatDate(item.reservationDate)}&nbsp;&nbsp;{item.timeSlot}
-                                            </span>
+                            {displayTab === "reserved" ? (
+                                reservedSorted.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="rhp-card"
+                                        id={`reservation-card-${item.id}`}
+                                        onClick={() => navigate(`/?cafeId=${item.cafeId}`)}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        {/* Khu vực 15: Ảnh cafe */}
+                                        <div className="rhp-card-img-wrap" id={`card-img-${item.id}`}>
+                                            <img
+                                                src={item.imageUrl || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500"}
+                                                alt={item.cafeName}
+                                                className="rhp-card-img"
+                                            />
                                         </div>
 
-                                        {/* Khu vực 19: Địa chỉ */}
-                                        {item.cafeAddress && (
-                                            <div className="rhp-card-address" id={`card-address-${item.id}`}>
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="rhp-addr-icon">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                                    <circle cx="12" cy="10" r="3" />
-                                                </svg>
-                                                <span>{item.cafeAddress}</span>
+                                        {/* Nội dung card */}
+                                        <div className="rhp-card-body">
+
+                                            {/* Khu vực 16: Tên cafe */}
+                                            <h2 className="rhp-card-name" id={`card-name-${item.id}`}>
+                                                {item.cafeName}
+                                            </h2>
+
+                                            {/* Khu vực 18: Ngày + giờ badge */}
+                                            <div className="rhp-card-datetime" id={`card-datetime-${item.id}`}>
+                                                <span className="rhp-datetime-badge">
+                                                    {formatDate(item.reservationDate)}&nbsp;&nbsp;{item.timeSlot}
+                                                </span>
                                             </div>
-                                        )}
 
-                                        {/* Khu vực 20-25: Badges trạng thái */}
-                                        <div className="rhp-card-badges" id={`card-badges-${item.id}`}>
-                                            {renderApprovalBadge(item)}
-                                            {renderTimeBadge(item)}
+                                            {/* Khu vực 19: Địa chỉ */}
+                                            {item.cafeAddress && (
+                                                <div className="rhp-card-address" id={`card-address-${item.id}`}>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="rhp-addr-icon">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                        <circle cx="12" cy="10" r="3" />
+                                                    </svg>
+                                                    <span>{item.cafeAddress}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Khu vực 20-25: Badges trạng thái */}
+                                            <div className="rhp-card-badges" id={`card-badges-${item.id}`}>
+                                                {renderApprovalBadge(item)}
+                                                {renderTimeBadge(item)}
+                                            </div>
+                                        </div>
+
+                                        {/* Khu vực 17: Arrow icon (phải) */}
+                                        <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
+
+                                            {/* Khu vực 17: Mũi tên điều hướng */}
+                                            <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="9 18 15 12 9 6" />
+                                            </svg>
+
+                                            {/* Khu vực 22: Nút hủy đặt chỗ */}
+                                            {canCancel(item) && (
+                                                <button
+                                                    id={`btn-cancel-${item.id}`}
+                                                    className="rhp-btn-cancel"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCancelTargetId(item.id);
+                                                    }}
+                                                >
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                                    </svg>
+                                                    予約をキャンセル
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                reviewedSorted.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="rhp-card"
+                                        id={`review-card-${item.id}`}
+                                        onClick={() => navigate(`/?cafeId=${item.cafe_id}`)}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        {/* Ảnh cafe */}
+                                        <div className="rhp-card-img-wrap" id={`review-img-${item.id}`}>
+                                            <img
+                                                src={item.cafes?.cafe_images?.[0]?.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500"}
+                                                alt={item.cafes?.name}
+                                                className="rhp-card-img"
+                                            />
+                                        </div>
 
-                                    {/* Khu vực 17: Arrow icon (phải) */}
-                                    <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
+                                        {/* Nội dung card */}
+                                        <div className="rhp-card-body">
 
-                                        {/* Khu vực 17: Mũi tên điều hướng */}
-                                        <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="9 18 15 12 9 6" />
-                                        </svg>
+                                            {/* Tên cafe */}
+                                            <h2 className="rhp-card-name" id={`review-name-${item.id}`}>
+                                                {item.cafes?.name || "Quán Cafe đã ẩn"}
+                                            </h2>
 
-                                        {/* Khu vực 22: Nút hủy đặt chỗ */}
-                                        {canCancel(item) && (
-                                            <button
-                                                id={`btn-cancel-${item.id}`}
-                                                className="rhp-btn-cancel"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCancelTargetId(item.id);
-                                                }}
-                                            >
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                                </svg>
-                                                予約をキャンセル
-                                            </button>
-                                        )}
+                                            {/* Đánh giá sao + Ngày viết */}
+                                            <div className="rhp-card-datetime" id={`review-stars-${item.id}`}>
+                                                <span className="rhp-datetime-badge" style={{ backgroundColor: "#fef08a", color: "#854d0e", fontWeight: "bold" }}>
+                                                    {"★".repeat(Math.floor(item.rating))}
+                                                    {"☆".repeat(5 - Math.floor(item.rating))}
+                                                    &nbsp;&nbsp;{formatDate(item.created_at)}
+                                                </span>
+                                            </div>
+
+                                            {/* Comment của review */}
+                                            <p className="rhp-card-comment" id={`review-comment-${item.id}`} style={{
+                                                fontSize: "13px",
+                                                color: "#6b7280",
+                                                margin: "6px 0 10px 0",
+                                                lineHeight: "1.4",
+                                                display: "-webkit-box",
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: "vertical",
+                                                overflow: "hidden"
+                                            }}>
+                                                {item.comment}
+                                            </p>
+
+                                            {/* Địa chỉ */}
+                                            {item.cafes?.address && (
+                                                <div className="rhp-card-address" id={`review-address-${item.id}`}>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="rhp-addr-icon">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                        <circle cx="12" cy="10" r="3" />
+                                                    </svg>
+                                                    <span>{item.cafes.address}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Mũi tên điều hướng */}
+                                        <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
+                                            <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="9 18 15 12 9 6" />
+                                            </svg>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     )}
                 </main>

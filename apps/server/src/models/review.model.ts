@@ -45,7 +45,7 @@ export class ReviewModel {
 
     const { data, error, count } = await supabase
       .from('reviews')
-      .select('*, cafes(id, name)', { count: 'exact' })
+      .select('*, cafes(id, name, address, avg_rating, cafe_images(image_url))', { count: 'exact' })
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(from, to);
