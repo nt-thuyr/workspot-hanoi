@@ -11,6 +11,7 @@ import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import ReservationPage from "./pages/ReservationPage";
 import ReservationHistoryPage from "./pages/guest/ReservationHistoryPage";
 import ReviewPage from "./pages/guest/ReviewPage";
+import ReviewHistoryPage from "./pages/guest/ReviewHistoryPage";
 
 const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
   { path: "/booking", element: <ReservationPage /> },
   { path: "/history", element: <ReservationHistoryPage /> },
   { path: "/reviews", element: <ReviewPage /> },
+  { path: "/my-reviews", element: <ReviewHistoryPage /> },
   { path: "/dashboard", element: <OwnerDashboardPage /> },
   {
     path: "/cafes",

@@ -82,6 +82,34 @@ function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: (
     );
 }
 
+// Component Modal Xác nhận Xóa đánh giá
+function DeleteReviewModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+    return (
+        <div className="rhp-modal-overlay" onClick={onClose}>
+            <div className="rhp-modal-box" onClick={(e) => e.stopPropagation()}>
+                <div className="rhp-modal-icon">🗑️</div>
+                <h3 className="rhp-modal-title">レビューを削除しますか？</h3>
+                <p className="rhp-modal-desc">
+                    このレビューを削除してもよろしいですか？<br />
+                    <span className="rhp-modal-warn">削除すると元に戻すことはできません。</span>
+                </p>
+                <div className="rhp-modal-actions">
+                    <button onClick={onClose} className="rhp-modal-btn rhp-modal-btn--back" id="modal-delete-review-back">
+                        戻る
+                    </button>
+                    <button
+                        onClick={() => { onConfirm(); onClose(); }}
+                        className="rhp-modal-btn rhp-modal-btn--danger"
+                        id="modal-delete-review-confirm"
+                    >
+                        削除する
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // Định dạng ngày từ ISO thành "yyyy年M月d日"
 function formatDate(dateStr: string): string {
     try {
@@ -101,6 +129,7 @@ const ReservationHistoryPage: FC = () => {
     const [reviews, setReviews] = useState<ReviewInfo[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
+    const [deleteReviewTargetId, setDeleteReviewTargetId] = useState<number | null>(null);
 
     // Kiểm tra trạng thái đăng nhập
     const isLoggedIn = !!localStorage.getItem("access_token");
@@ -179,6 +208,36 @@ const ReservationHistoryPage: FC = () => {
             toast.error("サーバーエラーが発生しました。", { id: toastId });
         } finally {
             setCancelTargetId(null);
+        }
+    };
+
+    // Xóa đánh giá
+    const executeDeleteReview = async () => {
+        if (!deleteReviewTargetId) return;
+        const toastId = toast.loading("削除処理中...");
+        try {
+            const token = localStorage.getItem("access_token");
+            const response = await fetch(
+                `http://localhost:3000/api/reviews/${deleteReviewTargetId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            const result = await response.json();
+            if (result.success) {
+                toast.success("レビューを削除しました。", { id: toastId });
+                fetchReservationHistory();
+            } else {
+                toast.error(result.message || "削除に失敗しました。", { id: toastId });
+            }
+        } catch (err) {
+            console.error("Lỗi xóa đánh giá:", err);
+            toast.error("サーバーエラーが発生しました。", { id: toastId });
+        } finally {
+            setDeleteReviewTargetId(null);
         }
     };
 
@@ -508,11 +567,30 @@ const ReservationHistoryPage: FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Mũi tên điều hướng */}
+                                        {/* Mũi tên điều hướng + nút xóa đánh giá */}
                                         <div className="rhp-card-right" onClick={(e) => e.stopPropagation()}>
                                             <svg className="rhp-card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <polyline points="9 18 15 12 9 6" />
                                             </svg>
+                                            {/* Nút xóa đánh giá (trash icon) */}
+                                            <button
+                                                id={`btn-delete-review-${item.id}`}
+                                                className="rhp-btn-delete-review"
+                                                title="レビューを削除"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteReviewTargetId(item.id);
+                                                }}
+                                            >
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <polyline points="3 6 5 6 21 6" />
+                                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                    <path d="M10 11v6" />
+                                                    <path d="M14 11v6" />
+                                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                                </svg>
+                                                レビューを削除
+                                            </button>
                                         </div>
                                     </div>
                                 ))
@@ -527,6 +605,14 @@ const ReservationHistoryPage: FC = () => {
                 <CancelModal
                     onConfirm={executeCancel}
                     onClose={() => setCancelTargetId(null)}
+                />
+            )}
+
+            {/* Modal Xác nhận Xóa đánh giá */}
+            {deleteReviewTargetId && (
+                <DeleteReviewModal
+                    onConfirm={executeDeleteReview}
+                    onClose={() => setDeleteReviewTargetId(null)}
                 />
             )}
         </div>

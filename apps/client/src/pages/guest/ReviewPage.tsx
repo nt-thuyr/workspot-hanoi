@@ -50,6 +50,7 @@ const ReviewPage: FC = () => {
   // Auth info
   const accessToken = localStorage.getItem("access_token");
   const userName = localStorage.getItem("user_name") || "ゲスト";
+  const userAvatarUrl = localStorage.getItem("user_avatar_url");
   const userId = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -100,15 +101,29 @@ const ReviewPage: FC = () => {
     };
   }, [filePreviews]);
 
-  // Handle file select
+  // Handle file select (max 3 images)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setSelectedFiles((prev) => [...prev, ...filesArray]);
+      const totalAfterAdd = selectedFiles.length + filesArray.length;
 
+      if (totalAfterAdd > 3) {
+        toast.error("画像は最大3枚までアップロードできます。");
+        // Only add as many as allowed
+        const allowed = filesArray.slice(0, 3 - selectedFiles.length);
+        if (allowed.length === 0) return;
+        setSelectedFiles((prev) => [...prev, ...allowed]);
+        const newPreviews = allowed.map((file) => URL.createObjectURL(file));
+        setFilePreviews((prev) => [...prev, ...newPreviews]);
+        return;
+      }
+
+      setSelectedFiles((prev) => [...prev, ...filesArray]);
       const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
       setFilePreviews((prev) => [...prev, ...newPreviews]);
     }
+    // Reset file input value so same file can be re-selected
+    e.target.value = "";
   };
 
   // Remove a selected file
@@ -140,7 +155,7 @@ const ReviewPage: FC = () => {
     try {
       setIsSubmitting(true);
 
-      // 1. Create the review
+      // 1. Create the review (user_id derived from Bearer token on backend)
       const reviewResponse = await fetch("http://localhost:3000/api/reviews", {
         method: "POST",
         headers: {
@@ -148,7 +163,6 @@ const ReviewPage: FC = () => {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          user_id: userId,
           cafe_id: cafeId,
           rating,
           comment: comment.trim(),
@@ -236,7 +250,7 @@ const ReviewPage: FC = () => {
 
   return (
     <div className="review-page-root">
-      <TopNavBar mode="guest" activeTab="reviews" />
+      <TopNavBar mode="guest" activeTab="home" />
 
       {isLoading ? (
         <div className="review-loading">
@@ -264,7 +278,11 @@ const ReviewPage: FC = () => {
               {/* Profile Card */}
               <div className="user-profile-row">
                 <div className="user-avatar-circle">
-                  {userName.charAt(0).toUpperCase()}
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt={userName} className="user-avatar-img" />
+                  ) : (
+                    userName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <span className="user-name-text">{userName}</span>
               </div>
@@ -325,18 +343,20 @@ const ReviewPage: FC = () => {
                     onChange={handleFileChange}
                   />
                   
-                  {/* Photo add button */}
-                  <button
-                    type="button"
-                    className="add-photo-box"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                    <span>写真を追加</span>
-                  </button>
+                  {/* Photo add button — hide when 3 images already selected */}
+                  {selectedFiles.length < 3 && (
+                    <button
+                      type="button"
+                      className="add-photo-box"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                      <span>写真を追加</span>
+                    </button>
+                  )}
 
                   {/* Previews */}
                   {filePreviews.map((url, index) => (

@@ -1,0 +1,500 @@
+/* ================================================================
+   ReviewHistoryPage.css  —  Screen ID 13: レビュー履歴
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* ── Root ── */
+.rh-root {
+  min-height: 100vh;
+  background-color: #f5f1ec;
+  font-family: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif;
+  color: #3a2e25;
+}
+
+/* ── Body layout ── */
+.rh-body {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 40px 80px;
+  gap: 40px;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+/* ================================================================
+   SIDEBAR — user profile (left)
+   ================================================================ */
+.rh-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 100px;
+}
+
+.rh-profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Avatar wrapper (No.7) */
+.rh-avatar-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 4px solid #d4a96a;
+  box-shadow: 0 8px 24px rgba(140, 90, 30, 0.18);
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.rh-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.rh-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9863c 0%, #e0a960 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+/* Camera icon overlay (No.8) */
+.rh-avatar-camera {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #3a2e25;
+  border: 2px solid #f5f1ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+/* Username (No. below 7) */
+.rh-username {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #22180f;
+  margin: 0;
+  text-align: center;
+}
+
+/* Stats row */
+.rh-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+.rh-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rh-stat-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #c9863c;
+  line-height: 1;
+}
+
+.rh-stat-label {
+  font-size: 0.7rem;
+  color: #7a6a58;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ================================================================
+   MAIN — review timeline (right)
+   ================================================================ */
+.rh-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Page title (No.9) */
+.rh-page-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1e1610;
+  margin: 0 0 28px 0;
+  letter-spacing: -0.01em;
+}
+
+/* ── Loading / Empty states ── */
+.rh-state-box {
+  background: #fff;
+  border: 1px solid #e8ddd2;
+  border-radius: 20px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #a08060;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rh-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid #ede4d8;
+  border-top-color: #c9863c;
+  border-radius: 50%;
+  animation: rh-spin 0.9s linear infinite;
+  margin-bottom: 4px;
+}
+
+@keyframes rh-spin {
+  to { transform: rotate(360deg); }
+}
+
+.rh-empty-icon {
+  font-size: 3rem;
+}
+
+.rh-empty-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6a5a4a;
+  margin: 0;
+}
+
+.rh-empty-sub {
+  font-size: 0.82rem;
+  color: #a08060;
+  margin: 0;
+}
+
+/* ================================================================
+   REVIEW CARDS
+   ================================================================ */
+.rh-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rh-card {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #ede4d8;
+  box-shadow: 0 4px 16px rgba(60, 40, 10, 0.04);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.rh-card:hover {
+  box-shadow: 0 8px 28px rgba(60, 40, 10, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Card header: cafe name + address (No.10, 11) */
+.rh-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.rh-cafe-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rh-cafe-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e1610;
+  margin: 0;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1.3;
+}
+
+.rh-cafe-name:hover {
+  color: #c9863c;
+}
+
+.rh-cafe-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #8c7a6a;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Star rating row (No.12) */
+.rh-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rh-star {
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.rh-star--filled {
+  color: #f59e0b;
+}
+
+.rh-star--empty {
+  color: #ddd0c0;
+}
+
+/* Review comment text (No.13) */
+.rh-comment {
+  font-size: 0.9rem;
+  color: #4a3c2e;
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* Image gallery (No.14) */
+.rh-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rh-gallery-item {
+  width: 120px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid #ede4d8;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  background: #f5ede2;
+}
+
+.rh-gallery-item:hover {
+  opacity: 0.88;
+  transform: scale(1.02);
+}
+
+.rh-gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Card footer: date (No.15) + trash icon (No.16) */
+.rh-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  border-top: 1px solid #f0e8de;
+  padding-top: 12px;
+}
+
+.rh-date {
+  font-size: 0.76rem;
+  color: #a09080;
+  font-weight: 500;
+}
+
+/* Trash icon button (No.16) */
+.rh-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  padding: 0;
+}
+
+.rh-delete-btn:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  transform: scale(1.08);
+}
+
+.rh-delete-btn:active {
+  transform: scale(0.96);
+}
+
+/* ================================================================
+   DELETE CONFIRMATION MODAL
+   ================================================================ */
+.rh-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  backdrop-filter: blur(3px);
+}
+
+.rh-modal-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(20, 14, 8, 0.22);
+  animation: rh-modal-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rh-modal-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.rh-modal-icon {
+  font-size: 44px;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.rh-modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e1610;
+  margin: 0 0 12px;
+}
+
+.rh-modal-desc {
+  font-size: 0.88rem;
+  color: #7a6a58;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.rh-modal-warn {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.rh-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.rh-modal-btn {
+  padding: 11px 28px;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.rh-modal-btn--back {
+  background: #f0ece6;
+  color: #5a4a3a;
+}
+
+.rh-modal-btn--back:hover {
+  background: #e5ddd4;
+}
+
+.rh-modal-btn--danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.rh-modal-btn--danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+@media (max-width: 900px) {
+  .rh-body {
+    flex-direction: column;
+    padding: 24px 20px 60px;
+    gap: 28px;
+  }
+
+  .rh-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .rh-profile-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px 20px;
+    border: 1px solid #ede4d8;
+  }
+
+  .rh-avatar-wrap {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+  }
+
+  .rh-avatar-camera {
+    width: 24px;
+    height: 24px;
+  }
+
+  .rh-stats {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .rh-card {
+    padding: 18px 16px;
+  }
+
+  .rh-gallery-item {
+    width: 90px;
+    height: 68px;
+  }
+}

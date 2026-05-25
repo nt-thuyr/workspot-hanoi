@@ -212,7 +212,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           (error) => {
             console.error("Lỗi lấy vị trí:", error);
             let errorMessage = "Không thể lấy vị trí của bạn lúc này. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.";
-            
+
             if (error.code === error.PERMISSION_DENIED) {
               errorMessage = "Vui lòng cấp quyền truy cập GPS trong cài đặt trình duyệt để xác định vị trí của bạn.";
             } else if (error.code === error.POSITION_UNAVAILABLE) {
@@ -220,7 +220,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             } else if (error.code === error.TIMEOUT) {
               errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
             }
-            
+
             alert(errorMessage);
             setLoading(false);
           },
@@ -319,7 +319,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             </span>
             {selectedLocation
               ? currentAddress ||
-                `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`
+              `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`
               : "地図をクリックして場所を指定してください"}
           </p>
         </div>

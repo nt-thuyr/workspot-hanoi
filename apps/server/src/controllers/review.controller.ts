@@ -1,20 +1,34 @@
 import { Request, Response } from 'express';
 import { ReviewModel, ReviewImagesModel } from '../models/review.model';
 import { uploadImageToSupabase } from '../utils/imageUpload';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 // POST /api/reviews - Viết review (user)
-export const createReview = async (req: Request, res: Response) => {
+export const createReview = async (req: AuthRequest, res: Response) => {
   try {
-    const { user_id, cafe_id, rating, comment } = req.body;
+    const { cafe_id, rating, comment } = req.body;
 
-    if (!user_id || !cafe_id || !rating || rating < 1 || rating > 5) {
+    // Use authenticated user id from token (ignore client-sent user_id for security)
+    const user_id = req.user?.id;
+    if (!user_id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!cafe_id || !rating || rating < 1 || rating > 5) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields or invalid rating',
+        message: 'Missing required fields or invalid rating (1-5)',
       });
     }
 
-    const review = await ReviewModel.createReview(user_id, cafe_id, rating, comment || '');
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Review comment (nội dung) is required',
+      });
+    }
+
+    const review = await ReviewModel.createReview(user_id, cafe_id, rating, comment.trim());
 
     res.status(201).json({ success: true, data: review });
   } catch (error: any) {
@@ -109,7 +123,7 @@ export const createReviewImage = async (req: Request, res: Response) => {
 };
 
 // GET /api/reviews/:reviewId/images - Lấy ảnh của review
-export const getReviewImages = async (req: Request, res: Response) => {
+export const getReviewImages = async (req: AuthRequest, res: Response) => {
   try {
     const { reviewId } = req.params as { reviewId: string };
     const images = await ReviewImagesModel.getReviewImages(parseInt(reviewId));
@@ -121,6 +135,34 @@ export const getReviewImages = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching review images:', error);
+    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+  }
+};
+
+// DELETE /api/reviews/:reviewId - Xóa review (chỉ chủ sở hữu)
+export const deleteReview = async (req: AuthRequest, res: Response) => {
+  try {
+    const { reviewId } = req.params as { reviewId: string };
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const result = await ReviewModel.deleteReview(parseInt(reviewId), userId);
+
+    if (!result.success) {
+      if (result.reason === 'not_found') {
+        return res.status(404).json({ success: false, message: 'Review not found' });
+      }
+      if (result.reason === 'forbidden') {
+        return res.status(403).json({ success: false, message: 'You can only delete your own reviews' });
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Review deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting review:', error);
     res.status(500).json({ error: 'Lỗi server!', details: error.message });
   }
 };

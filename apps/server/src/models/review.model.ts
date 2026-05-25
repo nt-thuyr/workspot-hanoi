@@ -45,13 +45,42 @@ export class ReviewModel {
 
     const { data, error, count } = await supabase
       .from('reviews')
-      .select('*, cafes(id, name, address, avg_rating, cafe_images(image_url))', { count: 'exact' })
+      .select('*, cafes(id, name, address, avg_rating, cafe_images(image_url)), review_images(id, image_url)', { count: 'exact' })
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(from, to);
     
     if (error) throw error;
     return { data, count };
+  }
+
+  // DELETE - Xóa review (chỉ owner mới được xóa)
+  static async deleteReview(reviewId: number, userId: string): Promise<{ success: boolean; reason?: 'not_found' | 'forbidden' }> {
+    // First, fetch the review to check ownership
+    const { data: existing, error: fetchError } = await supabase
+      .from('reviews')
+      .select('id, user_id, cafe_id')
+      .eq('id', reviewId)
+      .single();
+
+    if (fetchError || !existing) return { success: false, reason: 'not_found' };
+    if (existing.user_id !== userId) return { success: false, reason: 'forbidden' };
+
+    // Delete review images first (FK constraint)
+    await supabase.from('review_images').delete().eq('review_id', reviewId);
+
+    // Delete the review
+    const { error: deleteError } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId);
+
+    if (deleteError) throw deleteError;
+
+    // Recalculate avg_rating
+    await this.updateCafeRating(existing.cafe_id);
+
+    return { success: true };
   }
 
   // HELPER - Cập nhật avg_rating của café
