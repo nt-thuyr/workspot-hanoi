@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { CafeModel } from '../models/cafe.model';
+import { NotificationModel } from '../models/notification.model';
 import { ReservationModel } from '../models/reservation.model';
 import { sendReservationStatusEmail } from '../utils/email.service';
 
@@ -56,6 +58,19 @@ export const createReservation = async (req: Request, res: Response) => {
       guests,
       guestName
     );
+
+    try {
+      const cafe = await CafeModel.getCafeOwnerInfo(cafe_id);
+      if (cafe?.owner_id) {
+        await NotificationModel.createNotification({
+          user_id: cafe.owner_id,
+          title: `${guestName}が予約を申請しました`,
+          content: `${cafe.name || 'カフェ名未設定'}・${res_date}・${res_time}・${guests}名`,
+        });
+      }
+    } catch (notificationError) {
+      console.error('Failed to create reservation notification:', notificationError);
+    }
 
     res.status(201).json({ success: true, data: reservation });
   } catch (error: any) {
@@ -253,6 +268,15 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
           console.log(`[Email] Sent ${status} email to: ${details.email}`);
         } else {
           console.warn(`[Email] Skipped: no email found for reservation ${id}`);
+        }
+
+        if (details?.user_id) {
+          const statusLabel = status === 'APPROVED' ? '承認されました' : '却下されました';
+          await NotificationModel.createNotification({
+            user_id: details.user_id,
+            title: `予約が${statusLabel}`,
+            content: `${details.cafes?.name || 'カフェ名未設定'}・${details.res_date || ''}・${details.res_time || ''}`.trim(),
+          });
         }
       } catch (emailErr) {
         // Không block response nếu email lỗi

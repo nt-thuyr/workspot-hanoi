@@ -148,6 +148,18 @@ export class CafeModel {
 
   // ━━━ HELPER ━━━
 
+  // Lấy owner và tên quán theo cafeId
+  static async getCafeOwnerInfo(cafeId: string) {
+    const { data, error } = await supabase
+      .from("cafes")
+      .select("id, name, owner_id")
+      .eq("id", cafeId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   // Kiểm tra owner quán
   static async isOwner(cafeId: string, ownerId: string): Promise<boolean> {
     const { data, error } = await supabase

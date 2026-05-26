@@ -1,4 +1,7 @@
 import { Request, Response } from 'express';
+import { CafeModel } from '../models/cafe.model';
+import { NotificationModel } from '../models/notification.model';
+import { ProfileModel } from '../models/profile.model';
 import { ReviewModel, ReviewImagesModel } from '../models/review.model';
 import { uploadImageToSupabase } from '../utils/imageUpload';
 import { AuthRequest } from '../middlewares/auth.middleware';
@@ -29,6 +32,24 @@ export const createReview = async (req: AuthRequest, res: Response) => {
     }
 
     const review = await ReviewModel.createReview(user_id, cafe_id, rating, comment.trim());
+
+    try {
+      const [profile, cafe] = await Promise.all([
+        ProfileModel.getProfile(user_id).catch(() => null),
+        CafeModel.getCafeOwnerInfo(cafe_id).catch(() => null),
+      ]);
+
+      if (cafe?.owner_id) {
+        const reviewerName = profile?.full_name || 'お客様';
+        await NotificationModel.createNotification({
+          user_id: cafe.owner_id,
+          title: `${reviewerName}がレビューを投稿しました`,
+          content: `${cafe.name || 'カフェ名未設定'}・${rating}★・${comment.trim()}`,
+        });
+      }
+    } catch (notificationError) {
+      console.error('Failed to create review notification:', notificationError);
+    }
 
     res.status(201).json({ success: true, data: review });
   } catch (error: any) {

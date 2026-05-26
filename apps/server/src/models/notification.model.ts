@@ -1,6 +1,28 @@
 import { supabase } from '../config/supabase';
 
 export class NotificationModel {
+  // Tạo một thông báo mới
+  static async createNotification(input: {
+    user_id: string;
+    title: string;
+    content: string;
+    is_read?: boolean;
+  }) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: input.user_id,
+        title: input.title,
+        content: input.content,
+        is_read: input.is_read ?? false,
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   // Lấy danh sách thông báo của user (paginated)
   static async getUserNotifications(userId: string, page: number = 1, limit: number = 10) {
     const offset = (page - 1) * limit;
