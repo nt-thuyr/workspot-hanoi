@@ -146,6 +146,7 @@ const ReservationPage: FC = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
+  const [mapZoom, setMapZoom] = useState(13);
   const [map, setMap] = useState<L.Map | null>(null);
   const [showAlert, setShowAlert] = useState("");
   const [alertVariant, setAlertVariant] = useState<AlertVariant>("error");
@@ -308,6 +309,14 @@ const ReservationPage: FC = () => {
       );
     }
   }, []);
+
+  // Sync zoom level state with map events
+  useEffect(() => {
+    if (!map) return;
+    const onZoomEnd = () => setMapZoom(map.getZoom());
+    map.on("zoomend", onZoomEnd);
+    return () => { map.off("zoomend", onZoomEnd); };
+  }, [map]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -667,7 +676,8 @@ const ReservationPage: FC = () => {
               <button
                 className="map-ctrl-btn"
                 onClick={() => map?.zoomIn()}
-                title="Phóng to"
+                disabled={!map || mapZoom >= (map?.getMaxZoom?.() ?? 18)}
+                title="ズームイン"
               >
                 <svg
                   width="18"
@@ -684,7 +694,8 @@ const ReservationPage: FC = () => {
               <button
                 className="map-ctrl-btn"
                 onClick={() => map?.zoomOut()}
-                title="Thu nhỏ"
+                disabled={!map || mapZoom <= (map?.getMinZoom?.() ?? 1)}
+                title="ズームアウト"
               >
                 <svg
                   width="18"
@@ -700,7 +711,7 @@ const ReservationPage: FC = () => {
               <button
                 className="map-ctrl-btn map-ctrl-btn--location"
                 onClick={handlePanToCurrent}
-                title="Về vị trí hiện tại"
+                title="現在地に戻る"
               >
                 <svg
                   width="18"

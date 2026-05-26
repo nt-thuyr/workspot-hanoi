@@ -170,6 +170,7 @@ const SearchPage: FC = () => {
     MOCK_CAFES[0] ?? null,
   );
   const [map, setMap] = useState<L.Map | null>(null);
+  const [mapZoom, setMapZoom] = useState(14);
   const listRef = useRef<HTMLDivElement>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
 
@@ -237,6 +238,14 @@ const SearchPage: FC = () => {
       map.setView(userCoords, 14);
     }
   }, [map, userCoords]);
+
+  // Sync zoom level state with map events
+  useEffect(() => {
+    if (!map) return;
+    const onZoomEnd = () => setMapZoom(map.getZoom());
+    map.on("zoomend", onZoomEnd);
+    return () => { map.off("zoomend", onZoomEnd); };
+  }, [map]);
 
   // Chuyển đổi tọa độ sang địa chỉ
   const reverseGeocode = async (lat: number, lng: number) => {
@@ -662,12 +671,13 @@ const SearchPage: FC = () => {
             id="map-controls"
             style={{ zIndex: 1000 }}
           >
-            {/* ⑪ Zoom In */}
+            {/* ①② Zoom In */}
             <button
               id="zoom-in-btn"
               className="map-ctrl-btn"
               title="ズームイン"
               onClick={() => map?.zoomIn()}
+              disabled={!map || mapZoom >= (map?.getMaxZoom?.() ?? 18)}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -681,12 +691,13 @@ const SearchPage: FC = () => {
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
-            {/* ⑫ Zoom Out */}
+            {/* ②③ Zoom Out */}
             <button
               id="zoom-out-btn"
               className="map-ctrl-btn"
               title="ズームアウト"
               onClick={() => map?.zoomOut()}
+              disabled={!map || mapZoom <= (map?.getMinZoom?.() ?? 1)}
             >
               <svg
                 viewBox="0 0 24 24"

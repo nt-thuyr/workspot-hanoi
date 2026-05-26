@@ -87,6 +87,7 @@ const HomePage: FC = () => {
   const [fullCafeDetail, setFullCafeDetail] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
+  const [mapZoom, setMapZoom] = useState(14);
   const lastProcessedCafeIdRef = useRef<string | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
@@ -155,6 +156,14 @@ const HomePage: FC = () => {
       );
     }
   }, []);
+
+  // Sync zoom level state with map events
+  useEffect(() => {
+    if (!map) return;
+    const onZoomEnd = () => setMapZoom(map.getZoom());
+    map.on("zoomend", onZoomEnd);
+    return () => { map.off("zoomend", onZoomEnd); };
+  }, [map]);
 
   // Xoay bản đồ tới vị trí người dùng khi có GPS mới (chỉ tự động chạy nếu không có cafeId trên URL)
   useEffect(() => {
@@ -1035,7 +1044,12 @@ const HomePage: FC = () => {
           </div>
 
           <div className="map-controls" style={{ zIndex: 1000 }}>
-            <button className="map-ctrl-btn" onClick={() => map?.zoomIn()}>
+            <button
+              className="map-ctrl-btn"
+              onClick={() => map?.zoomIn()}
+              disabled={!map || mapZoom >= (map?.getMaxZoom?.() ?? 18)}
+              title="ズームイン"
+            >
               <svg
                 width="18"
                 height="18"
@@ -1048,7 +1062,12 @@ const HomePage: FC = () => {
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
-            <button className="map-ctrl-btn" onClick={() => map?.zoomOut()}>
+            <button
+              className="map-ctrl-btn"
+              onClick={() => map?.zoomOut()}
+              disabled={!map || mapZoom <= (map?.getMinZoom?.() ?? 1)}
+              title="ズームアウト"
+            >
               <svg
                 width="18"
                 height="18"

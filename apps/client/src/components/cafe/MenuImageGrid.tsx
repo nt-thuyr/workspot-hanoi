@@ -28,17 +28,16 @@ export const MenuImageGrid: React.FC<MenuImageGridProps> = ({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    console.log("[MenuImageGrid] File selected:", file);
     if (file) {
-      console.log("[MenuImageGrid] File details:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
+      if (images.length >= 10) {
+        // Just a safety check in case the button was clicked before the limit was reached
+        return;
+      }
       onAddImage(file);
-      console.log("[MenuImageGrid] File passed to parent");
-    } else {
-      console.log("[MenuImageGrid] No file selected");
+    }
+    // Clear the input value so the same file can be selected again consecutively
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -48,22 +47,24 @@ export const MenuImageGrid: React.FC<MenuImageGridProps> = ({
         {label}
       </label>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Add Button */}
-        <div
-          onClick={handleAddClick}
-          className="aspect-square bg-[#ebe8e3] rounded-xl flex items-center justify-center border-2 border-dashed border-[#d3c4bb]/30 group hover:bg-[#e6e2dd] cursor-pointer transition-all"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <span className="material-symbols-outlined text-[#81756d] group-hover:scale-110 transition-transform">
-            add
-          </span>
-        </div>
+        {/* Add Button - Only show if under 10 images */}
+        {images.length < 10 && (
+          <div
+            onClick={handleAddClick}
+            className="aspect-square bg-[#ebe8e3] rounded-xl flex items-center justify-center border-2 border-dashed border-[#d3c4bb]/30 group hover:bg-[#e6e2dd] cursor-pointer transition-all"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <span className="material-symbols-outlined text-[#81756d] group-hover:scale-110 transition-transform">
+              add
+            </span>
+          </div>
+        )}
 
         {/* Image Items */}
         {images.map((image) => (

@@ -1135,10 +1135,16 @@
   transform: none !important;
 }
 
-.map-ctrl-btn:hover {
+.map-ctrl-btn:hover:not(:disabled) {
   background: #f5ede2;
   border-color: #c8843a;
   color: #c8843a;
+}
+
+.map-ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .map-ctrl-btn--location {
