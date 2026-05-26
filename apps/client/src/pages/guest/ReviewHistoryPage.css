@@ -387,9 +387,11 @@
 }
 
 .rh-modal-icon {
-  font-size: 44px;
-  margin-bottom: 14px;
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #dc2626;
+  margin-bottom: 16px;
 }
 
 .rh-modal-title {

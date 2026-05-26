@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ProfileModel } from '../models/profile.model';
+import { uploadImageToSupabase } from '../utils/imageUpload';
 
 // GET /api/profiles/:userId - Lấy profile
 export const getProfile = async (req: Request, res: Response) => {
@@ -36,6 +37,19 @@ export const updateProfile = async (req: Request, res: Response) => {
     const updates: any = {};
     if (full_name !== undefined) updates.full_name = full_name;
     if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+
+    // Nếu có file được tải lên, thực hiện upload lên Supabase Storage
+    if (req.file) {
+      try {
+        const uploadedUrl = await uploadImageToSupabase(req.file, 'cafe-images', 'avatars');
+        updates.avatar_url = uploadedUrl;
+      } catch (uploadErr: any) {
+        return res.status(400).json({
+          success: false,
+          message: `Không thể tải lên ảnh đại diện: ${uploadErr.message}`,
+        });
+      }
+    }
 
     const profile = await ProfileModel.updateProfile(userId, updates);
 

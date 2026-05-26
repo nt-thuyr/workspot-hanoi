@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useCallback } from "react";
+import { FC, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { TopNavBar } from "../../components/TopNavBar";
@@ -33,7 +33,15 @@ function DeleteModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: (
   return (
     <div className="rh-modal-overlay" onClick={onClose}>
       <div className="rh-modal-box" onClick={(e) => e.stopPropagation()}>
-        <div className="rh-modal-icon">🗑️</div>
+        <div className="rh-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="48" height="48">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </div>
         <h3 className="rh-modal-title">レビューを削除しますか？</h3>
         <p className="rh-modal-desc">
           このレビューを削除してもよろしいですか？<br />
@@ -81,11 +89,50 @@ const ReviewHistoryPage: FC = () => {
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(localStorage.getItem("user_avatar_url"));
 
   const accessToken = localStorage.getItem("access_token");
   const userId      = localStorage.getItem("user_id");
   const userName    = localStorage.getItem("user_name") || "ゲスト";
-  const avatarUrl   = localStorage.getItem("user_avatar_url");
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("画像サイズは5MB以下にしてください。");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const toastId = toast.loading("アバターを更新中...");
+    try {
+      const res = await fetch(`http://localhost:3000/api/profiles/${userId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (result.success && result.data?.avatar_url) {
+        const newAvatarUrl = result.data.avatar_url;
+        localStorage.setItem("user_avatar_url", newAvatarUrl);
+        setCurrentAvatarUrl(newAvatarUrl);
+        toast.success("アバターを変更しました！", { id: toastId });
+      } else {
+        toast.error(result.message || "アバターの更新に失敗しました。", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Error uploading avatar:", err);
+      toast.error("サーバーエラーが発生しました。", { id: toastId });
+    }
+  };
 
   // ── Fetch user reviews ──
   const fetchReviews = useCallback(async () => {
@@ -150,21 +197,34 @@ const ReviewHistoryPage: FC = () => {
         <aside className="rh-sidebar">
           <div className="rh-profile-card">
             {/* Avatar with camera overlay */}
-            <div className="rh-avatar-wrap" id="user-avatar-wrap">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={userName} className="rh-avatar-img" />
+            <div 
+              className="rh-avatar-wrap" 
+              id="user-avatar-wrap"
+              style={{ cursor: "pointer" }}
+              onClick={() => fileInputRef.current?.click()}
+              title="アバターを変更"
+            >
+              {currentAvatarUrl ? (
+                <img src={currentAvatarUrl} alt={userName} className="rh-avatar-img" />
               ) : (
                 <div className="rh-avatar-placeholder">
                   {userName.charAt(0).toUpperCase()}
                 </div>
               )}
               {/* Camera icon (decorative — No.8 in mockup) */}
-              <div className="rh-avatar-camera" aria-hidden="true">
+              <div className="rh-avatar-camera" aria-hidden="true" style={{ cursor: "pointer" }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
               </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
             </div>
 
             {/* Username */}
