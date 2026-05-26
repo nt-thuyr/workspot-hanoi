@@ -64,6 +64,23 @@ function DeleteModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: (
   );
 }
 
+// ── Zoom modal ──────────────────────────────
+function AvatarZoomModal({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
+  return (
+    <div className="rh-zoom-modal-overlay" onClick={onClose} id="rh-zoom-overlay">
+      <div className="rh-zoom-modal-content" onClick={(e) => e.stopPropagation()}>
+        <img src={imageUrl} alt="Zoomed Avatar" className="rh-zoom-modal-img" id="rh-zoom-img" />
+        <button className="rh-zoom-modal-close" onClick={onClose} aria-label="Close zoomed avatar" id="rh-zoom-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Star display ───────────────────────────────────────────
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -92,6 +109,7 @@ const ReviewHistoryPage: FC = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(localStorage.getItem("user_avatar_url"));
+  const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
 
   const accessToken = localStorage.getItem("access_token");
   const userId      = localStorage.getItem("user_id");
@@ -196,23 +214,36 @@ const ReviewHistoryPage: FC = () => {
         {/* ── LEFT SIDEBAR: user profile ── */}
         <aside className="rh-sidebar">
           <div className="rh-profile-card">
-            {/* Avatar with camera overlay */}
+            {/* Avatar wrapper */}
             <div 
               className="rh-avatar-wrap" 
               id="user-avatar-wrap"
-              style={{ cursor: "pointer" }}
-              onClick={() => fileInputRef.current?.click()}
-              title="アバターを変更"
+              style={{ cursor: currentAvatarUrl ? "zoom-in" : "default" }}
+              onClick={() => {
+                if (currentAvatarUrl) {
+                  setIsAvatarZoomed(true);
+                }
+              }}
+              title={currentAvatarUrl ? "アバターを拡大" : undefined}
             >
               {currentAvatarUrl ? (
-                <img src={currentAvatarUrl} alt={userName} className="rh-avatar-img" />
+                <img src={currentAvatarUrl} alt={userName} className="rh-avatar-img" id="user-avatar-img" />
               ) : (
                 <div className="rh-avatar-placeholder">
                   {userName.charAt(0).toUpperCase()}
                 </div>
               )}
-              {/* Camera icon (decorative — No.8 in mockup) */}
-              <div className="rh-avatar-camera" aria-hidden="true" style={{ cursor: "pointer" }}>
+              {/* Camera icon to change avatar */}
+              <div 
+                className="rh-avatar-camera" 
+                style={{ cursor: "pointer" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                title="アバターを変更"
+                id="rh-avatar-camera-btn"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
@@ -344,6 +375,14 @@ const ReviewHistoryPage: FC = () => {
         <DeleteModal
           onConfirm={executeDelete}
           onClose={() => setDeleteTargetId(null)}
+        />
+      )}
+
+      {/* Avatar zoom modal */}
+      {isAvatarZoomed && currentAvatarUrl && (
+        <AvatarZoomModal
+          imageUrl={currentAvatarUrl}
+          onClose={() => setIsAvatarZoomed(false)}
         />
       )}
     </div>
