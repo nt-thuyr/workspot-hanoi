@@ -1,5 +1,5 @@
-import { FC, useState, useEffect, useRef } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { FC, useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./ReviewPage.css";
@@ -26,6 +26,12 @@ interface Review {
   review_images?: ReviewImage[];
 }
 
+// Lightbox state
+interface LightboxState {
+  images: string[];
+  index: number;
+}
+
 const ReviewPage: FC = () => {
   const [searchParams] = useSearchParams();
   const cafeId = searchParams.get("cafeId");
@@ -35,6 +41,8 @@ const ReviewPage: FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // "idle" | "success" | "error"
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
   // Form states
   const [rating, setRating] = useState(0);
@@ -43,6 +51,12 @@ const ReviewPage: FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("highest"); // highest, newest, lowest
+
+  // Field-level validation errors
+  const [fieldErrors, setFieldErrors] = useState<{ rating?: string; comment?: string }>({});
+
+  // Lightbox
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null);
 
   // Ref for file input
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,18 +80,15 @@ const ReviewPage: FC = () => {
       return;
     }
 
-    // Fetch cafe name and reviews
     const fetchCafeData = async () => {
       try {
         setIsLoading(true);
-        // Fetch cafe name
         const cafeRes = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
         const cafeData = await cafeRes.json();
         if (cafeData.success && cafeData.data) {
           setCafeName(cafeData.data.name);
         }
 
-        // Fetch reviews
         const reviewsRes = await fetch(`http://localhost:3000/api/reviews/cafe/${cafeId}`);
         const reviewsData = await reviewsRes.json();
         if (reviewsData.success) {
@@ -101,6 +112,36 @@ const ReviewPage: FC = () => {
     };
   }, [filePreviews]);
 
+  // Keyboard navigation for lightbox
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!lightbox) return;
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") {
+        setLightbox((prev) =>
+          prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+        );
+      }
+      if (e.key === "ArrowLeft") {
+        setLightbox((prev) =>
+          prev
+            ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+            : null
+        );
+      }
+    },
+    [lightbox]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  const openLightbox = (images: string[], startIndex: number) => {
+    setLightbox({ images, index: startIndex });
+  };
+
   // Handle file select (max 3 images)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -109,7 +150,6 @@ const ReviewPage: FC = () => {
 
       if (totalAfterAdd > 3) {
         toast.error("画像は最大3枚までアップロードできます。");
-        // Only add as many as allowed
         const allowed = filesArray.slice(0, 3 - selectedFiles.length);
         if (allowed.length === 0) return;
         setSelectedFiles((prev) => [...prev, ...allowed]);
@@ -122,7 +162,6 @@ const ReviewPage: FC = () => {
       const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
       setFilePreviews((prev) => [...prev, ...newPreviews]);
     }
-    // Reset file input value so same file can be re-selected
     e.target.value = "";
   };
 
@@ -131,9 +170,7 @@ const ReviewPage: FC = () => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     setFilePreviews((prev) => {
       const preview = prev[index];
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      if (preview) URL.revokeObjectURL(preview);
       return prev.filter((_, i) => i !== index);
     });
   };
@@ -142,20 +179,24 @@ const ReviewPage: FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (rating === 0) {
-      toast.error("評価（星の数）を選択してください。");
+    // Validate all fields at once, show inline errors
+    const errors: { rating?: string; comment?: string } = {};
+    if (rating === 0) errors.rating = "★ 評価を選択してください";
+    if (!comment.trim()) errors.comment = "レビュー内容を入力してください";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
       return;
     }
 
-    if (!comment.trim()) {
-      toast.error("レビュー内容を入力してください。");
-      return;
-    }
+    setFieldErrors({});
 
     try {
       setIsSubmitting(true);
+      setSubmitStatus("idle");
 
-      // 1. Create the review (user_id derived from Bearer token on backend)
       const reviewResponse = await fetch("http://localhost:3000/api/reviews", {
         method: "POST",
         headers: {
@@ -177,7 +218,6 @@ const ReviewPage: FC = () => {
 
       const reviewId = reviewResult.data.id;
 
-      // 2. Upload images if selected
       if (selectedFiles.length > 0) {
         const formData = new FormData();
         selectedFiles.forEach((file) => {
@@ -200,29 +240,38 @@ const ReviewPage: FC = () => {
         }
       }
 
+      // Success state
+      setSubmitStatus("success");
       toast.success("レビューを投稿しました！");
 
-      // Reset form states
+
+      // Reset form
       setRating(0);
       setComment("");
       setSelectedFiles([]);
       setFilePreviews([]);
 
-      // Re-fetch reviews to show the new one
+      // Re-fetch reviews
       const reviewsRes = await fetch(`http://localhost:3000/api/reviews/cafe/${cafeId}`);
       const reviewsData = await reviewsRes.json();
       if (reviewsData.success) {
         setReviews(reviewsData.data || []);
       }
+
+      // Reset button state after 3s
+      setTimeout(() => setSubmitStatus("idle"), 3000);
     } catch (err: any) {
       console.error("Error submitting review:", err);
+      setSubmitStatus("error");
       toast.error(err.message || "レビューの投稿中にエラーが発生しました。");
+
+      // Reset button state after 3s
+      setTimeout(() => setSubmitStatus("idle"), 3000);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Helper to format date in Japanese locale matching mockup
   const formatJapaneseDate = (dateString: string) => {
     try {
       const d = new Date(dateString);
@@ -233,20 +282,37 @@ const ReviewPage: FC = () => {
     }
   };
 
-  // Get sorted reviews
+  // Get sorted reviews, always putting current user's review first
   const getSortedReviews = () => {
-    const sorted = [...reviews];
-    if (sortBy === "highest") {
-      return sorted.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === "lowest") {
-      return sorted.sort((a, b) => a.rating - b.rating);
-    } else if (sortBy === "newest") {
-      return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
-    return sorted;
+    const userReviews = reviews.filter((r) => r.user_id === userId);
+    const otherReviews = reviews.filter((r) => r.user_id !== userId);
+
+    const sortFn = (a: Review, b: Review) => {
+      if (sortBy === "highest") return b.rating - a.rating;
+      if (sortBy === "lowest") return a.rating - b.rating;
+      if (sortBy === "newest")
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return 0;
+    };
+
+    return [...userReviews.sort(sortFn), ...otherReviews.sort(sortFn)];
   };
 
   const sortedReviews = getSortedReviews();
+
+  // Submit button appearance
+  const getSubmitBtnClass = () => {
+    if (submitStatus === "success") return "submit-review-btn submit-review-btn--success";
+    if (submitStatus === "error") return "submit-review-btn submit-review-btn--error";
+    return "submit-review-btn";
+  };
+
+  const getSubmitBtnLabel = () => {
+    if (isSubmitting) return "投稿中...";
+    if (submitStatus === "success") return "レビューを投稿済み ✓";
+    if (submitStatus === "error") return "投稿失敗 ✕";
+    return "レビューを投稿する";
+  };
 
   return (
     <div className="review-page-root">
@@ -262,12 +328,17 @@ const ReviewPage: FC = () => {
           {/* LEFT PANEL: Write Review Form */}
           <div className="review-form-panel">
             <div className="form-header">
-              <Link to="/" className="back-btn" title="ホームに戻る">
+              {/* Back button → cafe detail on HomePage */}
+              <button
+                className="back-btn"
+                title="カフェ詳細に戻る"
+                onClick={() => navigate(`/?cafeId=${cafeId}`)}
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
-              </Link>
+              </button>
               <div>
                 <h1 className="form-title">レビューを書く</h1>
                 <p className="form-subtitle">{cafeName} での体験をシェアしましょう</p>
@@ -290,7 +361,7 @@ const ReviewPage: FC = () => {
               {/* Star Rating Select */}
               <div className="form-group">
                 <label className="input-label">評価 *</label>
-                <div className="star-rating-selector">
+                <div className={`star-rating-selector${fieldErrors.rating ? " star-rating-selector--error" : ""}`}>
                   {[1, 2, 3, 4, 5].map((star) => {
                     const isFilled = hoverRating >= star || (!hoverRating && rating >= star);
                     return (
@@ -298,7 +369,10 @@ const ReviewPage: FC = () => {
                         type="button"
                         key={star}
                         className="star-selector-btn"
-                        onClick={() => setRating(star)}
+                        onClick={() => {
+                          setRating(star);
+                          if (fieldErrors.rating) setFieldErrors((prev) => ({ ...prev, rating: undefined }));
+                        }}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
                       >
@@ -316,18 +390,34 @@ const ReviewPage: FC = () => {
                     );
                   })}
                 </div>
+                {fieldErrors.rating && (
+                  <span className="field-error-msg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {fieldErrors.rating}
+                  </span>
+                )}
               </div>
 
               {/* Review Text content */}
               <div className="form-group">
-                <label className="input-label">レビュー内容</label>
+                <label className="input-label">レビュー内容 *</label>
                 <textarea
-                  className="review-textarea"
+                  className={`review-textarea${fieldErrors.comment ? " review-textarea--error" : ""}`}
                   placeholder="コーヒーはいかがでしたか？作業しやすい場所でしたか？"
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onChange={(e) => {
+                    setComment(e.target.value);
+                    if (fieldErrors.comment && e.target.value.trim())
+                      setFieldErrors((prev) => ({ ...prev, comment: undefined }));
+                  }}
                   rows={6}
                 />
+                {fieldErrors.comment && (
+                  <span className="field-error-msg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {fieldErrors.comment}
+                  </span>
+                )}
               </div>
 
               {/* Photos attachment */}
@@ -342,8 +432,7 @@ const ReviewPage: FC = () => {
                     className="hidden-file-input"
                     onChange={handleFileChange}
                   />
-                  
-                  {/* Photo add button — hide when 3 images already selected */}
+
                   {selectedFiles.length < 3 && (
                     <button
                       type="button"
@@ -358,7 +447,6 @@ const ReviewPage: FC = () => {
                     </button>
                   )}
 
-                  {/* Previews */}
                   {filePreviews.map((url, index) => (
                     <div key={index} className="photo-preview-wrapper">
                       <img src={url} alt="selected preview" className="photo-preview-img" />
@@ -376,10 +464,10 @@ const ReviewPage: FC = () => {
 
               <button
                 type="submit"
-                className="submit-review-btn"
+                className={getSubmitBtnClass()}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "投稿しています..." : "レビューを投稿する"}
+                {getSubmitBtnLabel()}
               </button>
             </form>
           </div>
@@ -407,66 +495,171 @@ const ReviewPage: FC = () => {
                   <p>このカフェにはまだレビューがありません。最初のレビューを投稿してみましょう！</p>
                 </div>
               ) : (
-                sortedReviews.map((rev) => (
-                  <div key={rev.id} className="review-card">
-                    {/* Card Header Profile info */}
-                    <div className="card-profile-row">
-                      <div className="card-avatar">
-                        {rev.profiles?.avatar_url ? (
-                          <img
-                            src={rev.profiles.avatar_url}
-                            alt={rev.profiles.full_name || "User"}
-                            className="avatar-img"
-                          />
-                        ) : (
-                          <div className="avatar-placeholder">
-                            {(rev.profiles?.full_name || "G").charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="profile-text-details">
-                        <span className="profile-name">{rev.profiles?.full_name || "ユーザー"}</span>
-                        <span className="review-date">{formatJapaneseDate(rev.created_at)}</span>
-                      </div>
-                    </div>
+                sortedReviews.map((rev, idx) => {
+                  const isCurrentUser = rev.user_id === userId;
+                  const allImages = (rev.review_images || []).map((img) => img.image_url);
 
-                    {/* Stars Rating row */}
-                    <div className="card-stars-row">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={`card-star ${star <= rev.rating ? "card-star--filled" : "card-star--empty"}`}
-                        >
-                          ★
-                        </span>
-                      ))}
-                    </div>
+                  return (
+                    <div
+                      key={rev.id}
+                      className={`review-card${isCurrentUser ? " review-card--mine" : ""}`}
+                    >
+                      {/* "Your review" badge */}
+                      {isCurrentUser && (
+                        <div className="my-review-badge">
+                          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 14.414-3.707-3.707 1.414-1.414L11 13.586l5.293-5.293 1.414 1.414z" />
+                          </svg>
+                          あなたのレビュー
+                        </div>
+                      )}
 
-                    {/* Review text content */}
-                    <p className="card-comment-text">{rev.comment}</p>
-
-                    {/* Images gallery */}
-                    {rev.review_images && rev.review_images.length > 0 && (
-                      <div className="card-images-gallery">
-                        {rev.review_images.map((img) => (
-                          <div key={img.id} className="gallery-img-wrapper">
+                      {/* Card Header Profile info */}
+                      <div className="card-profile-row">
+                        <div className="card-avatar">
+                          {rev.profiles?.avatar_url ? (
                             <img
-                              src={img.image_url}
-                              alt="Review attachment"
-                              className="gallery-img"
-                              onClick={() => {
-                                // Simple lightbox overlay trigger
-                                window.open(img.image_url, "_blank");
-                              }}
+                              src={rev.profiles.avatar_url}
+                              alt={rev.profiles.full_name || "User"}
+                              className="avatar-img"
                             />
-                          </div>
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {(rev.profiles?.full_name || "G").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="profile-text-details">
+                          <span className="profile-name">{rev.profiles?.full_name || "ユーザー"}</span>
+                          <span className="review-date">{formatJapaneseDate(rev.created_at)}</span>
+                        </div>
+                      </div>
+
+                      {/* Stars Rating row */}
+                      <div className="card-stars-row">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span
+                            key={star}
+                            className={`card-star ${star <= rev.rating ? "card-star--filled" : "card-star--empty"}`}
+                          >
+                            ★
+                          </span>
                         ))}
                       </div>
-                    )}
-                  </div>
-                ))
+
+                      {/* Review text content */}
+                      <p className="card-comment-text">{rev.comment}</p>
+
+                      {/* Images gallery with lightbox */}
+                      {allImages.length > 0 && (
+                        <div className="card-images-gallery">
+                          {allImages.map((imgUrl, imgIdx) => (
+                            <div
+                              key={imgIdx}
+                              className="gallery-img-wrapper"
+                              onClick={() => openLightbox(allImages, imgIdx)}
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Review image ${imgIdx + 1}`}
+                                className="gallery-img"
+                              />
+                              {/* Zoom icon overlay */}
+                              <div className="gallery-img-overlay">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                                  <circle cx="11" cy="11" r="8" />
+                                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                  <line x1="11" y1="8" x2="11" y2="14" />
+                                  <line x1="8" y1="11" x2="14" y2="11" />
+                                </svg>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox / Image Slider */}
+      {lightbox && (
+        <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            {/* Close button */}
+            <button className="lightbox-close" onClick={() => setLightbox(null)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Prev button */}
+            {lightbox.images.length > 1 && (
+              <button
+                className="lightbox-nav lightbox-nav--prev"
+                onClick={() =>
+                  setLightbox((prev) =>
+                    prev
+                      ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+                      : null
+                  )
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
+
+            <img
+              key={lightbox.index}
+              src={lightbox.images[lightbox.index]}
+              alt={`Image ${lightbox.index + 1}`}
+              className="lightbox-img"
+            />
+
+            {/* Next button */}
+            {lightbox.images.length > 1 && (
+              <button
+                className="lightbox-nav lightbox-nav--next"
+                onClick={() =>
+                  setLightbox((prev) =>
+                    prev
+                      ? { ...prev, index: (prev.index + 1) % prev.images.length }
+                      : null
+                  )
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            )}
+
+            {/* Dots indicator */}
+            {lightbox.images.length > 1 && (
+              <div className="lightbox-dots">
+                {lightbox.images.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`lightbox-dot${i === lightbox.index ? " lightbox-dot--active" : ""}`}
+                    onClick={() => setLightbox((prev) => prev ? { ...prev, index: i } : null)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Counter */}
+            {lightbox.images.length > 1 && (
+              <div className="lightbox-counter">
+                {lightbox.index + 1} / {lightbox.images.length}
+              </div>
+            )}
           </div>
         </div>
       )}
