@@ -60,7 +60,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
         </div>
       ) : (
         <div className="nav-right">
-          {mode === "owner" && <NotificationDropdown />}
+          <NotificationDropdown />
           <div className="nav-profile-wrapper" ref={dropdownRef}>
             <button
               id="user-profile"

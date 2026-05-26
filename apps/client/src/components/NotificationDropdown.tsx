@@ -37,7 +37,7 @@ const getRelativeTime = (createdAt: string) => {
     if (diffHours < 24) return `${diffHours}時間前`;
     if (diffDays < 7) return `${diffDays}日前`;
 
-    return created.toLocaleDateString('vi-VN');
+    return created.toLocaleDateString('ja-JP');
 };
 
 const inferNotificationKind = (item: NotificationItem) => {
@@ -52,6 +52,24 @@ const inferNotificationKind = (item: NotificationItem) => {
     }
 
     return 'general';
+};
+
+const inferReservationState = (item: NotificationItem) => {
+    const text = `${item.title ?? ''} ${item.content ?? item.message ?? ''}`;
+
+    if (/承認|確認/.test(text)) {
+        return 'approved';
+    }
+
+    if (/却下|キャンセル|取消/.test(text)) {
+        return 'rejected';
+    }
+
+    if (/申請|予約/.test(text)) {
+        return 'requested';
+    }
+
+    return 'requested';
 };
 
 const extractRating = (item: NotificationItem) => {
@@ -174,6 +192,7 @@ export const NotificationDropdown: FC = () => {
 
     const renderNotificationCard = (item: NotificationItem) => {
         const kind = inferNotificationKind(item);
+        const reservationState = kind === 'reservation' ? inferReservationState(item) : null;
         const isUnread = !item.is_read;
         const title = item.title?.trim() || (kind === 'review' ? 'レビュー投稿のお知らせ' : '予約申請のお知らせ');
         const content = item.content?.trim() || item.message?.trim() || '';
@@ -210,10 +229,22 @@ export const NotificationDropdown: FC = () => {
             );
         }
 
+        const reservationIcon = reservationState === 'approved'
+            ? 'check_circle'
+            : reservationState === 'rejected'
+                ? 'cancel'
+                : 'event_available';
+
+        const reservationBadgeClass = reservationState === 'approved'
+            ? 'noti-icon-badge--reservation-approved'
+            : reservationState === 'rejected'
+                ? 'noti-icon-badge--reservation-rejected'
+                : 'noti-icon-badge--reservation-requested';
+
         return (
             <div className={`noti-item-card noti-item-card--reservation ${isUnread ? 'noti-unread' : ''}`}>
-                <div className="noti-icon-badge noti-icon-badge--reservation">
-                    <span className="material-symbols-outlined">event_available</span>
+                <div className={`noti-icon-badge ${reservationBadgeClass}`}>
+                    <span className="material-symbols-outlined">{reservationIcon}</span>
                 </div>
 
                 <div className="noti-item-body">
@@ -243,7 +274,7 @@ export const NotificationDropdown: FC = () => {
                         setShowAll(false);
                     }
                 }}
-                title="通知 / Thông báo"
+                title="通知"
                 type="button"
             >
                 <span className="material-symbols-outlined bell-icon">notifications</span>
@@ -256,7 +287,7 @@ export const NotificationDropdown: FC = () => {
                     <div className="noti-dropdown-header">
                         <div>
                             <h3>通知</h3>
-                            <p>Thông báo</p>
+                            <p>通知一覧</p>
                         </div>
                         <span className="noti-unread-count">{unreadCount}件未読</span>
                     </div>
@@ -264,7 +295,7 @@ export const NotificationDropdown: FC = () => {
                     <div className="noti-dropdown-list">
                         {notifications.length === 0 ? (
                             <div className="noti-empty-state">
-                                <p>Không có thông báo nào.</p>
+                                <p>通知はありません。</p>
                             </div>
                         ) : (
                             visibleNotifications.map((item) => (

@@ -233,6 +233,21 @@
     background: linear-gradient(180deg, #ecf4ff 0%, #dfeaff 100%);
 }
 
+.noti-icon-badge--reservation-requested {
+    color: #2f80ed;
+    background: linear-gradient(180deg, #ecf4ff 0%, #dfeaff 100%);
+}
+
+.noti-icon-badge--reservation-approved {
+    color: #10b981;
+    background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.noti-icon-badge--reservation-rejected {
+    color: #ef4444;
+    background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
+}
+
 .noti-icon-badge--review {
     color: #f2994a;
     background: linear-gradient(180deg, #fff3e6 0%, #ffe4c4 100%);
