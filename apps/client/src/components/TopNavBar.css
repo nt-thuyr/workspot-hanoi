@@ -35,10 +35,11 @@
 }
 
 .nav-logo__text {
-  font-size: 1rem;
-  font-weight: 800;
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
   color: #1a1208;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 

@@ -48,11 +48,12 @@
 }
 
 .login-logo__text {
-  font-size: 1.55rem;
-  font-weight: 800;
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
   line-height: 1.2;
   color: #fff;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
