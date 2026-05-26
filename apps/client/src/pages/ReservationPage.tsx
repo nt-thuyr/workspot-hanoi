@@ -17,6 +17,8 @@ interface CafeMarker {
   image?: string;
   isOpenNow?: boolean;
   distance?: number | null;
+  openTime?: string | null;
+  closeTime?: string | null;
 }
 
 function StarRating({ value }: { value: number }) {
@@ -37,6 +39,8 @@ interface ReservationForm {
   cafeId?: string;
 }
 
+type AlertVariant = "success" | "error";
+
 const createCafeIcon = () => {
   return new L.Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
@@ -56,6 +60,43 @@ const createUserLocationIcon = () => {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
+};
+
+const getTodayInputValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  const day = `${now.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseTimeToMinutes = (time: string) => {
+  const [hoursStr = '', minutesStr = ''] = time.split(':');
+  const hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+};
+
+const isTimeWithinCafeHours = (time: string, openTime?: string | null, closeTime?: string | null) => {
+  if (!openTime || !closeTime) return false;
+
+  const target = parseTimeToMinutes(time);
+  const open = parseTimeToMinutes(openTime);
+  const close = parseTimeToMinutes(closeTime);
+
+  if (target == null || open == null || close == null) return false;
+
+  if (open <= close) {
+    return target >= open && target <= close;
+  }
+
+  return target >= open || target <= close;
+};
+
+const buildReservationDateTime = (date: string, time: string) => {
+  const normalizedTime = time.length === 5 ? `${time}:00` : time;
+  return new Date(`${date}T${normalizedTime}`);
 };
 
 interface MapEventsProps {
@@ -107,6 +148,7 @@ const ReservationPage: FC = () => {
   const [zoomLevel, setZoomLevel] = useState(13);
   const [map, setMap] = useState<L.Map | null>(null);
   const [showAlert, setShowAlert] = useState("");
+  const [alertVariant, setAlertVariant] = useState<AlertVariant>("error");
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
@@ -178,6 +220,8 @@ const ReservationPage: FC = () => {
             tags: cafe.tags || [],
             image: cafe.imageUrl,
             isOpenNow: cafe.isOpenNow,
+            openTime: cafe.open_time || null,
+            closeTime: cafe.close_time || null,
             distance: cafe.distance,
           }));
           setCafes(cafeList);
@@ -217,6 +261,8 @@ const ReservationPage: FC = () => {
                   tags: combinedTags,
                   image: cafe.images?.[0]?.image_url,
                   isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),
+                  openTime: cafe.open_time || null,
+                  closeTime: cafe.close_time || null,
                   distance: null,
                 } as CafeMarker;
                 setCafes((prev) => [targetCafe as CafeMarker, ...prev]);
@@ -314,13 +360,40 @@ const ReservationPage: FC = () => {
 
     // Validation
     if (!formData.guestName.trim() || !formData.date || !formData.time || !selectedCafe) {
+      setAlertVariant("error");
       setShowAlert("すべての情報を入力し、カフェを選択してください。");
+      return;
+    }
+
+    const selectedDateTime = buildReservationDateTime(formData.date, formData.time);
+    if (Number.isNaN(selectedDateTime.getTime())) {
+      setAlertVariant("error");
+      setShowAlert("予約日時が無効です。");
+      return;
+    }
+
+    const now = new Date();
+    if (selectedDateTime.getTime() < now.getTime()) {
+      setAlertVariant("error");
+      setShowAlert("過去の日時には予約できません。");
+      return;
+    }
+
+    if (!isTimeWithinCafeHours(formData.time, selectedCafe.openTime, selectedCafe.closeTime)) {
+      if (selectedCafe.openTime && selectedCafe.closeTime) {
+        setAlertVariant("error");
+        setShowAlert(`予約時間は営業時間内（${selectedCafe.openTime.slice(0, 5)}〜${selectedCafe.closeTime.slice(0, 5)}）で指定してください。`);
+      } else {
+        setAlertVariant("error");
+        setShowAlert("このカフェの営業時間が取得できませんでした。");
+      }
       return;
     }
 
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
+        setAlertVariant("error");
         setShowAlert("予約するにはログインしてください。");
         return;
       }
@@ -344,14 +417,17 @@ const ReservationPage: FC = () => {
       const result = await response.json();
       
       if (result.success) {
-        setShowAlert("✅ 予約が完了しました。履歴をご確認ください。");
+        setAlertVariant("success");
+        setShowAlert("予約が完了しました。履歴をご確認ください。");
         // Reset form sau khi đặt thành công
         setFormData({ guestName: "", date: "", time: "", guests: 1 });
         setSelectedCafe(null);
       } else {
-        setShowAlert("❌ " + (result.message || "予約に失敗しました"));
+        setAlertVariant("error");
+        setShowAlert(result.message || "予約に失敗しました");
       }
     } catch (error) {
+      setAlertVariant("error");
       setShowAlert("サーバー接続エラー: " + String(error));
     }
   };
@@ -409,7 +485,7 @@ const ReservationPage: FC = () => {
                   onChange={handleInputChange}
                   className="form-input"
                   ref={dateInputRef}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={getTodayInputValue()}
                 />
                 <span
                   className="calendar-icon"
@@ -436,6 +512,8 @@ const ReservationPage: FC = () => {
                   onChange={handleInputChange}
                   className="form-input"
                   ref={timeInputRef}
+                  min={selectedCafe?.openTime ? selectedCafe.openTime.slice(0, 5) : undefined}
+                  max={selectedCafe?.closeTime ? selectedCafe.closeTime.slice(0, 5) : undefined}
                 />
                 <span
                   className="time-icon"
@@ -469,7 +547,11 @@ const ReservationPage: FC = () => {
 
 
             {/* Alert Message */}
-            {showAlert && <div className="alert-message">{showAlert}</div>}
+            {showAlert && (
+              <div className={`alert-message alert-message--${alertVariant}`}>
+                {showAlert}
+              </div>
+            )}
 
             {/* Submit Button */}
             <button

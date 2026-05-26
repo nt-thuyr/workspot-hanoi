@@ -241,8 +241,14 @@ export const NotificationDropdown: FC = () => {
                 ? 'noti-icon-badge--reservation-rejected'
                 : 'noti-icon-badge--reservation-requested';
 
+        const reservationCardClass = reservationState === 'approved'
+            ? 'noti-item-card--reservation-approved'
+            : reservationState === 'rejected'
+                ? 'noti-item-card--reservation-rejected'
+                : 'noti-item-card--reservation-requested';
+
         return (
-            <div className={`noti-item-card noti-item-card--reservation ${isUnread ? 'noti-unread' : ''}`}>
+            <div className={`noti-item-card noti-item-card--reservation ${reservationCardClass} ${isUnread ? 'noti-unread' : ''}`}>
                 <div className={`noti-icon-badge ${reservationBadgeClass}`}>
                     <span className="material-symbols-outlined">{reservationIcon}</span>
                 </div>

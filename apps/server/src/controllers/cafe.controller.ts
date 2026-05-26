@@ -550,6 +550,8 @@ export const getMapCafes = async (req: Request, res: Response) => {
       tags: cafe.tags || [],
       imageUrl: cafe.image_url,
       isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),
+      open_time: cafe.open_time,
+      close_time: cafe.close_time,
       distance: cafe.distance ? parseFloat(cafe.distance.toFixed(1)) : null,
       address: cafe.address,
     }));

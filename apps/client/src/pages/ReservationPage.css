@@ -187,13 +187,22 @@
 /* ALERT */
 .alert-message {
   padding: 10px 12px;
-  background: #ffe6e6;
-  border: 2px solid #ff9999;
   border-radius: 6px;
-  color: #d63031;
   font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
+}
+
+.alert-message--error {
+  background: #ffe6e6;
+  border: 2px solid #ff9999;
+  color: #d63031;
+}
+
+.alert-message--success {
+  background: #e9f9ee;
+  border: 2px solid #8fd3a5;
+  color: #0f7a3d;
 }
 
 /* SUBMIT BUTTON */

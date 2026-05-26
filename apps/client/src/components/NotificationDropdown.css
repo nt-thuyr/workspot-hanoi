@@ -154,6 +154,20 @@
     transform: translateY(-1px);
 }
 
+.noti-item-card--reservation-requested {
+    background: #fff;
+}
+
+.noti-item-card--reservation-approved {
+    background: linear-gradient(180deg, #f1fdf7 0%, #ecfdf3 100%);
+    border-color: #bbf7d0;
+}
+
+.noti-item-card--reservation-rejected {
+    background: linear-gradient(180deg, #fff8f8 0%, #fff1f1 100%);
+    border-color: #fecaca;
+}
+
 .noti-unread {
     background-color: #fff9f1;
     border-color: #f0dcc2;
@@ -198,11 +212,31 @@
     line-height: 1.4;
 }
 
+.noti-item-card--reservation-approved .noti-item-title {
+    color: #15803d;
+}
+
+.noti-item-card--reservation-rejected .noti-item-title {
+    color: #dc2626;
+}
+
 .noti-item-cafe {
     margin: 0 0 4px 0;
     font-size: 13px;
     color: #5e5144;
     line-height: 1.5;
+}
+
+.noti-item-card--reservation-approved .noti-item-cafe,
+.noti-item-card--reservation-approved .noti-item-details,
+.noti-item-card--reservation-approved .noti-item-time {
+    color: #166534;
+}
+
+.noti-item-card--reservation-rejected .noti-item-cafe,
+.noti-item-card--reservation-rejected .noti-item-details,
+.noti-item-card--reservation-rejected .noti-item-time {
+    color: #991b1b;
 }
 
 .noti-item-details {

@@ -152,7 +152,7 @@ export class CafeModel {
   static async getCafeOwnerInfo(cafeId: string) {
     const { data, error } = await supabase
       .from("cafes")
-      .select("id, name, owner_id")
+      .select("id, name, owner_id, open_time, close_time")
       .eq("id", cafeId)
       .single();
 

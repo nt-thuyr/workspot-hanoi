@@ -4,6 +4,33 @@ import { NotificationModel } from '../models/notification.model';
 import { ReservationModel } from '../models/reservation.model';
 import { sendReservationStatusEmail } from '../utils/email.service';
 
+const parseTimeToMinutes = (time: string) => {
+  const [hoursStr = '', minutesStr = ''] = String(time).split(':');
+  const hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+};
+
+const isTimeWithinCafeHours = (time: string, openTime: string, closeTime: string) => {
+  const target = parseTimeToMinutes(time);
+  const open = parseTimeToMinutes(openTime);
+  const close = parseTimeToMinutes(closeTime);
+
+  if (target == null || open == null || close == null) return false;
+
+  if (open <= close) {
+    return target >= open && target <= close;
+  }
+
+  return target >= open || target <= close;
+};
+
+const buildReservationDateTime = (resDate: string, resTime: string) => {
+  const combined = `${resDate}T${resTime.length === 5 ? `${resTime}:00` : resTime}`;
+  return new Date(combined);
+};
+
 // POST /api/reservations - Đặt chỗ (user)
 export const createReservation = async (req: Request, res: Response) => {
   try {
@@ -13,7 +40,7 @@ export const createReservation = async (req: Request, res: Response) => {
     if (!user_id || !cafe_id || !res_date || !res_time || !guest_name) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields',
+        message: '必要な項目が不足しています。',
       });
     }
 
@@ -21,7 +48,7 @@ export const createReservation = async (req: Request, res: Response) => {
     if (!guestName) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid guest_name',
+        message: '氏名が無効です。',
       });
     }
 
@@ -30,7 +57,7 @@ export const createReservation = async (req: Request, res: Response) => {
     if (!Number.isInteger(guests) || guests <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid num_guests',
+        message: '人数が無効です。',
       });
     }
 
@@ -38,7 +65,7 @@ export const createReservation = async (req: Request, res: Response) => {
     if (Number.isNaN(resDate.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid res_date',
+        message: '予約日が無効です。',
       });
     }
 
@@ -46,7 +73,45 @@ export const createReservation = async (req: Request, res: Response) => {
     if (!timePattern.test(String(res_time))) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid res_time',
+        message: '予約時間が無効です。',
+      });
+    }
+
+    const cafe = await CafeModel.getCafeOwnerInfo(cafe_id);
+    if (!cafe) {
+      return res.status(404).json({
+        success: false,
+        message: 'カフェが見つかりません。',
+      });
+    }
+
+    const now = new Date();
+    const bookingDateTime = buildReservationDateTime(res_date, res_time);
+    if (Number.isNaN(bookingDateTime.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: '予約日時が無効です。',
+      });
+    }
+
+    if (bookingDateTime.getTime() < now.getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: '過去の日時には予約できません。',
+      });
+    }
+
+    if (!cafe.open_time || !cafe.close_time) {
+      return res.status(400).json({
+        success: false,
+        message: '営業時間が設定されていません。',
+      });
+    }
+
+    if (!isTimeWithinCafeHours(res_time, cafe.open_time, cafe.close_time)) {
+      return res.status(400).json({
+        success: false,
+        message: `予約時間は営業時間内（${cafe.open_time.slice(0, 5)}〜${cafe.close_time.slice(0, 5)}）で指定してください。`,
       });
     }
 
@@ -60,7 +125,6 @@ export const createReservation = async (req: Request, res: Response) => {
     );
 
     try {
-      const cafe = await CafeModel.getCafeOwnerInfo(cafe_id);
       if (cafe?.owner_id) {
         await NotificationModel.createNotification({
           user_id: cafe.owner_id,
@@ -75,7 +139,7 @@ export const createReservation = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: reservation });
   } catch (error: any) {
     console.error('Error creating reservation:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー', details: error.message });
   }
 };
 
@@ -101,7 +165,7 @@ export const getUserReservations = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching user reservations:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー', details: error.message });
   }
 };
 
@@ -206,7 +270,7 @@ export const getCafeReservations = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching cafe reservations:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー', details: error.message });
   }
 };
 
@@ -221,7 +285,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status',
+        message: 'ステータスが無効です。',
       });
     }
 
@@ -287,7 +351,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: reservation });
   } catch (error: any) {
     console.error('Error updating reservation status:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー', details: error.message });
   }
 };
 
@@ -315,6 +379,6 @@ export const cancelReservationByUser = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Đã hủy thành công', data: reservation });
   } catch (error: any) {
     console.error('Error cancelling reservation:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー', details: error.message });
   }
 };
