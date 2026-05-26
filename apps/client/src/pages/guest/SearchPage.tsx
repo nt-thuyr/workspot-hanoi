@@ -171,9 +171,41 @@ const SearchPage: FC = () => {
   );
   const [map, setMap] = useState<L.Map | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
 
   const [userCoords, setUserCoords] = useState<[number, number]>(centerHanoi);
   const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
+
+  // Search suggestions
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || q.length < 1) return [];
+    const seen = new Set<string>();
+    const results: { label: string; type: "cafe" | "district" }[] = [];
+    MOCK_CAFES.forEach((c) => {
+      if (c.name.toLowerCase().includes(q) && !seen.has(c.name)) {
+        seen.add(c.name);
+        results.push({ label: c.name, type: "cafe" });
+      }
+      if (c.district.toLowerCase().includes(q) && !seen.has(c.district)) {
+        seen.add(c.district);
+        results.push({ label: c.district, type: "district" });
+      }
+    });
+    return results.slice(0, 6);
+  }, [searchQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Lấy GPS người dùng khi mount
   useEffect(() => {
@@ -306,6 +338,12 @@ const SearchPage: FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
+  };
+
+  const handleSelectSuggestion = (label: string) => {
+    setSearchQuery(label);
+    setShowSuggestions(false);
   };
 
   return (
@@ -328,36 +366,76 @@ const SearchPage: FC = () => {
             onSubmit={handleSearch}
             id="search-bar"
           >
-            <div className="search-field">
-              <svg
-                className="search-icon-inner"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                width="15"
-                height="15"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                id="search-input"
-                className="search-input"
-                type="text"
-                placeholder="カフェ名・エリアで検索..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="search-clear"
-                  onClick={() => setSearchQuery("")}
-                  id="search-clear-btn"
+            <div className="search-field-wrap" ref={searchWrapRef}>
+              <div className="search-field">
+                <svg
+                  className="search-icon-inner"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  width="15"
+                  height="15"
                 >
-                  ✕
-                </button>
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  id="search-input"
+                  className="search-input"
+                  type="text"
+                  placeholder="カフェ名・エリアで検索..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  autoComplete="off"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="search-clear"
+                    onClick={() => { setSearchQuery(""); setShowSuggestions(false); }}
+                    id="search-clear-btn"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {/* Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="search-suggestions" id="search-suggestions">
+                  {suggestions.map((s, i) => (
+                    <li
+                      key={i}
+                      className="search-suggestion-item"
+                      onMouseDown={() => handleSelectSuggestion(s.label)}
+                    >
+                      <span className="suggestion-icon">
+                        {s.type === "cafe" ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                            <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                            <line x1="6" y1="1" x2="6" y2="4" />
+                            <line x1="10" y1="1" x2="10" y2="4" />
+                            <line x1="14" y1="1" x2="14" y2="4" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="suggestion-label">{s.label}</span>
+                      <span className="suggestion-type">
+                        {s.type === "cafe" ? "カフェ" : "エリア"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </form>
