@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, useCallback, useRef } from "react";
+import { useState, useEffect, type FC, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   MapContainer,
@@ -89,6 +89,39 @@ const HomePage: FC = () => {
   const [map, setMap] = useState<L.Map | null>(null);
   const lastProcessedCafeIdRef = useRef<string | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+
+  // Search suggestions
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || q.length < 1 || cafes.length === 0) return [];
+    const seen = new Set<string>();
+    const results: { label: string; sub: string; type: "cafe" | "area"; cafeRef?: CafeInfo }[] = [];
+    cafes.forEach((c) => {
+      if (c.name.toLowerCase().includes(q) && !seen.has(c.name)) {
+        seen.add(c.name);
+        results.push({ label: c.name, sub: (c as any).address || "", type: "cafe", cafeRef: c });
+      }
+      const addrPart = (c as any).address?.split(",").pop()?.trim() || "";
+      if (addrPart && addrPart.toLowerCase().includes(q) && !seen.has(addrPart)) {
+        seen.add(addrPart);
+        results.push({ label: addrPart, sub: "エリア", type: "area" });
+      }
+    });
+    return results.slice(0, 6);
+  }, [searchQuery, cafes]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -268,7 +301,18 @@ const HomePage: FC = () => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
     fetchCafes();
+  };
+
+  const handleSelectSuggestion = (s: { label: string; type: "cafe" | "area"; cafeRef?: CafeInfo }) => {
+    if (s.type === "cafe" && s.cafeRef) {
+      setShowSuggestions(false);
+      handleSelectCafe(s.cafeRef);
+    } else {
+      setSearchQuery(s.label);
+      setShowSuggestions(false);
+    }
   };
 
   const toggleFilter = (f: string) =>
@@ -671,26 +715,78 @@ const HomePage: FC = () => {
               </div>
 
               <form className="sidebar-search" onSubmit={handleSearchSubmit}>
-                <svg
-                  className="search-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  width="15"
-                  height="15"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-                <input
-                  id="search-bar"
-                  className="search-input"
-                  type="text"
-                  placeholder="キーワードやタグで検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <div className="hp-search-wrap" ref={searchWrapRef}>
+                  <div className="hp-search-field">
+                    <svg
+                      className="search-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="15"
+                      height="15"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input
+                      id="search-bar"
+                      className="search-input"
+                      type="text"
+                      placeholder="キーワードやタグで検索..."
+                      value={searchQuery}
+                      autoComplete="off"
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="hp-search-clear"
+                        onClick={() => { setSearchQuery(""); setShowSuggestions(false); }}
+                        aria-label="クリア"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul className="hp-suggestions" id="search-suggestions">
+                      {suggestions.map((s, i) => (
+                        <li
+                          key={i}
+                          className="hp-suggestion-item"
+                          onMouseDown={() => handleSelectSuggestion(s)}
+                        >
+                          <span className="hp-suggestion-icon">
+                            {s.type === "cafe" ? (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                                <line x1="6" y1="1" x2="6" y2="4" />
+                                <line x1="10" y1="1" x2="10" y2="4" />
+                                <line x1="14" y1="1" x2="14" y2="4" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                            )}
+                          </span>
+                          <span className="hp-suggestion-label">{s.label}</span>
+                          <span className="hp-suggestion-type">
+                            {s.type === "cafe" ? "カフェ" : "エリア"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </form>
 
               <div className="filter-chips">
