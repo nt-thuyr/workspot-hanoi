@@ -205,6 +205,11 @@ export const NotificationDropdown: FC = () => {
             .join(' • ');
 
         if (kind === 'review') {
+            // Hiển thị tối đa 30 ký tự đoạn trích review
+            let preview = parsedContent.comment;
+            if (preview && preview.length > 30) {
+                preview = preview.slice(0, 30) + '...';
+            }
             return (
                 <div className={`noti-item-card noti-item-card--review ${isUnread ? 'noti-unread' : ''}`}>
                     <div className="noti-icon-badge noti-icon-badge--review">
@@ -221,7 +226,7 @@ export const NotificationDropdown: FC = () => {
                             <span className="noti-rating-stars">{formatStars(rating)}</span>
                             <span className="noti-rating-score">{rating ? `${rating}/5` : '1〜5段階'}</span>
                         </div>
-                        {parsedContent.comment && <p className="noti-item-preview">{parsedContent.comment}</p>}
+                        {preview && <p className="noti-item-preview">{preview}</p>}
                     </div>
 
                     {isUnread && <span className="noti-item-dot" aria-hidden="true" />}

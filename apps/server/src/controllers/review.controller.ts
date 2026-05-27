@@ -41,10 +41,14 @@ export const createReview = async (req: AuthRequest, res: Response) => {
 
       if (cafe?.owner_id) {
         const reviewerName = profile?.full_name || 'お客様';
+        // Lấy đoạn trích 30 ký tự đầu tiên của comment, thêm "..." nếu dài hơn
+        const commentSnippet = comment.trim().length > 30
+          ? comment.trim().slice(0, 30) + '...'
+          : comment.trim();
         await NotificationModel.createNotification({
           user_id: cafe.owner_id,
           title: `${reviewerName}がレビューを投稿しました`,
-          content: `${cafe.name || 'カフェ名未設定'}・${rating}★・${comment.trim()}`,
+          content: `${cafe.name || 'カフェ名未設定'}・${rating}★・${commentSnippet}`,
         });
       }
     } catch (notificationError) {
