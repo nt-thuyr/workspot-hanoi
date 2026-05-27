@@ -142,6 +142,7 @@ const ReviewHistoryPage: FC = () => {
         const newAvatarUrl = result.data.avatar_url;
         localStorage.setItem("user_avatar_url", newAvatarUrl);
         setCurrentAvatarUrl(newAvatarUrl);
+        window.dispatchEvent(new Event("avatarUpdated"));
         toast.success("アバターを変更しました！", { id: toastId });
       } else {
         toast.error(result.message || "アバターの更新に失敗しました。", { id: toastId });
@@ -181,6 +182,16 @@ const ReviewHistoryPage: FC = () => {
     }
     fetchReviews();
   }, [accessToken, fetchReviews, navigate]);
+
+  useEffect(() => {
+    const handleAvatarUpdated = () => {
+      setCurrentAvatarUrl(localStorage.getItem("user_avatar_url"));
+    };
+    window.addEventListener("avatarUpdated", handleAvatarUpdated);
+    return () => {
+      window.removeEventListener("avatarUpdated", handleAvatarUpdated);
+    };
+  }, []);
 
   // ── Delete review ──
   const executeDelete = async () => {
@@ -299,26 +310,30 @@ const ReviewHistoryPage: FC = () => {
               {reviews.map((rev) => (
                 <article key={rev.id} className="rh-card" id={`rh-card-${rev.id}`}>
 
-                  {/* Cafe info header */}
+                  {/* User profile + Cafe info header */}
                   <div className="rh-card-header">
-                    <div className="rh-cafe-info">
-                      <h2
-                        className="rh-cafe-name"
-                        id={`rh-cafe-name-${rev.id}`}
-                        onClick={() => navigate(`/?cafeId=${rev.cafe_id}`)}
-                      >
-                        {rev.cafes?.name || "カフェ"}
-                      </h2>
-                      {rev.cafes?.address && (
-                        <p className="rh-cafe-address" id={`rh-cafe-addr-${rev.id}`}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                          {rev.cafes.address}
-                        </p>
+                    <div className="rh-user-info-group">
+                      {currentAvatarUrl ? (
+                        <img src={currentAvatarUrl} alt={userName} className="rh-card-avatar" id={`rh-card-avatar-${rev.id}`} />
+                      ) : (
+                        <div className="rh-card-avatar-placeholder" id={`rh-card-avatar-placeholder-${rev.id}`}>
+                          {userName.charAt(0).toUpperCase()}
+                        </div>
                       )}
+                      <div className="rh-user-meta">
+                        <span className="rh-card-username" id={`rh-card-username-${rev.id}`}>{userName}</span>
+                        <span className="rh-card-date" id={`rh-card-date-${rev.id}`}>{fmtDate(rev.created_at)}</span>
+                      </div>
                     </div>
+                    {rev.cafes?.name && (
+                      <div className="rh-card-cafe-tag" onClick={() => navigate(`/?cafeId=${rev.cafe_id}`)} id={`rh-card-cafe-${rev.id}`} title="カフェを見る">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{rev.cafes.name}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Star rating row */}
@@ -345,9 +360,9 @@ const ReviewHistoryPage: FC = () => {
                     </div>
                   )}
 
-                  {/* Footer: date + delete */}
+                  {/* Footer: delete button */}
                   <div className="rh-card-footer">
-                    <span className="rh-date" id={`rh-date-${rev.id}`}>{fmtDate(rev.created_at)}</span>
+                    <div style={{ flex: 1 }} />
                     <button
                       id={`rh-delete-${rev.id}`}
                       className="rh-delete-btn"

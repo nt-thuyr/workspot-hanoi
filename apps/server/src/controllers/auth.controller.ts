@@ -33,7 +33,7 @@ export const login = async (req: Request, res: Response) => {
         // Fetch profile dùng supabase admin client (service_role, không bị RLS)
         const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, avatar_url')
             .eq('id', data.user.id)
             .single();
 
@@ -46,7 +46,8 @@ export const login = async (req: Request, res: Response) => {
                     id: data.user.id,
                     email: data.user.email,
                     role: data.user.user_metadata?.role || 'japanese_user',
-                    full_name: profile?.full_name || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Người dùng'
+                    full_name: profile?.full_name || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Người dùng',
+                    avatar_url: profile?.avatar_url || null
                 }
             }
         });

@@ -51,9 +51,25 @@ const SORT_OPTIONS = [
 // Component Modal Xác nhận Hủy đặt chỗ
 function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
     return (
-        <div className="rhp-modal-overlay" onClick={onClose}>
-            <div className="rhp-modal-box" onClick={(e) => e.stopPropagation()}>
-                <div className="rhp-modal-icon">🗓️</div>
+        <div className="rhp-modal-overlay" onClick={onClose} id="modal-cancel-overlay">
+            <div className="rhp-modal-box" onClick={(e) => e.stopPropagation()} id="modal-cancel-box">
+                <div className="rhp-modal-icon" id="modal-calendar-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Calendar Body */}
+                        <rect x="4" y="5" width="16" height="15" rx="3" fill="white" stroke="#3d2f1e" strokeWidth="1.8" />
+                        {/* Calendar Header */}
+                        <path d="M4 8V7C4 5.89543 4.89543 5 6 5H18C19.1046 5 20 5.89543 20 7V8H4Z" fill="#dc2626" stroke="#3d2f1e" strokeWidth="1.8" />
+                        {/* Spiral rings */}
+                        <rect x="7" y="2" width="1.8" height="4" rx="0.9" fill="#ede8e0" stroke="#3d2f1e" strokeWidth="1.2" />
+                        <rect x="15" y="2" width="1.8" height="4" rx="0.9" fill="#ede8e0" stroke="#3d2f1e" strokeWidth="1.2" />
+                        {/* Spiral dots/holes */}
+                        <circle cx="10" cy="5" r="0.8" fill="#3d2f1e" />
+                        <circle cx="12" cy="5" r="0.8" fill="#3d2f1e" />
+                        <circle cx="14" cy="5" r="0.8" fill="#3d2f1e" />
+                        {/* Number 31 */}
+                        <text x="12" y="16.5" fill="#3d2f1e" fontFamily="'Space Grotesk', 'Noto Sans JP', sans-serif" fontSize="7.5" fontWeight="bold" textAnchor="middle">31</text>
+                    </svg>
+                </div>
                 <h3 className="rhp-modal-title">予約をキャンセルしますか？</h3>
                 <p className="rhp-modal-desc">
                     本当にこの予約をキャンセルしてもよろしいですか？<br />
@@ -237,10 +253,20 @@ const ReservationHistoryPage: FC = () => {
         return <span className="rhp-badge rhp-badge--past" id={`badge-past-${item.id}`}>過去の履歴</span>;
     };
 
-    // Kiểm tra card có thể hủy hay không (không ở trạng thái hủy/từ chối/hoàn thành)
+    // Kiểm tra card có thể hủy hay không (không ở trạng thái hủy/từ chối/quá khứ)
     const canCancel = (item: ReservationInfo) => {
-        const appStatus = (item.approvalStatus || (item.status === "completed" ? "approved" : item.status === "cancelled" ? "cancelled" : "pending")).toUpperCase();
-        return appStatus !== "CANCELLED" && appStatus !== "REJECTED" && item.status !== "completed";
+        const appStatus = (item.approvalStatus || "").toUpperCase();
+        
+        // Đã hủy hoặc bị từ chối thì không thể hủy
+        if (appStatus === "CANCELLED" || appStatus === "REJECTED") {
+            return false;
+        }
+
+        // Kiểm tra xem thời gian đặt chỗ có ở tương lai hay không
+        const resDateTime = parseReservationDateTime(item.reservationDate, item.timeSlot);
+        const isUpcoming = resDateTime.getTime() >= new Date().getTime();
+        
+        return isUpcoming;
     };
 
     return (
@@ -381,9 +407,7 @@ const ReservationHistoryPage: FC = () => {
                                                     setCancelTargetId(item.id);
                                                 }}
                                             >
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                                </svg>
+                                                <span className="rhp-btn-cancel-x">×</span>
                                                 予約をキャンセル
                                             </button>
                                         )}

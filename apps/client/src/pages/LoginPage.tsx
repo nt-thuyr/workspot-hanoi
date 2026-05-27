@@ -37,6 +37,7 @@ const LoginPage: FC = () => {
                 localStorage.setItem("user_name", data.data.user.full_name);
                 localStorage.setItem("user_email", data.data.user.email);
                 localStorage.setItem("user_id", data.data.user.id);
+                localStorage.setItem("user_avatar_url", data.data.user.avatar_url || "");
 
                 if (userRole === "cafe_owner") {
                     navigate("/dashboard");
