@@ -33,6 +33,15 @@ interface CafeFormData {
 
 export const RegisterCafePage: React.FC = () => {
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const ownerId = localStorage.getItem("user_id");
+    const userRole = localStorage.getItem("user_role");
+    if (!ownerId || userRole !== "cafe_owner") {
+      navigate("/");
+    }
+  }, [navigate]);
+
   const locationMapRef = useRef<LocationMapHandle>(null);
   const [formData, setFormData] = useState<CafeFormData>({
     cafeName: "",

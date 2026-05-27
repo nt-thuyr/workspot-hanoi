@@ -60,8 +60,9 @@ export const EditCafePage: React.FC = () => {
 
   React.useEffect(() => {
     const ownerId = localStorage.getItem("user_id");
-    if (!ownerId) {
-      navigate("/login");
+    const userRole = localStorage.getItem("user_role");
+    if (!ownerId || userRole !== "cafe_owner") {
+      navigate("/");
       return;
     }
 

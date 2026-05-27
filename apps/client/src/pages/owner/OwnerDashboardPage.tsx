@@ -82,8 +82,9 @@ const OwnerDashboardPage: FC = () => {
   const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!ownerId) {
-      navigate("/login");
+    const userRole = localStorage.getItem("user_role");
+    if (!ownerId || userRole !== "cafe_owner") {
+      navigate("/");
       return;
     }
 

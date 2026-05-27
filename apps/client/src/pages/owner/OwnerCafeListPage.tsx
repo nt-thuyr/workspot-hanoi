@@ -71,8 +71,9 @@ const OwnerCafeListPage: FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ownerId) {
-      navigate("/login");
+    const userRole = localStorage.getItem("user_role");
+    if (!ownerId || userRole !== "cafe_owner") {
+      navigate("/");
       return;
     }
 
