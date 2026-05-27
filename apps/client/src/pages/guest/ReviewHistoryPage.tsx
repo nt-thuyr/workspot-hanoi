@@ -28,6 +28,11 @@ interface UserReview {
   review_images?: ReviewImage[];
 }
 
+interface LightboxState {
+  images: string[];
+  index: number;
+}
+
 // ── Delete confirmation modal ──────────────────────────────
 function DeleteModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
   return (
@@ -110,6 +115,37 @@ const ReviewHistoryPage: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(localStorage.getItem("user_avatar_url"));
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+
+  const openLightbox = (images: string[], startIndex: number) => {
+    setLightbox({ images, index: startIndex });
+  };
+
+  // Keyboard navigation for lightbox
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!lightbox) return;
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") {
+        setLightbox((prev) =>
+          prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+        );
+      }
+      if (e.key === "ArrowLeft") {
+        setLightbox((prev) =>
+          prev
+            ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+            : null
+        );
+      }
+    },
+    [lightbox]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   const accessToken = localStorage.getItem("access_token");
   const userId      = localStorage.getItem("user_id");
@@ -345,18 +381,21 @@ const ReviewHistoryPage: FC = () => {
                   {/* Image gallery */}
                   {rev.review_images && rev.review_images.length > 0 && (
                     <div className="rh-gallery" id={`rh-gallery-${rev.id}`}>
-                      {rev.review_images.map((img) => (
-                        <div
-                          key={img.id}
-                          className="rh-gallery-item"
-                          onClick={() => window.open(img.image_url, "_blank")}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && window.open(img.image_url, "_blank")}
-                        >
-                          <img src={img.image_url} alt="Review photo" className="rh-gallery-img" />
-                        </div>
-                      ))}
+                      {rev.review_images.map((img, imgIdx) => {
+                        const allImages = rev.review_images!.map(i => i.image_url);
+                        return (
+                          <div
+                            key={img.id}
+                            className="rh-gallery-item"
+                            onClick={() => openLightbox(allImages, imgIdx)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === "Enter" && openLightbox(allImages, imgIdx)}
+                          >
+                            <img src={img.image_url} alt="Review photo" className="rh-gallery-img" />
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -399,6 +438,87 @@ const ReviewHistoryPage: FC = () => {
           imageUrl={currentAvatarUrl}
           onClose={() => setIsAvatarZoomed(false)}
         />
+      )}
+
+      {/* Lightbox / Image Slider */}
+      {lightbox && (
+        <div className="lightbox-overlay" onClick={() => setLightbox(null)} id="review-history-lightbox">
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            {/* Close button */}
+            <button className="lightbox-close" onClick={() => setLightbox(null)} id="lightbox-btn-close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Prev button */}
+            {lightbox.images.length > 1 && (
+              <button
+                className="lightbox-nav lightbox-nav--prev"
+                id="lightbox-btn-prev"
+                onClick={() =>
+                  setLightbox((prev) =>
+                    prev
+                      ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+                      : null
+                  )
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
+
+            <img
+              key={lightbox.index}
+              src={lightbox.images[lightbox.index]}
+              alt={`Image ${lightbox.index + 1}`}
+              className="lightbox-img"
+              id="lightbox-current-image"
+            />
+
+            {/* Next button */}
+            {lightbox.images.length > 1 && (
+              <button
+                className="lightbox-nav lightbox-nav--next"
+                id="lightbox-btn-next"
+                onClick={() =>
+                  setLightbox((prev) =>
+                    prev
+                      ? { ...prev, index: (prev.index + 1) % prev.images.length }
+                      : null
+                  )
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            )}
+
+            {/* Dots indicator */}
+            {lightbox.images.length > 1 && (
+              <div className="lightbox-dots">
+                {lightbox.images.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`lightbox-dot${i === lightbox.index ? " lightbox-dot--active" : ""}`}
+                    onClick={() => setLightbox((prev) => prev ? { ...prev, index: i } : null)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Counter */}
+            {lightbox.images.length > 1 && (
+              <div className="lightbox-counter">
+                {lightbox.index + 1} / {lightbox.images.length}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

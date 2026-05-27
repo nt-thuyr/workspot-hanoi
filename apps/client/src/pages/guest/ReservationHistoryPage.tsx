@@ -54,21 +54,21 @@ function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: (
         <div className="rhp-modal-overlay" onClick={onClose} id="modal-cancel-overlay">
             <div className="rhp-modal-box" onClick={(e) => e.stopPropagation()} id="modal-cancel-box">
                 <div className="rhp-modal-icon" id="modal-calendar-icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Calendar Body */}
-                        <rect x="4" y="5" width="16" height="15" rx="3" fill="white" stroke="#3d2f1e" strokeWidth="1.8" />
-                        {/* Calendar Header */}
-                        <path d="M4 8V7C4 5.89543 4.89543 5 6 5H18C19.1046 5 20 5.89543 20 7V8H4Z" fill="#dc2626" stroke="#3d2f1e" strokeWidth="1.8" />
-                        {/* Spiral rings */}
-                        <rect x="7" y="2" width="1.8" height="4" rx="0.9" fill="#ede8e0" stroke="#3d2f1e" strokeWidth="1.2" />
-                        <rect x="15" y="2" width="1.8" height="4" rx="0.9" fill="#ede8e0" stroke="#3d2f1e" strokeWidth="1.2" />
-                        {/* Spiral dots/holes */}
-                        <circle cx="10" cy="5" r="0.8" fill="#3d2f1e" />
-                        <circle cx="12" cy="5" r="0.8" fill="#3d2f1e" />
-                        <circle cx="14" cy="5" r="0.8" fill="#3d2f1e" />
-                        {/* Number 31 */}
-                        <text x="12" y="16.5" fill="#3d2f1e" fontFamily="'Space Grotesk', 'Noto Sans JP', sans-serif" fontSize="7.5" fontWeight="bold" textAnchor="middle">31</text>
-                    </svg>
+                    <div className="rhp-modal-icon-circle" id="modal-calendar-circle">
+                        <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Calendar sheet outline */}
+                            <rect x="5" y="8" width="22" height="19" rx="3" fill="none" stroke="#48382c" strokeWidth="2.2" />
+                            {/* Horizontal dividing line */}
+                            <line x1="5" y1="14" x2="27" y2="14" stroke="#48382c" strokeWidth="2.2" />
+                            {/* Two spiral rings */}
+                            <rect x="9" y="3" width="2.5" height="7" rx="1.2" fill="#48382c" />
+                            <rect x="20" y="3" width="2.5" height="7" rx="1.2" fill="#48382c" />
+                            {/* Inner cross 'X' inside box */}
+                            <rect x="11" y="17" width="10" height="7" rx="1" fill="none" stroke="#48382c" strokeWidth="1.8" />
+                            <line x1="13.5" y1="19.5" x2="18.5" y2="21.5" stroke="#48382c" strokeWidth="1.8" strokeLinecap="round" />
+                            <line x1="18.5" y1="19.5" x2="13.5" y2="21.5" stroke="#48382c" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                    </div>
                 </div>
                 <h3 className="rhp-modal-title">予約をキャンセルしますか？</h3>
                 <p className="rhp-modal-desc">
