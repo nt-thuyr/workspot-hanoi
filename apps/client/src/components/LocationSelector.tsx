@@ -57,17 +57,17 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
             errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
           }
           
-          alert(errorMessage);
+          console.error(errorMessage);
           setLoading(false);
         },
         {
           enableHighAccuracy: false,
-          timeout: 10000,
+          timeout: 30000,
           maximumAge: 60000,
         }
       );
     } else {
-      alert("Trình duyệt của bạn không hỗ trợ GPS.");
+      console.error("Trình duyệt của bạn không hỗ trợ GPS.");
       setLoading(false);
     }
   };
@@ -108,6 +108,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
         <MapContainer
           center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : centerHanoi}
           zoom={14}
+          minZoom={8}
           scrollWheelZoom={true}
           style={{ height: "100%", width: "100%" }}
           zoomControl={true}

@@ -207,6 +207,7 @@ export const createCafe = async (req: Request, res: Response) => {
     const tagArray = tags ? (Array.isArray(tags) ? tags : JSON.parse(tags || "[]")) : [];
     const tagToAmenityMap: { [key: string]: number } = {
       wifi: 1,
+      "fast wi-fi": 1,
       "高速wi-fi": 1,
       outlet: 2,
       コンセント: 2,
@@ -327,6 +328,7 @@ export const updateCafe = async (req: Request, res: Response) => {
     const tagArray = tags ? (Array.isArray(tags) ? tags : JSON.parse(tags || "[]")) : [];
     const tagToAmenityMap: { [key: string]: number } = {
       wifi: 1,
+      "fast wi-fi": 1,
       "高速wi-fi": 1,
       outlet: 2,
       コンセント: 2,
@@ -461,7 +463,7 @@ export const getMapCafes = async (req: Request, res: Response) => {
 
     // Map amenities to string tags
     const tagMap: Record<number, string> = {
-      1: "高速Wi-Fi", 2: "コンセント", 3: "静か", 4: "禁煙",
+      1: "Fast Wi-Fi", 2: "コンセント", 3: "Quiet", 4: "禁煙",
       5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
       9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
     };

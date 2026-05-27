@@ -317,7 +317,8 @@ const SearchPage: FC = () => {
   const filteredCafes = cafesWithDistance.filter((cafe) => {
     const matchSearch =
       cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.district.toLowerCase().includes(searchQuery.toLowerCase());
+      cafe.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cafe.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchOpen = !activeFilters.includes("営業中") || cafe.isOpenNow;
     const matchRating = !activeFilters.includes("高評価") || cafe.rating >= 4.7;
     return matchSearch && matchOpen && matchRating;
@@ -594,6 +595,7 @@ const SearchPage: FC = () => {
           <MapContainer
             center={userCoords}
             zoom={14}
+            minZoom={8}
             scrollWheelZoom
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}

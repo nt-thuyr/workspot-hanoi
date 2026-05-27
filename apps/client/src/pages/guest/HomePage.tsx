@@ -964,6 +964,7 @@ const HomePage: FC = () => {
             <MapContainer
               center={userCoords}
               zoom={14}
+              minZoom={8}
               scrollWheelZoom={true}
               style={{ height: "100%", width: "100%" }}
               zoomControl={false}

@@ -54,6 +54,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
     const [currentAddress, setCurrentAddress] = useState<string>(address || "");
     const [loading, setLoading] = useState(false);
     const [map, setMap] = useState<L.Map | null>(null);
+    const [mapZoom, setMapZoom] = useState(14);
 
     // Sync khi có tọa độ ban đầu truyền vào từ parent
     useEffect(() => {
@@ -67,6 +68,16 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
         });
       }
     }, [latitude, longitude, map]);
+
+    // Sync zoom level
+    useEffect(() => {
+      if (!map) return;
+      const onZoomEnd = () => setMapZoom(map.getZoom());
+      map.on("zoomend", onZoomEnd);
+      return () => {
+        map.off("zoomend", onZoomEnd);
+      };
+    }, [map]);
 
     // Chuyển đổi địa chỉ sang tọa độ (Geocoding)
     const geocodeAddress = async (addr: string) => {
@@ -221,17 +232,18 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
               errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
             }
 
-            alert(errorMessage);
+            console.error(errorMessage);
+            // Ignore alert to prevent false error blocking UI if position actually updated
             setLoading(false);
           },
           {
             enableHighAccuracy: false,
-            timeout: 10000,
+            timeout: 30000,
             maximumAge: 60000,
           }
         );
       } else {
-        alert("Trình duyệt của bạn không hỗ trợ GPS.");
+        console.error("Trình duyệt của bạn không hỗ trợ GPS.");
         setLoading(false);
       }
     };
@@ -255,6 +267,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
                 : centerHanoi
             }
             zoom={14}
+            minZoom={8}
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%", flex: 1 }}
             zoomControl={false}
@@ -281,18 +294,19 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           type="button"
           onClick={getCurrentLocation}
           disabled={loading}
-          className="absolute right-4 bottom-20 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center text-[#4f453e] hover:text-[#614734] hover:bg-gray-50 disabled:opacity-50 transition-colors z-400"
+          className="absolute right-4 bottom-4 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center text-[#4f453e] hover:text-[#614734] hover:bg-gray-50 disabled:opacity-50 transition-colors z-400"
           title="Lấy vị trí hiện tại"
         >
           <span className="material-symbols-outlined">my_location</span>
         </button>
 
         {/* Zoom Controls */}
-        <div className="absolute right-4 bottom-4 flex flex-col bg-white rounded-lg shadow-md overflow-hidden z-400">
+        <div className="absolute right-4 bottom-20 flex flex-col bg-white rounded-lg shadow-md overflow-hidden z-400">
           <button
             type="button"
-            className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 border-b border-gray-100 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Phóng to"
+            disabled={mapZoom >= 18}
             onClick={() => {
               if (map) map.zoomIn();
             }}
@@ -301,8 +315,9 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           </button>
           <button
             type="button"
-            className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Thu nhỏ"
+            disabled={mapZoom <= 8}
             onClick={() => {
               if (map) map.zoomOut();
             }}

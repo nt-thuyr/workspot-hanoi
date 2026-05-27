@@ -154,11 +154,11 @@ export const EditCafePage: React.FC = () => {
                   .map((a: any) => {
                     switch (a.amenity_id) {
                       case 1:
-                        return "高速Wi-Fi";
+                        return "Fast Wi-Fi";
                       case 2:
                         return "コンセント";
                       case 3:
-                        return "静かな環境";
+                        return "Quiet";
                       case 4:
                         return "禁煙";
                       case 5:
