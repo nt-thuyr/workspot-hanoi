@@ -100,11 +100,41 @@ const OwnerDashboardPage: FC = () => {
         );
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
-          setCafes(result.data);
+          const rawCafes = result.data;
+          
+          const enrichedCafes = await Promise.all(rawCafes.map(async (cafe: OwnerCafe) => {
+            try {
+              const [detailRes, resRes, revRes] = await Promise.all([
+                fetch(`http://localhost:3000/api/cafes/${cafe.id}`),
+                fetch(`http://localhost:3000/api/reservations/cafe/${cafe.id}?owner_id=${ownerId}&page=1&limit=0`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                }),
+                fetch(`http://localhost:3000/api/reviews/cafe/${cafe.id}`)
+              ]);
+              
+              const detailData = await detailRes.json();
+              const resData = await resRes.json();
+              const revData = await revRes.json();
+              
+              const fullCafe = detailData.success ? detailData.data : cafe;
+              
+              return {
+                ...cafe,
+                ...fullCafe,
+                reservations: resData.success && Array.isArray(resData.data) ? resData.data : [],
+                reviews: revData.success && Array.isArray(revData.data) ? revData.data : []
+              };
+            } catch (err) {
+              console.error("Error enriching cafe details", err);
+              return cafe;
+            }
+          }));
+
+          setCafes(enrichedCafes);
           
           // Initialize active index for each cafe's carousel to 0
           const indices: Record<string, number> = {};
-          result.data.forEach((cafe: OwnerCafe) => {
+          enrichedCafes.forEach((cafe: OwnerCafe) => {
             indices[cafe.id] = 0;
           });
           setCarouselIndices(indices);
@@ -241,7 +271,7 @@ const OwnerDashboardPage: FC = () => {
                           {isOpen ? "営業中" : "閉店中"}
                         </span>
                       </div>
-                      <div className="meta-row address-row">
+                      <div className="meta-row address-row" title={cafe.address}>
                         <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                           <circle cx="12" cy="10" r="3" />
@@ -284,6 +314,9 @@ const OwnerDashboardPage: FC = () => {
                             alt={`${cafe.name} view`} 
                             className="carousel-image"
                           />
+                          <div className="carousel-counter">
+                            {activeSlide + 1} / {carouselImages.length}
+                          </div>
                           {carouselImages.length > 1 && (
                             <>
                               <button 
@@ -314,11 +347,22 @@ const OwnerDashboardPage: FC = () => {
 
                       {menuPhotos.length > 0 && (
                         <div className="thumbnails-container">
-                          {menuPhotos.slice(0, 3).map((thumbUrl, tIdx) => (
-                            <div key={tIdx} className="thumbnail-wrapper">
-                              <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
-                            </div>
-                          ))}
+                          {menuPhotos.slice(0, 3).map((thumbUrl, tIdx) => {
+                            const isLast = tIdx === 2;
+                            const hasMore = menuPhotos.length > 3;
+                            return (
+                              <div key={tIdx} className="thumbnail-wrapper" style={{ position: "relative" }}>
+                                <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
+                                {isLast && hasMore && (
+                                  <div style={{
+                                    position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", fontWeight: "bold"
+                                  }}>
+                                    +{menuPhotos.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
