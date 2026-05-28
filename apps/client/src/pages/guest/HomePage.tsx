@@ -91,6 +91,7 @@ const HomePage: FC = () => {
   const lastProcessedCafeIdRef = useRef<string | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
+  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Search suggestions
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -163,6 +164,23 @@ const HomePage: FC = () => {
     const onZoomEnd = () => setMapZoom(map.getZoom());
     map.on("zoomend", onZoomEnd);
     return () => { map.off("zoomend", onZoomEnd); };
+  }, [map]);
+
+  // Cập nhật locationName theo tâm bản đồ khi người dùng kéo/zoom (debounce 600ms)
+  useEffect(() => {
+    if (!map) return;
+    const onMoveEnd = () => {
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+      geocodeTimerRef.current = setTimeout(() => {
+        const center = map.getCenter();
+        reverseGeocode(center.lat, center.lng);
+      }, 600);
+    };
+    map.on("moveend", onMoveEnd);
+    return () => {
+      map.off("moveend", onMoveEnd);
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+    };
   }, [map]);
 
   // Xoay bản đồ tới vị trí người dùng khi có GPS mới (chỉ tự động chạy nếu không có cafeId trên URL)
