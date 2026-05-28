@@ -91,6 +91,7 @@ const HomePage: FC = () => {
   const lastProcessedCafeIdRef = useRef<string | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
+  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Search suggestions
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -163,6 +164,23 @@ const HomePage: FC = () => {
     const onZoomEnd = () => setMapZoom(map.getZoom());
     map.on("zoomend", onZoomEnd);
     return () => { map.off("zoomend", onZoomEnd); };
+  }, [map]);
+
+  // Cập nhật locationName theo tâm bản đồ khi người dùng kéo/zoom (debounce 600ms)
+  useEffect(() => {
+    if (!map) return;
+    const onMoveEnd = () => {
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+      geocodeTimerRef.current = setTimeout(() => {
+        const center = map.getCenter();
+        reverseGeocode(center.lat, center.lng);
+      }, 600);
+    };
+    map.on("moveend", onMoveEnd);
+    return () => {
+      map.off("moveend", onMoveEnd);
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+    };
   }, [map]);
 
   // Xoay bản đồ tới vị trí người dùng khi có GPS mới (chỉ tự động chạy nếu không có cafeId trên URL)
@@ -856,7 +874,11 @@ const HomePage: FC = () => {
                 <div className="search-results-section flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
                     <span className="font-bold text-[#614734]">
-                      「{searchQuery || (activeTags[0] ?? activeFilters[0] ?? "すべて")}」
+                      「{searchQuery
+                        ? searchQuery
+                        : [...activeTags, ...activeFilters].length > 0
+                          ? [...activeTags, ...activeFilters].join("・")
+                          : "すべて"}」
                     </span>
                     {" で "}
                     <span className="font-bold text-[#614734]">
@@ -926,6 +948,7 @@ const HomePage: FC = () => {
                               </div>
 
                               <div className="space-y-1 mt-2 text-xs text-gray-500">
+                                {cafe.tags?.includes("Fast Wi-Fi") && (
                                 <div className="flex items-center gap-1.5 truncate">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
                                     <path d="M5 12.55a11 11 0 0 1 14.08 0" />
@@ -933,8 +956,9 @@ const HomePage: FC = () => {
                                     <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
                                     <circle cx="12" cy="20" r="1" fill="currentColor" />
                                   </svg>
-                                  <span className="truncate">{cafe.tags?.[0] || "Wi-Fi"}</span>
+                                  <span className="truncate">Fast Wi-Fi</span>
                                 </div>
+                              )}
                                 <div className="flex items-center gap-1.5 truncate">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -1011,22 +1035,24 @@ const HomePage: FC = () => {
                           </span>
                         </div>
                         <StarRating value={cafe.rating} />
-                        <div className="popup-row">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            width="12"
-                            height="12"
-                          >
-                            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                            <circle cx="12" cy="20" r="1" fill="currentColor" />
-                          </svg>
-                          {cafe.tags?.[0] ?? "Wi-Fi"}
-                        </div>
+                        {cafe.tags?.includes("Fast Wi-Fi") && (
+                          <div className="popup-row">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              width="12"
+                              height="12"
+                            >
+                              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                              <circle cx="12" cy="20" r="1" fill="currentColor" />
+                            </svg>
+                            Fast Wi-Fi
+                          </div>
+                        )}
                         <div className="popup-row popup-dist">
                           {cafe.distance ? `${cafe.distance} km` : ""}
                         </div>
