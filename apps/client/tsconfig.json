@@ -1,11 +1,16 @@
 {
-  "extends": "@workspot/typescript-config/react-library.json",
+  "extends": "../../packages/typescript-config/react-library.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ES2022",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "paths": {
+      "@workspot/*": ["../../packages/*"]
+    }
   },
   "include": ["src/**/*"]
 }

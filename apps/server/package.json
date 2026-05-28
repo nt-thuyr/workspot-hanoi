@@ -2,18 +2,29 @@
   "name": "server",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all -p watch start",
+    "dev": "npm run build && npm-run-all -p watch start-dev",
     "watch": "tsc --watch",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start-dev": "nodemon dist/index.js",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^4.22.1"
+    "@supabase/supabase-js": "^2.105.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.22.1",
+    "express-rate-limit": "^8.5.1",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.7"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.0",
     "@workspot/typescript-config": "*",
     "eslint": "^8.57.0",
     "nodemon": "^3.0.3",
