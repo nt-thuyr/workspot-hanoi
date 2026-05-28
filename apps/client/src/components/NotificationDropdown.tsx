@@ -78,7 +78,7 @@ const extractRating = (item: NotificationItem) => {
     }
 
     const text = `${item.content ?? ''} ${item.title ?? ''}`;
-    const match = text.match(/(?:^|\s)([1-5](?:\.\d)?)\s*(?:\/\s*5|sao|star|stars|★|☆|⭐)/i);
+    const match = text.match(/(?:^|\s|・)([1-5](?:\.\d)?)\s*(?:\/\s*5|sao|star|stars|★|☆|⭐)/i);
     if (match?.[1]) {
         return Math.max(1, Math.min(5, Math.round(Number(match[1]))));
     }
