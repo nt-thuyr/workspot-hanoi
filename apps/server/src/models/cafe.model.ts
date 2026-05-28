@@ -87,7 +87,7 @@ export class CafeModel {
     if (limit <= 0) {
       const { data, error, count } = await supabase
         .from("cafes")
-            .select("*, cafe_images(image_url, image_type)", { count: "exact" })
+        .select(selectQuery, { count: "exact" })
         .eq("owner_id", ownerId);
 
       if (error) throw error;

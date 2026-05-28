@@ -80,6 +80,8 @@ const OwnerDashboardPage: FC = () => {
   const [cafes, setCafes] = useState<OwnerCafe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   useEffect(() => {
     const userRole = localStorage.getItem("user_role");
@@ -121,6 +123,16 @@ const OwnerDashboardPage: FC = () => {
               return {
                 ...cafe,
                 ...fullCafe,
+                cafe_images: (fullCafe.images && fullCafe.images.length > 0)
+                  ? fullCafe.images
+                  : (fullCafe.cafe_images && fullCafe.cafe_images.length > 0)
+                    ? fullCafe.cafe_images
+                    : (cafe.cafe_images || []),
+                cafe_amenities: (fullCafe.amenities && fullCafe.amenities.length > 0)
+                  ? fullCafe.amenities
+                  : (fullCafe.cafe_amenities && fullCafe.cafe_amenities.length > 0)
+                    ? fullCafe.cafe_amenities
+                    : (cafe.cafe_amenities || []),
                 reservations: resData.success && Array.isArray(resData.data) ? resData.data : [],
                 reviews: revData.success && Array.isArray(revData.data) ? revData.data : []
               };
@@ -227,12 +239,10 @@ const OwnerDashboardPage: FC = () => {
         ) : (
           <div className="dashboard-cards-container">
             {cafes.map((cafe) => {
-              // Extract interior photos for main carousel
-              const interiorPhotos = (cafe.cafe_images || [])
-                .filter((img) => img.image_type !== "MENU")
-                .map((img) => img.image_url);
+              // Extract all uploaded photos for main carousel
+              const allUploadedPhotos = (cafe.cafe_images || []).map((img) => img.image_url);
               
-              const carouselImages = interiorPhotos.length > 0 ? interiorPhotos : DEFAULT_CAROUSEL_IMAGES;
+              const carouselImages = allUploadedPhotos.length > 0 ? allUploadedPhotos : DEFAULT_CAROUSEL_IMAGES;
               const activeSlide = carouselIndices[cafe.id] || 0;
 
               // Extract menu photos for thumbnails
@@ -313,6 +323,11 @@ const OwnerDashboardPage: FC = () => {
                             src={carouselImages[activeSlide]} 
                             alt={`${cafe.name} view`} 
                             className="carousel-image"
+                            onClick={() => {
+                              setPreviewImages(carouselImages);
+                              setPreviewIndex(activeSlide);
+                            }}
+                            style={{ cursor: "pointer" }}
                           />
                           <div className="carousel-counter">
                             {activeSlide + 1} / {carouselImages.length}
@@ -351,7 +366,16 @@ const OwnerDashboardPage: FC = () => {
                             const isLast = tIdx === 2;
                             const hasMore = menuPhotos.length > 3;
                             return (
-                              <div key={tIdx} className="thumbnail-wrapper" style={{ position: "relative" }}>
+                              <div 
+                                key={tIdx} 
+                                className="thumbnail-wrapper" 
+                                style={{ position: "relative", cursor: "pointer" }}
+                                onClick={() => {
+                                  setPreviewImages(carouselImages);
+                                  const idx = carouselImages.indexOf(thumbUrl);
+                                  setPreviewIndex(idx >= 0 ? idx : 0);
+                                }}
+                              >
                                 <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
                                 {isLast && hasMore && (
                                   <div style={{
@@ -429,6 +453,51 @@ const OwnerDashboardPage: FC = () => {
           </div>
         )}
       </main>
+
+      {previewImages.length > 0 && (
+        <div className="image-modal-overlay" onClick={() => setPreviewImages([])}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={() => setPreviewImages([])}>
+              ✕
+            </button>
+            
+            <div className="image-modal-body">
+              <img 
+                src={previewImages[previewIndex]} 
+                alt="Preview zoom" 
+                className="image-modal-img" 
+              />
+              
+              {previewImages.length > 1 && (
+                <>
+                  <button 
+                    className="modal-arrow modal-arrow--prev"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewIndex((prev) => (prev - 1 + previewImages.length) % previewImages.length);
+                    }}
+                  >
+                    ‹
+                  </button>
+                  <button 
+                    className="modal-arrow modal-arrow--next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+                    }}
+                  >
+                    ›
+                  </button>
+                  
+                  <div className="modal-counter">
+                    {previewIndex + 1} / {previewImages.length}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
