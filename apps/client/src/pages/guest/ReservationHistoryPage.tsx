@@ -92,11 +92,14 @@ function CancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: (
     );
 }
 
-// Định dạng ngày từ ISO thành "yyyy年M月d日"
+// Định dạng ngày từ ISO thành "yyyy/MM/dd"
 function formatDate(dateStr: string): string {
     try {
         const d = new Date(dateStr);
-        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}/${mm}/${dd}`;
     } catch {
         return dateStr;
     }

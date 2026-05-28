@@ -37,7 +37,10 @@ const getRelativeTime = (createdAt: string) => {
     if (diffHours < 24) return `${diffHours}時間前`;
     if (diffDays < 7) return `${diffDays}日前`;
 
-    return created.toLocaleDateString('ja-JP');
+    const yyyy = created.getFullYear();
+    const mm = String(created.getMonth() + 1).padStart(2, '0');
+    const dd = String(created.getDate()).padStart(2, '0');
+    return `${yyyy}/${mm}/${dd}`;
 };
 
 const inferNotificationKind = (item: NotificationItem) => {

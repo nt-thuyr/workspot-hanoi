@@ -276,7 +276,10 @@ const ReviewPage: FC = () => {
     try {
       const d = new Date(dateString);
       if (isNaN(d.getTime())) return dateString;
-      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}/${mm}/${dd}`;
     } catch {
       return dateString;
     }

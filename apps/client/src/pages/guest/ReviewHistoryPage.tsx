@@ -101,7 +101,10 @@ function StarRow({ rating }: { rating: number }) {
 function fmtDate(iso: string) {
   try {
     const d = new Date(iso);
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}/${mm}/${dd}`;
   } catch { return iso; }
 }
 
