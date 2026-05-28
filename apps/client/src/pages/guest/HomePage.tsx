@@ -874,7 +874,11 @@ const HomePage: FC = () => {
                 <div className="search-results-section flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
                     <span className="font-bold text-[#614734]">
-                      「{searchQuery || (activeTags[0] ?? activeFilters[0] ?? "すべて")}」
+                      「{searchQuery
+                        ? searchQuery
+                        : [...activeTags, ...activeFilters].length > 0
+                          ? [...activeTags, ...activeFilters].join("・")
+                          : "すべて"}」
                     </span>
                     {" で "}
                     <span className="font-bold text-[#614734]">
