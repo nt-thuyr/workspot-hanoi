@@ -202,6 +202,12 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
 
     // Lấy vị trí hiện tại của người dùng
     const getCurrentLocation = () => {
+      // Phản hồi UI ngay lập tức: đưa bản đồ về vị trí ghim hiện tại (nếu có)
+      if (selectedLocation && map) {
+        const currentZoom = map.getZoom();
+        map.setView([selectedLocation.lat, selectedLocation.lng], currentZoom > 14 ? currentZoom : 14);
+      }
+
       setLoading(true);
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -210,7 +216,8 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             setSelectedLocation({ lat: posLat, lng: posLng });
 
             if (map) {
-              map.setView([posLat, posLng], 14);
+              const currentZoom = map.getZoom();
+              map.setView([posLat, posLng], currentZoom > 14 ? currentZoom : 14);
             }
 
             const newAddress = await reverseGeocode(posLat, posLng);
@@ -233,7 +240,14 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             }
 
             console.error(errorMessage);
-            // Ignore alert to prevent false error blocking UI if position actually updated
+            
+            // Nếu không lấy được GPS (do từ chối quyền, timeout, v.v.)
+            // Ít nhất hãy đưa map về lại vị trí ghim đỏ (nếu có) để người dùng không bị kẹt
+            if (selectedLocation && map) {
+              const currentZoom = map.getZoom();
+              map.setView([selectedLocation.lat, selectedLocation.lng], currentZoom > 14 ? currentZoom : 14);
+            }
+
             setLoading(false);
           },
           {

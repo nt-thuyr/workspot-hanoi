@@ -181,8 +181,31 @@ const OwnerCafeListPage: FC = () => {
   );
 
   const filteredReservations = useMemo(() => {
-    if (activeFilter === "all") return reservations;
-    return reservations.filter((item) => item.status === activeFilter);
+    let filtered = reservations;
+    if (activeFilter !== "all") {
+      filtered = reservations.filter((item) => item.status === activeFilter);
+    }
+
+    return [...filtered].sort((a, b) => {
+      // 1. PENDING lên đầu
+      if (a.status === "PENDING" && b.status !== "PENDING") return -1;
+      if (b.status === "PENDING" && a.status !== "PENDING") return 1;
+
+      // 2. Thời gian mới nhất (descending)
+      let timeA = new Date(a.res_date).getTime();
+      let timeB = new Date(b.res_date).getTime();
+
+      if (!Number.isNaN(timeA) && a.res_time) {
+        const [h, m] = a.res_time.split(":").map(Number);
+        timeA += ((h || 0) * 60 + (m || 0)) * 60000;
+      }
+      if (!Number.isNaN(timeB) && b.res_time) {
+        const [h, m] = b.res_time.split(":").map(Number);
+        timeB += ((h || 0) * 60 + (m || 0)) * 60000;
+      }
+
+      return timeB - timeA;
+    });
   }, [activeFilter, reservations]);
 
   const getDisplayName = (item: ReservationItem) => {

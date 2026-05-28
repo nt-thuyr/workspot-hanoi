@@ -112,8 +112,6 @@ const ReservationHistoryPage: FC = () => {
 
     // Kiểm tra trạng thái đăng nhập
     const isLoggedIn = !!localStorage.getItem("access_token");
-    const userRole = localStorage.getItem("user_role");
-    const navMode = isLoggedIn && userRole === "cafe_owner" ? "owner" : "guest";
 
     // Gọi API lấy danh sách lịch sử đặt chỗ
     const fetchReservationHistory = async () => {
@@ -272,7 +270,7 @@ const ReservationHistoryPage: FC = () => {
     return (
         <div className="rhp-root">
             {/* THANH NAVBAR */}
-            <TopNavBar mode={navMode} activeTab="history" />
+            <TopNavBar mode="guest" activeTab="history" />
 
             {/* LAYOUT CHÍNH: sidebar trái + nội dung phải */}
             <div className="rhp-body">

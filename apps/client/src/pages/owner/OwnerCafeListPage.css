@@ -486,6 +486,8 @@
   color: var(--ink-500);
   font-size: 0.85rem;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .review-media {
