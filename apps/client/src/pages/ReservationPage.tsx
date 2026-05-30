@@ -6,6 +6,8 @@ import "leaflet/dist/leaflet.css";
 import { TopNavBar } from "../components/TopNavBar";
 import "./ReservationPage.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface CafeMarker {
   id: string;
   name: string;
@@ -65,20 +67,24 @@ const createUserLocationIcon = () => {
 const getTodayInputValue = () => {
   const now = new Date();
   const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, '0');
-  const day = `${now.getDate()}`.padStart(2, '0');
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const parseTimeToMinutes = (time: string) => {
-  const [hoursStr = '', minutesStr = ''] = time.split(':');
+  const [hoursStr = "", minutesStr = ""] = time.split(":");
   const hours = parseInt(hoursStr, 10);
   const minutes = parseInt(minutesStr, 10);
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
   return hours * 60 + minutes;
 };
 
-const isTimeWithinCafeHours = (time: string, openTime?: string | null, closeTime?: string | null) => {
+const isTimeWithinCafeHours = (
+  time: string,
+  openTime?: string | null,
+  closeTime?: string | null,
+) => {
   if (!openTime || !closeTime) return false;
 
   const target = parseTimeToMinutes(time);
@@ -105,7 +111,11 @@ interface MapEventsProps {
   disabled?: boolean;
 }
 
-function MapEvents({ onLocationSelect, onMapMoveEnd, disabled }: MapEventsProps) {
+function MapEvents({
+  onLocationSelect,
+  onMapMoveEnd,
+  disabled,
+}: MapEventsProps) {
   const map = useMap();
   useEffect(() => {
     if (disabled) return undefined;
@@ -118,8 +128,6 @@ function MapEvents({ onLocationSelect, onMapMoveEnd, disabled }: MapEventsProps)
     };
     map.on("click", handleMapClick);
     map.on("moveend", handleMoveEnd);
-
-
 
     return () => {
       map.off("click", handleMapClick);
@@ -143,7 +151,9 @@ const ReservationPage: FC = () => {
   const [cafes, setCafes] = useState<CafeMarker[]>([]);
   const [selectedCafe, setSelectedCafe] = useState<CafeMarker | null>(null);
   const [bookingCafe, setBookingCafe] = useState<CafeMarker | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<
+    [number, number] | null
+  >(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(centerHanoi);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [mapZoom, setMapZoom] = useState(13);
@@ -159,7 +169,7 @@ const ReservationPage: FC = () => {
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&language=vi`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&language=vi`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -190,7 +200,9 @@ const ReservationPage: FC = () => {
   }, [mapCenter]);
 
   const openNativePicker = (inputRef: React.RefObject<HTMLInputElement>) => {
-    const input = inputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    const input = inputRef.current as
+      | (HTMLInputElement & { showPicker?: () => void })
+      | null;
     if (!input) return;
     if (input.showPicker) {
       input.showPicker();
@@ -207,7 +219,7 @@ const ReservationPage: FC = () => {
         const params = new URLSearchParams(window.location.search);
         const cafeId = params.get("cafeId");
         const response = await fetch(
-          `http://localhost:3000/api/cafes/map?lat=${mapCenter[0]}&lng=${mapCenter[1]}&maxDistance=30`
+          `${API_BASE_URL}/api/cafes/map?lat=${mapCenter[0]}&lng=${mapCenter[1]}&maxDistance=30`,
         );
         const data = await response.json();
         if (data.success) {
@@ -226,30 +238,49 @@ const ReservationPage: FC = () => {
             distance: cafe.distance,
           }));
           setCafes(cafeList);
-          
+
           let targetCafe: CafeMarker | null = null;
 
           if (cafeId) {
-            targetCafe = cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
+            targetCafe =
+              cafeList.find((cafe: CafeMarker) => cafe.id === cafeId) || null;
             if (!targetCafe) {
-              const detailResponse = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+              const detailResponse = await fetch(
+                `${API_BASE_URL}/api/cafes/${cafeId}`,
+              );
               const detailResult = await detailResponse.json();
               if (detailResult.success && detailResult.data) {
                 const cafe = detailResult.data;
-                
+
                 const tagMap: Record<number, string> = {
-                  1: "高速Wi-Fi", 2: "コンセント", 3: "静か", 4: "禁煙",
-                  5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
-                  9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
+                  1: "高速Wi-Fi",
+                  2: "コンセント",
+                  3: "静か",
+                  4: "禁煙",
+                  5: "エアコン",
+                  6: "ペット可",
+                  7: "駐車場",
+                  8: "テラス席",
+                  9: "飲食可",
+                  10: "プロジェクター",
+                  11: "会議室",
+                  12: "24時間営業",
                 };
-                const standardTags = (cafe.amenities || []).map((a: any) => tagMap[a.amenity_id]).filter(Boolean);
-                const combinedTags = [...standardTags, ...(cafe.custom_tags || [])];
+                const standardTags = (cafe.amenities || [])
+                  .map((a: any) => tagMap[a.amenity_id])
+                  .filter(Boolean);
+                const combinedTags = [
+                  ...standardTags,
+                  ...(cafe.custom_tags || []),
+                ];
 
                 const checkIsOpen = (openTime: string, closeTime: string) => {
                   if (!openTime || !closeTime) return false;
                   const now = new Date();
                   const currentTimeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-                  return currentTimeStr >= openTime && currentTimeStr <= closeTime;
+                  return (
+                    currentTimeStr >= openTime && currentTimeStr <= closeTime
+                  );
                 };
 
                 targetCafe = {
@@ -304,8 +335,11 @@ const ReservationPage: FC = () => {
           setMapCenter([latitude, longitude]);
         },
         (error) => {
-          console.warn("[ReservationPage] GPS error, falling back to HUST B1:", error);
-        }
+          console.warn(
+            "[ReservationPage] GPS error, falling back to HUST B1:",
+            error,
+          );
+        },
       );
     }
   }, []);
@@ -315,11 +349,13 @@ const ReservationPage: FC = () => {
     if (!map) return;
     const onZoomEnd = () => setMapZoom(map.getZoom());
     map.on("zoomend", onZoomEnd);
-    return () => { map.off("zoomend", onZoomEnd); };
+    return () => {
+      map.off("zoomend", onZoomEnd);
+    };
   }, [map]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -362,19 +398,25 @@ const ReservationPage: FC = () => {
     map.flyTo(mapCenter, 14, { animate: true });
   };
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
-    if (!formData.guestName.trim() || !formData.date || !formData.time || !selectedCafe) {
+    if (
+      !formData.guestName.trim() ||
+      !formData.date ||
+      !formData.time ||
+      !selectedCafe
+    ) {
       setAlertVariant("error");
       setShowAlert("すべての情報を入力し、カフェを選択してください。");
       return;
     }
 
-    const selectedDateTime = buildReservationDateTime(formData.date, formData.time);
+    const selectedDateTime = buildReservationDateTime(
+      formData.date,
+      formData.time,
+    );
     if (Number.isNaN(selectedDateTime.getTime())) {
       setAlertVariant("error");
       setShowAlert("予約日時が無効です。");
@@ -388,10 +430,18 @@ const ReservationPage: FC = () => {
       return;
     }
 
-    if (!isTimeWithinCafeHours(formData.time, selectedCafe.openTime, selectedCafe.closeTime)) {
+    if (
+      !isTimeWithinCafeHours(
+        formData.time,
+        selectedCafe.openTime,
+        selectedCafe.closeTime,
+      )
+    ) {
       if (selectedCafe.openTime && selectedCafe.closeTime) {
         setAlertVariant("error");
-        setShowAlert(`予約時間は営業時間内（${selectedCafe.openTime.slice(0, 5)}〜${selectedCafe.closeTime.slice(0, 5)}）で指定してください。`);
+        setShowAlert(
+          `予約時間は営業時間内（${selectedCafe.openTime.slice(0, 5)}〜${selectedCafe.closeTime.slice(0, 5)}）で指定してください。`,
+        );
       } else {
         setAlertVariant("error");
         setShowAlert("このカフェの営業時間が取得できませんでした。");
@@ -407,24 +457,24 @@ const ReservationPage: FC = () => {
         return;
       }
 
-      const response = await fetch("http://localhost:3000/api/reservations", {
+      const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           guest_name: formData.guestName.trim(),
           res_date: formData.date,
           res_time: formData.time,
           num_guests: formData.guests,
-          cafe_id: selectedCafe.id
+          cafe_id: selectedCafe.id,
           // Không cần gửi user_id vì Backend đã tự lấy từ Token
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setAlertVariant("success");
         setShowAlert("予約が完了しました。履歴をご確認ください。");
@@ -449,14 +499,23 @@ const ReservationPage: FC = () => {
         {/* Left Panel - Reservation Form */}
         <div className="reservation-panel">
           <div className="reservation-header">
-            <button className="reservation-back-btn" onClick={() => window.history.back()}>
-              <span className="reservation-back-btn__icon" aria-hidden="true">←</span>
+            <button
+              className="reservation-back-btn"
+              onClick={() => window.history.back()}
+            >
+              <span className="reservation-back-btn__icon" aria-hidden="true">
+                ←
+              </span>
               <span className="reservation-back-btn__label">
-                {bookingCafe ? `${bookingCafe.name} の席を予約` : "席を予約する"}
+                {bookingCafe
+                  ? `${bookingCafe.name} の席を予約`
+                  : "席を予約する"}
               </span>
             </button>
             <p className="reservation-subtitle">
-              {bookingCafe ? `「${bookingCafe.name}」の予約情報をご入力ください` : "予約情報をご入力ください"}
+              {bookingCafe
+                ? `「${bookingCafe.name}」の予約情報をご入力ください`
+                : "予約情報をご入力ください"}
             </p>
           </div>
 
@@ -505,7 +564,6 @@ const ReservationPage: FC = () => {
               </div>
             </div>
 
-
             {/* Time Field */}
             <div className="form-group">
               <label htmlFor="time" className="form-label">
@@ -521,8 +579,16 @@ const ReservationPage: FC = () => {
                   onChange={handleInputChange}
                   className="form-input"
                   ref={timeInputRef}
-                  min={selectedCafe?.openTime ? selectedCafe.openTime.slice(0, 5) : undefined}
-                  max={selectedCafe?.closeTime ? selectedCafe.closeTime.slice(0, 5) : undefined}
+                  min={
+                    selectedCafe?.openTime
+                      ? selectedCafe.openTime.slice(0, 5)
+                      : undefined
+                  }
+                  max={
+                    selectedCafe?.closeTime
+                      ? selectedCafe.closeTime.slice(0, 5)
+                      : undefined
+                  }
                 />
                 <span
                   className="time-icon"
@@ -553,7 +619,6 @@ const ReservationPage: FC = () => {
                 ))}
               </select>
             </div>
-
 
             {/* Alert Message */}
             {showAlert && (
@@ -591,12 +656,15 @@ const ReservationPage: FC = () => {
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
+                attribution="&copy; OpenStreetMap contributors"
               />
 
               {/* User Location */}
               {currentLocation && (
-                <Marker position={currentLocation} icon={createUserLocationIcon()}>
+                <Marker
+                  position={currentLocation}
+                  icon={createUserLocationIcon()}
+                >
                   <Popup>あなたの現在地</Popup>
                 </Marker>
               )}
@@ -609,7 +677,11 @@ const ReservationPage: FC = () => {
                     key={cafe.id}
                     position={[cafe.lat, cafe.lng]}
                     icon={createCafeIcon()}
-                    ref={cafe.id === selectedCafe?.id ? selectedMarkerRef : undefined}
+                    ref={
+                      cafe.id === selectedCafe?.id
+                        ? selectedMarkerRef
+                        : undefined
+                    }
                     eventHandlers={{
                       click: () => handleCafeSelect(cafe),
                     }}
@@ -645,11 +717,29 @@ const ReservationPage: FC = () => {
                           {cafe.distance ? `${cafe.distance} km` : ""}
                         </div>
                         {cafe.id === bookingCafe?.id ? (
-                          <div className="popup-booking-status" style={{ textAlign: "center", color: "#614734", fontWeight: "bold", fontSize: "11px", marginTop: "8px" }}>
+                          <div
+                            className="popup-booking-status"
+                            style={{
+                              textAlign: "center",
+                              color: "#614734",
+                              fontWeight: "bold",
+                              fontSize: "11px",
+                              marginTop: "8px",
+                            }}
+                          >
                             選択中
                           </div>
                         ) : (
-                          <Link to={`/?cafeId=${cafe.id}`} className="popup-select-btn text-center decoration-none" style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: "8px" }}>
+                          <Link
+                            to={`/?cafeId=${cafe.id}`}
+                            className="popup-select-btn text-center decoration-none"
+                            style={{
+                              display: "block",
+                              textAlign: "center",
+                              textDecoration: "none",
+                              marginTop: "8px",
+                            }}
+                          >
                             詳細を見る →
                           </Link>
                         )}
@@ -726,7 +816,6 @@ const ReservationPage: FC = () => {
                 </svg>
               </button>
             </div>
-
           </div>
         </div>
       </div>

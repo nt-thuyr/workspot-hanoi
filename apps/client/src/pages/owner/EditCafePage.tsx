@@ -11,6 +11,8 @@ import {
 } from "../../components/cafe/LocationMap";
 import toast from "react-hot-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface MenuImage {
   id: string;
   src: string;
@@ -73,7 +75,7 @@ export const EditCafePage: React.FC = () => {
         if (!targetCafeId) {
           // Step 1: Lấy list cafes của owner để lấy cafeId
           const ownerResponse = await fetch(
-            `http://localhost:3000/api/cafes/owner/${ownerId}`,
+            `${API_BASE_URL}/api/cafes/owner/${ownerId}`,
           );
           const ownerResult = await ownerResponse.json();
 
@@ -90,7 +92,7 @@ export const EditCafePage: React.FC = () => {
           setCafeId(targetCafeId);
           // Step 2: Fetch chi tiết quán bằng ID để lấy amenities & images
           const detailResponse = await fetch(
-            `http://localhost:3000/api/cafes/${targetCafeId}`,
+            `${API_BASE_URL}/api/cafes/${targetCafeId}`,
           );
           const detailResult = await detailResponse.json();
 
@@ -439,13 +441,10 @@ export const EditCafePage: React.FC = () => {
         }
       });
 
-      const response = await fetch(
-        `http://localhost:3000/api/cafes/${cafeId}`,
-        {
-          method: "PUT",
-          body: formDataToSend,
-        },
-      );
+      const response = await fetch(`${API_BASE_URL}/api/cafes/${cafeId}`, {
+        method: "PUT",
+        body: formDataToSend,
+      });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update");

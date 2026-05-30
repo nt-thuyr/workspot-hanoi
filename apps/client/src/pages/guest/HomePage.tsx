@@ -1,4 +1,11 @@
-import { useState, useEffect, type FC, useCallback, useRef, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  type FC,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { Link } from "react-router-dom";
 import {
   MapContainer,
@@ -12,6 +19,8 @@ import "leaflet/dist/leaflet.css";
 
 import { TopNavBar } from "../../components/TopNavBar";
 import "./HomePage.css";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // 2. Cấu hình Icon cho ghim (Marker) — đồng bộ với màn Edit Cafe
 const createCafeIcon = (isSelected = false) => {
@@ -99,14 +108,28 @@ const HomePage: FC = () => {
     const q = searchQuery.trim().toLowerCase();
     if (!q || q.length < 1 || cafes.length === 0) return [];
     const seen = new Set<string>();
-    const results: { label: string; sub: string; type: "cafe" | "area"; cafeRef?: CafeInfo }[] = [];
+    const results: {
+      label: string;
+      sub: string;
+      type: "cafe" | "area";
+      cafeRef?: CafeInfo;
+    }[] = [];
     cafes.forEach((c) => {
       if (c.name.toLowerCase().includes(q) && !seen.has(c.name)) {
         seen.add(c.name);
-        results.push({ label: c.name, sub: (c as any).address || "", type: "cafe", cafeRef: c });
+        results.push({
+          label: c.name,
+          sub: (c as any).address || "",
+          type: "cafe",
+          cafeRef: c,
+        });
       }
       const addrPart = (c as any).address?.split(",").pop()?.trim() || "";
-      if (addrPart && addrPart.toLowerCase().includes(q) && !seen.has(addrPart)) {
+      if (
+        addrPart &&
+        addrPart.toLowerCase().includes(q) &&
+        !seen.has(addrPart)
+      ) {
         seen.add(addrPart);
         results.push({ label: addrPart, sub: "エリア", type: "area" });
       }
@@ -117,7 +140,10 @@ const HomePage: FC = () => {
   // Close suggestions on outside click
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
-      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+      if (
+        searchWrapRef.current &&
+        !searchWrapRef.current.contains(e.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -163,7 +189,9 @@ const HomePage: FC = () => {
     if (!map) return;
     const onZoomEnd = () => setMapZoom(map.getZoom());
     map.on("zoomend", onZoomEnd);
-    return () => { map.off("zoomend", onZoomEnd); };
+    return () => {
+      map.off("zoomend", onZoomEnd);
+    };
   }, [map]);
 
   // Cập nhật locationName theo tâm bản đồ khi người dùng kéo/zoom (debounce 600ms)
@@ -230,7 +258,7 @@ const HomePage: FC = () => {
 
     const selectCafeFromUrl = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+        const response = await fetch(`${API_BASE_URL}/api/cafes/${cafeId}`);
         const result = await response.json();
         if (result.success && result.data) {
           const cafeData = result.data;
@@ -294,7 +322,7 @@ const HomePage: FC = () => {
       }
 
       // Khớp với cổng backend bạn đã khai báo trong apps/server/.env
-      const url = `http://localhost:3000/api/cafes/map?${params.toString()}`;
+      const url = `${API_BASE_URL}/api/cafes/map?${params.toString()}`;
       console.log("[HomePage] Fetching cafes from:", url);
 
       const response = await fetch(url);
@@ -332,7 +360,11 @@ const HomePage: FC = () => {
     fetchCafes();
   };
 
-  const handleSelectSuggestion = (s: { label: string; type: "cafe" | "area"; cafeRef?: CafeInfo }) => {
+  const handleSelectSuggestion = (s: {
+    label: string;
+    type: "cafe" | "area";
+    cafeRef?: CafeInfo;
+  }) => {
     if (s.type === "cafe" && s.cafeRef) {
       setShowSuggestions(false);
       handleSelectCafe(s.cafeRef);
@@ -364,9 +396,7 @@ const HomePage: FC = () => {
         });
       }
       try {
-        const response = await fetch(
-          `http://localhost:3000/api/cafes/${cafe.id}`,
-        );
+        const response = await fetch(`${API_BASE_URL}/api/cafes/${cafe.id}`);
         const result = await response.json();
         if (result.success) {
           setFullCafeDetail(result.data);
@@ -404,7 +434,9 @@ const HomePage: FC = () => {
         handleSelectCafe(existing);
       } else {
         try {
-          const response = await fetch(`http://localhost:3000/api/cafes/${urlCafeId}`);
+          const response = await fetch(
+            `${API_BASE_URL}/api/cafes/${urlCafeId}`,
+          );
           const result = await response.json();
           if (result.success && result.data) {
             const cafe = result.data;
@@ -456,9 +488,10 @@ const HomePage: FC = () => {
               <div
                 className="cafe-detail-cover relative h-48 w-full bg-cover bg-center shrink-0"
                 style={{
-                  backgroundImage: `url(${selectedCafe.imageUrl ||
+                  backgroundImage: `url(${
+                    selectedCafe.imageUrl ||
                     "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500&auto=format&fit=crop&q=60"
-                    })`,
+                  })`,
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30 flex flex-col justify-between p-4">
@@ -566,10 +599,11 @@ const HomePage: FC = () => {
                 {/* Status & Rating */}
                 <div className="flex items-center justify-between border-t border-b border-[#f0ebe3] py-3 my-1">
                   <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full ${selectedCafe.isOpenNow
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                      }`}
+                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      selectedCafe.isOpenNow
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
                   >
                     {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
                   </span>
@@ -644,9 +678,9 @@ const HomePage: FC = () => {
 
                   {/* Image Carousel */}
                   {fullCafeDetail?.images &&
-                    fullCafeDetail.images.filter(
-                      (img: any) => img.image_type === "MENU",
-                    ).length > 0 ? (
+                  fullCafeDetail.images.filter(
+                    (img: any) => img.image_type === "MENU",
+                  ).length > 0 ? (
                     (() => {
                       const menuImages = fullCafeDetail.images
                         .filter((img: any) => img.image_type === "MENU")
@@ -691,10 +725,11 @@ const HomePage: FC = () => {
                                 {menuImages.map((_: any, idx: number) => (
                                   <button
                                     key={idx}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${idx === activeImageIndex
-                                      ? "bg-white scale-110"
-                                      : "bg-white/40 hover:bg-white/60"
-                                      }`}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
+                                      idx === activeImageIndex
+                                        ? "bg-white scale-110"
+                                        : "bg-white/40 hover:bg-white/60"
+                                    }`}
                                     onClick={() => setActiveImageIndex(idx)}
                                   />
                                 ))}
@@ -773,7 +808,10 @@ const HomePage: FC = () => {
                       <button
                         type="button"
                         className="hp-search-clear"
-                        onClick={() => { setSearchQuery(""); setShowSuggestions(false); }}
+                        onClick={() => {
+                          setSearchQuery("");
+                          setShowSuggestions(false);
+                        }}
                         aria-label="クリア"
                       >
                         ✕
@@ -791,7 +829,14 @@ const HomePage: FC = () => {
                         >
                           <span className="hp-suggestion-icon">
                             {s.type === "cafe" ? (
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                width="13"
+                                height="13"
+                              >
                                 <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
                                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
                                 <line x1="6" y1="1" x2="6" y2="4" />
@@ -799,7 +844,14 @@ const HomePage: FC = () => {
                                 <line x1="14" y1="1" x2="14" y2="4" />
                               </svg>
                             ) : (
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                width="13"
+                                height="13"
+                              >
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                 <circle cx="12" cy="10" r="3" />
                               </svg>
@@ -830,8 +882,17 @@ const HomePage: FC = () => {
 
               {/* Tags section — luôn hiện, active state khi đã chọn */}
               <div className="sidebar-tags mt-4">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                  <p className="sidebar-tags__title" style={{ margin: 0 }}>人気のあるタグ</p>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <p className="sidebar-tags__title" style={{ margin: 0 }}>
+                    人気のあるタグ
+                  </p>
                   {activeTags.length > 0 && (
                     <button
                       onClick={() => setActiveTags([])}
@@ -846,8 +907,14 @@ const HomePage: FC = () => {
                         fontFamily: "inherit",
                         transition: "all 0.2s",
                       }}
-                      onMouseEnter={e => { (e.target as HTMLElement).style.color = "#c8843a"; (e.target as HTMLElement).style.borderColor = "#c8843a"; }}
-                      onMouseLeave={e => { (e.target as HTMLElement).style.color = "#a0896b"; (e.target as HTMLElement).style.borderColor = "#e5d9cc"; }}
+                      onMouseEnter={(e) => {
+                        (e.target as HTMLElement).style.color = "#c8843a";
+                        (e.target as HTMLElement).style.borderColor = "#c8843a";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.target as HTMLElement).style.color = "#a0896b";
+                        (e.target as HTMLElement).style.borderColor = "#e5d9cc";
+                      }}
                     >
                       クリア ✕
                     </button>
@@ -861,7 +928,11 @@ const HomePage: FC = () => {
                       onClick={() => toggleTag(tag)}
                     >
                       {activeTags.includes(tag) && (
-                        <span style={{ marginRight: "4px", fontSize: "0.75rem" }}>✓</span>
+                        <span
+                          style={{ marginRight: "4px", fontSize: "0.75rem" }}
+                        >
+                          ✓
+                        </span>
                       )}
                       {tag}
                     </button>
@@ -870,15 +941,19 @@ const HomePage: FC = () => {
               </div>
 
               {/* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */}
-              {(searchQuery.trim() !== "" || activeFilters.length > 0 || activeTags.length > 0) && (
+              {(searchQuery.trim() !== "" ||
+                activeFilters.length > 0 ||
+                activeTags.length > 0) && (
                 <div className="search-results-section flex-1 overflow-y-auto pr-2 pb-4">
                   <div className="text-sm text-gray-600 mb-4 font-medium">
                     <span className="font-bold text-[#614734]">
-                      「{searchQuery
+                      「
+                      {searchQuery
                         ? searchQuery
                         : [...activeTags, ...activeFilters].length > 0
                           ? [...activeTags, ...activeFilters].join("・")
-                          : "すべて"}」
+                          : "すべて"}
+                      」
                     </span>
                     {" で "}
                     <span className="font-bold text-[#614734]">
@@ -893,10 +968,11 @@ const HomePage: FC = () => {
                       return (
                         <div
                           key={cafe.id}
-                          className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${isSelected
-                            ? "border-[#614734] shadow-md transform scale-[1.02]"
-                            : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
-                            }`}
+                          className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
+                            isSelected
+                              ? "border-[#614734] shadow-md transform scale-[1.02]"
+                              : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
+                          }`}
                           onClick={() => handleSelectCafe(cafe)}
                         >
                           <div className="flex gap-4">
@@ -917,17 +993,25 @@ const HomePage: FC = () => {
                                     width="24"
                                     height="24"
                                   >
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <rect
+                                      x="3"
+                                      y="3"
+                                      width="18"
+                                      height="18"
+                                      rx="2"
+                                      ry="2"
+                                    ></rect>
                                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                     <polyline points="21 15 16 10 5 21"></polyline>
                                   </svg>
                                 </div>
                               )}
                               <div
-                                className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${cafe.isOpenNow
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                                  }`}
+                                className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  cafe.isOpenNow
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
                               >
                                 {cafe.isOpenNow ? "営業中" : "閉店中"}
                               </div>
@@ -943,30 +1027,57 @@ const HomePage: FC = () => {
                                 </h3>
                                 <div className="flex items-center gap-2 mt-1 text-xs">
                                   <StarRating value={cafe.rating} />
-                                  <span className="text-gray-400">({cafe.reviewCount})</span>
+                                  <span className="text-gray-400">
+                                    ({cafe.reviewCount})
+                                  </span>
                                 </div>
                               </div>
 
                               <div className="space-y-1 mt-2 text-xs text-gray-500">
                                 {cafe.tags?.includes("Fast Wi-Fi") && (
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      width="12"
+                                      height="12"
+                                      className="text-[#614734]"
+                                    >
+                                      <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                                      <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                                      <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                                      <circle
+                                        cx="12"
+                                        cy="20"
+                                        r="1"
+                                        fill="currentColor"
+                                      />
+                                    </svg>
+                                    <span className="truncate">Fast Wi-Fi</span>
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-[#614734]">
-                                    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                                    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                                    <circle cx="12" cy="20" r="1" fill="currentColor" />
-                                  </svg>
-                                  <span className="truncate">Fast Wi-Fi</span>
-                                </div>
-                              )}
-                                <div className="flex items-center gap-1.5 truncate">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" className="text-gray-400">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    width="12"
+                                    height="12"
+                                    className="text-gray-400"
+                                  >
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />
                                   </svg>
                                   <span className="truncate">
-                                    {cafe.distance ? `${cafe.distance}km先` : ""}
-                                    {(cafe as any).address ? ` • ${(cafe as any).address.split(",").pop()?.trim()}` : ""}
+                                    {cafe.distance
+                                      ? `${cafe.distance}km先`
+                                      : ""}
+                                    {(cafe as any).address
+                                      ? ` • ${(cafe as any).address.split(",").pop()?.trim()}`
+                                      : ""}
                                   </span>
                                 </div>
                               </div>
@@ -1019,7 +1130,11 @@ const HomePage: FC = () => {
                       Number(cafe.location.lng),
                     ]}
                     icon={createCafeIcon(selectedCafe?.id === cafe.id)}
-                    ref={cafe.id === selectedCafe?.id ? selectedMarkerRef : undefined}
+                    ref={
+                      cafe.id === selectedCafe?.id
+                        ? selectedMarkerRef
+                        : undefined
+                    }
                     eventHandlers={{
                       click: () => handleSelectCafe(cafe),
                     }}
@@ -1048,7 +1163,12 @@ const HomePage: FC = () => {
                               <path d="M5 12.55a11 11 0 0 1 14.08 0" />
                               <path d="M1.42 9a16 16 0 0 1 21.16 0" />
                               <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                              <circle cx="12" cy="20" r="1" fill="currentColor" />
+                              <circle
+                                cx="12"
+                                cy="20"
+                                r="1"
+                                fill="currentColor"
+                              />
                             </svg>
                             Fast Wi-Fi
                           </div>

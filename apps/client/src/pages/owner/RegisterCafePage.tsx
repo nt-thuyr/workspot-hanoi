@@ -11,6 +11,8 @@ import {
 } from "../../components/cafe/LocationMap";
 import toast from "react-hot-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface MenuImage {
   id: string;
   src: string;
@@ -263,7 +265,7 @@ export const RegisterCafePage: React.FC = () => {
         }
       });
 
-      const response = await fetch("http://localhost:3000/api/cafes", {
+      const response = await fetch(`${API_BASE_URL}/api/cafes`, {
         method: "POST",
         body: formDataToSend,
       });

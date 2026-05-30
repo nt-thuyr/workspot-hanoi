@@ -6,6 +6,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./OwnerDashboardPage.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface CafeImage {
   image_url: string;
   image_type: string;
@@ -79,7 +81,9 @@ const OwnerDashboardPage: FC = () => {
   const ownerId = localStorage.getItem("user_id");
   const [cafes, setCafes] = useState<OwnerCafe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
+  const [carouselIndices, setCarouselIndices] = useState<
+    Record<string, number>
+  >({});
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
@@ -95,55 +99,71 @@ const OwnerDashboardPage: FC = () => {
       try {
         const token = localStorage.getItem("access_token");
         const response = await fetch(
-          `http://localhost:3000/api/cafes/owner/${ownerId}?page=1&limit=0`,
+          `${API_BASE_URL}/api/cafes/owner/${ownerId}?page=1&limit=0`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
+          },
         );
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
           const rawCafes = result.data;
-          
-          const enrichedCafes = await Promise.all(rawCafes.map(async (cafe: OwnerCafe) => {
-            try {
-              const [detailRes, resRes, revRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/cafes/${cafe.id}`),
-                fetch(`http://localhost:3000/api/reservations/cafe/${cafe.id}?owner_id=${ownerId}&page=1&limit=0`, {
-                  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                }),
-                fetch(`http://localhost:3000/api/reviews/cafe/${cafe.id}`)
-              ]);
-              
-              const detailData = await detailRes.json();
-              const resData = await resRes.json();
-              const revData = await revRes.json();
-              
-              const fullCafe = detailData.success ? detailData.data : cafe;
-              
-              return {
-                ...cafe,
-                ...fullCafe,
-                cafe_images: (fullCafe.images && fullCafe.images.length > 0)
-                  ? fullCafe.images
-                  : (fullCafe.cafe_images && fullCafe.cafe_images.length > 0)
-                    ? fullCafe.cafe_images
-                    : (cafe.cafe_images || []),
-                cafe_amenities: (fullCafe.amenities && fullCafe.amenities.length > 0)
-                  ? fullCafe.amenities
-                  : (fullCafe.cafe_amenities && fullCafe.cafe_amenities.length > 0)
-                    ? fullCafe.cafe_amenities
-                    : (cafe.cafe_amenities || []),
-                reservations: resData.success && Array.isArray(resData.data) ? resData.data : [],
-                reviews: revData.success && Array.isArray(revData.data) ? revData.data : []
-              };
-            } catch (err) {
-              console.error("Error enriching cafe details", err);
-              return cafe;
-            }
-          }));
+
+          const enrichedCafes = await Promise.all(
+            rawCafes.map(async (cafe: OwnerCafe) => {
+              try {
+                const [detailRes, resRes, revRes] = await Promise.all([
+                  fetch(`${API_BASE_URL}/api/cafes/${cafe.id}`),
+                  fetch(
+                    `${API_BASE_URL}/api/reservations/cafe/${cafe.id}?owner_id=${ownerId}&page=1&limit=0`,
+                    {
+                      headers: token
+                        ? { Authorization: `Bearer ${token}` }
+                        : undefined,
+                    },
+                  ),
+                  fetch(`${API_BASE_URL}/api/reviews/cafe/${cafe.id}`),
+                ]);
+
+                const detailData = await detailRes.json();
+                const resData = await resRes.json();
+                const revData = await revRes.json();
+
+                const fullCafe = detailData.success ? detailData.data : cafe;
+
+                return {
+                  ...cafe,
+                  ...fullCafe,
+                  cafe_images:
+                    fullCafe.images && fullCafe.images.length > 0
+                      ? fullCafe.images
+                      : fullCafe.cafe_images && fullCafe.cafe_images.length > 0
+                        ? fullCafe.cafe_images
+                        : cafe.cafe_images || [],
+                  cafe_amenities:
+                    fullCafe.amenities && fullCafe.amenities.length > 0
+                      ? fullCafe.amenities
+                      : fullCafe.cafe_amenities &&
+                          fullCafe.cafe_amenities.length > 0
+                        ? fullCafe.cafe_amenities
+                        : cafe.cafe_amenities || [],
+                  reservations:
+                    resData.success && Array.isArray(resData.data)
+                      ? resData.data
+                      : [],
+                  reviews:
+                    revData.success && Array.isArray(revData.data)
+                      ? revData.data
+                      : [],
+                };
+              } catch (err) {
+                console.error("Error enriching cafe details", err);
+                return cafe;
+              }
+            }),
+          );
 
           setCafes(enrichedCafes);
-          
+
           // Initialize active index for each cafe's carousel to 0
           const indices: Record<string, number> = {};
           enrichedCafes.forEach((cafe: OwnerCafe) => {
@@ -180,7 +200,10 @@ const OwnerDashboardPage: FC = () => {
     const openTimeInMinutes = oHours * 60 + oMinutes;
     const closeTimeInMinutes = cHours * 60 + cMinutes;
 
-    return currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes <= closeTimeInMinutes;
+    return (
+      currentTimeInMinutes >= openTimeInMinutes &&
+      currentTimeInMinutes <= closeTimeInMinutes
+    );
   };
 
   const handlePrevSlide = (cafeId: string, totalSlides: number) => {
@@ -231,7 +254,9 @@ const OwnerDashboardPage: FC = () => {
           <div className="dashboard-empty-state">
             <div className="empty-icon">☕</div>
             <h3>登録されたカフェがありません</h3>
-            <p>新しくカフェを登録して、ワークスペースの管理を開始しましょう。</p>
+            <p>
+              新しくカフェを登録して、ワークスペースの管理を開始しましょう。
+            </p>
             <Link to="/cafes/register" className="register-first-btn">
               最初のカフェを登録する
             </Link>
@@ -240,9 +265,14 @@ const OwnerDashboardPage: FC = () => {
           <div className="dashboard-cards-container">
             {cafes.map((cafe) => {
               // Extract all uploaded photos for main carousel
-              const allUploadedPhotos = (cafe.cafe_images || []).map((img) => img.image_url);
-              
-              const carouselImages = allUploadedPhotos.length > 0 ? allUploadedPhotos : DEFAULT_CAROUSEL_IMAGES;
+              const allUploadedPhotos = (cafe.cafe_images || []).map(
+                (img) => img.image_url,
+              );
+
+              const carouselImages =
+                allUploadedPhotos.length > 0
+                  ? allUploadedPhotos
+                  : DEFAULT_CAROUSEL_IMAGES;
               const activeSlide = carouselIndices[cafe.id] || 0;
 
               // Extract menu photos for thumbnails
@@ -254,14 +284,17 @@ const OwnerDashboardPage: FC = () => {
               const standardTags = (cafe.cafe_amenities || [])
                 .map((amenity) => tagMap[amenity.amenity_id])
                 .filter(Boolean);
-              
+
               const allTags = [...standardTags, ...(cafe.custom_tags || [])];
 
               // Calculate average reviews & rating
               const ratings = (cafe.reviews || []).map((r) => r.rating);
-              const avgRating = ratings.length > 0 
-                ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) 
-                : "0.0";
+              const avgRating =
+                ratings.length > 0
+                  ? (
+                      ratings.reduce((a, b) => a + b, 0) / ratings.length
+                    ).toFixed(1)
+                  : "0.0";
               const reviewCount = ratings.length;
 
               // Calculate total reservations count
@@ -277,34 +310,66 @@ const OwnerDashboardPage: FC = () => {
                     <div className="header-left">
                       <div className="name-row">
                         <h2 className="cafe-name">{cafe.name}</h2>
-                        <span className={`status-tag ${isOpen ? "status-tag--open" : "status-tag--closed"}`}>
+                        <span
+                          className={`status-tag ${isOpen ? "status-tag--open" : "status-tag--closed"}`}
+                        >
                           {isOpen ? "営業中" : "閉店中"}
                         </span>
                       </div>
-                      <div className="meta-row address-row" title={cafe.address}>
-                        <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <div
+                        className="meta-row address-row"
+                        title={cafe.address}
+                      >
+                        <svg
+                          className="meta-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                           <circle cx="12" cy="10" r="3" />
                         </svg>
                         <span>{cafe.address}</span>
                       </div>
                       <div className="meta-row hours-row">
-                        <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <svg
+                          className="meta-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
                           <circle cx="12" cy="12" r="10" />
                           <polyline points="12 6 12 12 16 14" />
                         </svg>
-                        <span>営業時間 {cafe.open_time.slice(0, 5)} - {cafe.close_time.slice(0, 5)}</span>
+                        <span>
+                          営業時間 {cafe.open_time.slice(0, 5)} -{" "}
+                          {cafe.close_time.slice(0, 5)}
+                        </span>
                       </div>
                       <div className="features-tags">
                         {allTags.map((tag, idx) => (
-                          <span key={idx} className="feature-pill">{tag}</span>
+                          <span key={idx} className="feature-pill">
+                            {tag}
+                          </span>
                         ))}
                       </div>
                     </div>
 
                     <div className="header-right">
-                      <Link to={`/cafes/edit/${cafe.id}`} className="edit-info-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <Link
+                        to={`/cafes/edit/${cafe.id}`}
+                        className="edit-info-btn"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
                           <path d="M12 20h9" />
                           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                         </svg>
@@ -319,9 +384,9 @@ const OwnerDashboardPage: FC = () => {
                     <div className="media-block">
                       <div className="carousel-container">
                         <div className="carousel-wrapper">
-                          <img 
-                            src={carouselImages[activeSlide]} 
-                            alt={`${cafe.name} view`} 
+                          <img
+                            src={carouselImages[activeSlide]}
+                            alt={`${cafe.name} view`}
                             className="carousel-image"
                             onClick={() => {
                               setPreviewImages(carouselImages);
@@ -334,15 +399,25 @@ const OwnerDashboardPage: FC = () => {
                           </div>
                           {carouselImages.length > 1 && (
                             <>
-                              <button 
+                              <button
                                 className="carousel-arrow carousel-arrow--prev"
-                                onClick={() => handlePrevSlide(cafe.id, carouselImages.length)}
+                                onClick={() =>
+                                  handlePrevSlide(
+                                    cafe.id,
+                                    carouselImages.length,
+                                  )
+                                }
                               >
                                 ‹
                               </button>
-                              <button 
+                              <button
                                 className="carousel-arrow carousel-arrow--next"
-                                onClick={() => handleNextSlide(cafe.id, carouselImages.length)}
+                                onClick={() =>
+                                  handleNextSlide(
+                                    cafe.id,
+                                    carouselImages.length,
+                                  )
+                                }
                               >
                                 ›
                               </button>
@@ -351,7 +426,9 @@ const OwnerDashboardPage: FC = () => {
                                   <button
                                     key={dotIdx}
                                     className={`carousel-dot ${dotIdx === activeSlide ? "carousel-dot--active" : ""}`}
-                                    onClick={() => handleSelectDot(cafe.id, dotIdx)}
+                                    onClick={() =>
+                                      handleSelectDot(cafe.id, dotIdx)
+                                    }
                                   />
                                 ))}
                               </div>
@@ -366,21 +443,38 @@ const OwnerDashboardPage: FC = () => {
                             const isLast = tIdx === 2;
                             const hasMore = menuPhotos.length > 3;
                             return (
-                              <div 
-                                key={tIdx} 
-                                className="thumbnail-wrapper" 
-                                style={{ position: "relative", cursor: "pointer" }}
+                              <div
+                                key={tIdx}
+                                className="thumbnail-wrapper"
+                                style={{
+                                  position: "relative",
+                                  cursor: "pointer",
+                                }}
                                 onClick={() => {
                                   setPreviewImages(carouselImages);
                                   const idx = carouselImages.indexOf(thumbUrl);
                                   setPreviewIndex(idx >= 0 ? idx : 0);
                                 }}
                               >
-                                <img src={thumbUrl} alt="Menu highlight" className="thumbnail-img" />
+                                <img
+                                  src={thumbUrl}
+                                  alt="Menu highlight"
+                                  className="thumbnail-img"
+                                />
                                 {isLast && hasMore && (
-                                  <div style={{
-                                    position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", fontWeight: "bold"
-                                  }}>
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      inset: 0,
+                                      backgroundColor: "rgba(0,0,0,0.5)",
+                                      color: "white",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: "1.1rem",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
                                     +{menuPhotos.length - 3}
                                   </div>
                                 )}
@@ -397,20 +491,35 @@ const OwnerDashboardPage: FC = () => {
                       <div className="stats-row">
                         <div className="stat-card">
                           <div className="stat-icon-box res-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
                               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                             </svg>
                           </div>
                           <div className="stat-details">
                             <span className="stat-label">総予約数</span>
-                            <span className="stat-value">{reservationCount}</span>
+                            <span className="stat-value">
+                              {reservationCount}
+                            </span>
                           </div>
                         </div>
 
                         <div className="stat-card">
                           <div className="stat-icon-box rate-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="star-svg">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="star-svg"
+                            >
                               <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                             </svg>
                           </div>
@@ -420,7 +529,9 @@ const OwnerDashboardPage: FC = () => {
                               <span className="stat-value">{avgRating}</span>
                               <span className="rating-max">/ 5.0</span>
                             </div>
-                            <span className="review-link">{reviewCount} Reviews</span>
+                            <span className="review-link">
+                              {reviewCount} Reviews
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -438,9 +549,14 @@ const OwnerDashboardPage: FC = () => {
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
-                          <Marker position={[cafe.lat, cafe.lng]} icon={cafeMarkerIcon}>
+                          <Marker
+                            position={[cafe.lat, cafe.lng]}
+                            icon={cafeMarkerIcon}
+                          >
                             <Popup autoPan={false} keepInView={true}>
-                              <div className="map-popup-text">{cafe.address}</div>
+                              <div className="map-popup-text">
+                                {cafe.address}
+                              </div>
                             </Popup>
                           </Marker>
                         </MapContainer>
@@ -455,40 +571,55 @@ const OwnerDashboardPage: FC = () => {
       </main>
 
       {previewImages.length > 0 && (
-        <div className="image-modal-overlay" onClick={() => setPreviewImages([])}>
-          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="image-modal-close" onClick={() => setPreviewImages([])}>
+        <div
+          className="image-modal-overlay"
+          onClick={() => setPreviewImages([])}
+        >
+          <div
+            className="image-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="image-modal-close"
+              onClick={() => setPreviewImages([])}
+            >
               ✕
             </button>
-            
+
             <div className="image-modal-body">
-              <img 
-                src={previewImages[previewIndex]} 
-                alt="Preview zoom" 
-                className="image-modal-img" 
+              <img
+                src={previewImages[previewIndex]}
+                alt="Preview zoom"
+                className="image-modal-img"
               />
-              
+
               {previewImages.length > 1 && (
                 <>
-                  <button 
+                  <button
                     className="modal-arrow modal-arrow--prev"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPreviewIndex((prev) => (prev - 1 + previewImages.length) % previewImages.length);
+                      setPreviewIndex(
+                        (prev) =>
+                          (prev - 1 + previewImages.length) %
+                          previewImages.length,
+                      );
                     }}
                   >
                     ‹
                   </button>
-                  <button 
+                  <button
                     className="modal-arrow modal-arrow--next"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPreviewIndex((prev) => (prev + 1) % previewImages.length);
+                      setPreviewIndex(
+                        (prev) => (prev + 1) % previewImages.length,
+                      );
                     }}
                   >
                     ›
                   </button>
-                  
+
                   <div className="modal-counter">
                     {previewIndex + 1} / {previewImages.length}
                   </div>

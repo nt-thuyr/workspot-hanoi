@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import "./TopNavBar.css";
 import { NotificationDropdown } from "./NotificationDropdown";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface TopNavBarProps {
   mode: "guest" | "owner";
   activeTab: string;
@@ -12,13 +14,18 @@ interface TopNavBarProps {
 
 export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string>(localStorage.getItem("user_avatar_url") || "");
+  const [avatarUrl, setAvatarUrl] = useState<string>(
+    localStorage.getItem("user_avatar_url") || "",
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -32,7 +39,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
     // Fetch latest profile to keep in sync
     const userId = localStorage.getItem("user_id");
     if (userId) {
-      fetch(`http://localhost:3000/api/profiles/${userId}`)
+      fetch(`${API_BASE_URL}/api/profiles/${userId}`)
         .then((res) => res.json())
         .then((result) => {
           if (result.success && result.data?.avatar_url) {
@@ -40,7 +47,9 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
             setAvatarUrl(result.data.avatar_url);
           }
         })
-        .catch((err) => console.error("Error fetching profile in TopNavBar:", err));
+        .catch((err) =>
+          console.error("Error fetching profile in TopNavBar:", err),
+        );
     }
 
     return () => {
@@ -67,7 +76,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
 
     const toastId = toast.loading("アバターを更新中...");
     try {
-      const res = await fetch(`http://localhost:3000/api/profiles/${userId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/profiles/${userId}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -84,7 +93,9 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
         window.dispatchEvent(new Event("avatarUpdated"));
         toast.success("アバターを変更しました！", { id: toastId });
       } else {
-        toast.error(result.message || "アバターの更新に失敗しました。", { id: toastId });
+        toast.error(result.message || "アバターの更新に失敗しました。", {
+          id: toastId,
+        });
       }
     } catch (err) {
       console.error("Error uploading avatar:", err);
@@ -105,7 +116,11 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
   return (
     <nav className="top-nav">
       {/* Logo */}
-      <Link to={mode === "guest" ? "/" : "/dashboard"} className="nav-logo" id="nav-logo">
+      <Link
+        to={mode === "guest" ? "/" : "/dashboard"}
+        className="nav-logo"
+        id="nav-logo"
+      >
         <span className="nav-logo__text">WorkSpot HaNoi</span>
       </Link>
 
@@ -113,15 +128,51 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
       <div className="nav-menu">
         {mode === "guest" ? (
           <>
-            <Link to="/" id="menu-home" className={`nav-link ${activeTab === "home" ? "nav-link--active" : ""}`}>ホーム</Link>
-            <Link to="/history" id="menu-booking" className={`nav-link ${activeTab === "history" || activeTab === "booking" ? "nav-link--active" : ""}`}>予約</Link>
-            <Link to="/my-reviews" id="menu-reviews" className={`nav-link ${activeTab === "reviews" ? "nav-link--active" : ""}`}>レビュー</Link>
+            <Link
+              to="/"
+              id="menu-home"
+              className={`nav-link ${activeTab === "home" ? "nav-link--active" : ""}`}
+            >
+              ホーム
+            </Link>
+            <Link
+              to="/history"
+              id="menu-booking"
+              className={`nav-link ${activeTab === "history" || activeTab === "booking" ? "nav-link--active" : ""}`}
+            >
+              予約
+            </Link>
+            <Link
+              to="/my-reviews"
+              id="menu-reviews"
+              className={`nav-link ${activeTab === "reviews" ? "nav-link--active" : ""}`}
+            >
+              レビュー
+            </Link>
           </>
         ) : (
           <>
-            <Link to="/dashboard" id="nav-dashboard" className={`nav-link ${activeTab === "dashboard" ? "nav-link--active" : ""}`}>ダッシュボード</Link>
-            <Link to="/cafes" id="nav-cafe-list" className={`nav-link ${activeTab === "cafes" ? "nav-link--active" : ""}`}>カフェ一覧</Link>
-            <Link to="/cafes/register" id="nav-new" className={`nav-link ${activeTab === "register" ? "nav-link--active" : ""}`}>新規作成</Link>
+            <Link
+              to="/dashboard"
+              id="nav-dashboard"
+              className={`nav-link ${activeTab === "dashboard" ? "nav-link--active" : ""}`}
+            >
+              ダッシュボード
+            </Link>
+            <Link
+              to="/cafes"
+              id="nav-cafe-list"
+              className={`nav-link ${activeTab === "cafes" ? "nav-link--active" : ""}`}
+            >
+              カフェ一覧
+            </Link>
+            <Link
+              to="/cafes/register"
+              id="nav-new"
+              className={`nav-link ${activeTab === "register" ? "nav-link--active" : ""}`}
+            >
+              新規作成
+            </Link>
           </>
         )}
       </div>
@@ -129,8 +180,12 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
       {/* Right Side */}
       {!localStorage.getItem("access_token") ? (
         <div className="nav-auth">
-          <Link to="/login" id="nav-login" className="nav-btn-login">ログイン</Link>
-          <Link to="/register" id="nav-register" className="nav-btn-register">新規登録</Link>
+          <Link to="/login" id="nav-login" className="nav-btn-login">
+            ログイン
+          </Link>
+          <Link to="/register" id="nav-register" className="nav-btn-register">
+            新規登録
+          </Link>
         </div>
       ) : (
         <div className="nav-right">
@@ -143,16 +198,29 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
             >
               <div className="nav-avatar">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="nav-avatar-img" />
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="nav-avatar-img"
+                  />
                 ) : (
                   (() => {
                     const name = localStorage.getItem("user_name");
-                    return name && name.length > 0 ? name.charAt(0).toUpperCase() : "U";
+                    return name && name.length > 0
+                      ? name.charAt(0).toUpperCase()
+                      : "U";
                   })()
                 )}
               </div>
               <span>{localStorage.getItem("user_name") || "ユーザー"}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
@@ -161,14 +229,31 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
                 <div className="dropdown-header">
                   <div className="dropdown-avatar-wrap">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="dropdown-avatar-img" />
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="dropdown-avatar-img"
+                      />
                     ) : (
                       <div className="dropdown-avatar-placeholder">
-                        {(localStorage.getItem("user_name") || "U").charAt(0).toUpperCase()}
+                        {(localStorage.getItem("user_name") || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                     )}
-                    <div className="dropdown-avatar-camera" onClick={() => fileInputRef.current?.click()} title="アバターを変更">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                    <div
+                      className="dropdown-avatar-camera"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="アバターを変更"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        width="12"
+                        height="12"
+                      >
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
@@ -181,12 +266,26 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
                       onChange={handleAvatarChange}
                     />
                   </div>
-                  <span className="dropdown-name">{localStorage.getItem("user_name") || "ユーザー"}</span>
-                  <span className="dropdown-email">{localStorage.getItem("user_email") || "user@example.com"}</span>
+                  <span className="dropdown-name">
+                    {localStorage.getItem("user_name") || "ユーザー"}
+                  </span>
+                  <span className="dropdown-email">
+                    {localStorage.getItem("user_email") || "user@example.com"}
+                  </span>
                 </div>
                 <div className="dropdown-divider" />
-                <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <button
+                  className="dropdown-item dropdown-item--danger"
+                  onClick={handleLogout}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />
                     <line x1="21" y1="12" x2="9" y2="12" />

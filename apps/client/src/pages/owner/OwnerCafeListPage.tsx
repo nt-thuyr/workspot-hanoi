@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./OwnerCafeListPage.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 type ReservationStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
 type ReservationFilter = "all" | "PENDING" | "APPROVED" | "REJECTED";
@@ -82,17 +84,21 @@ const OwnerCafeListPage: FC = () => {
       try {
         const token = localStorage.getItem("access_token");
         const response = await fetch(
-          `http://localhost:3000/api/cafes/owner/${ownerId}?page=1&limit=0`,
+          `${API_BASE_URL}/api/cafes/owner/${ownerId}?page=1&limit=0`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
+          },
         );
         const result = await response.json();
         if (result.success) {
           const data = Array.isArray(result.data) ? result.data : [];
           const normalized = data.map((cafe: any) => {
-            const images = Array.isArray(cafe.cafe_images) ? cafe.cafe_images : [];
-            const cover = images.find((img: any) => img.image_type === "INTERIOR");
+            const images = Array.isArray(cafe.cafe_images)
+              ? cafe.cafe_images
+              : [];
+            const cover = images.find(
+              (img: any) => img.image_type === "INTERIOR",
+            );
             return {
               ...cafe,
               imageUrl: cover?.image_url || images[0]?.image_url || null,
@@ -128,10 +134,10 @@ const OwnerCafeListPage: FC = () => {
       try {
         const token = localStorage.getItem("access_token");
         const response = await fetch(
-          `http://localhost:3000/api/reservations/cafe/${selectedCafeId}?owner_id=${ownerId}&page=1&limit=0`,
+          `${API_BASE_URL}/api/reservations/cafe/${selectedCafeId}?owner_id=${ownerId}&page=1&limit=0`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          }
+          },
         );
         const result = await response.json();
         if (result.success) {
@@ -150,7 +156,9 @@ const OwnerCafeListPage: FC = () => {
     const loadReviews = async () => {
       setIsLoadingReviews(true);
       try {
-        const response = await fetch(`http://localhost:3000/api/reviews/cafe/${selectedCafeId}`);
+        const response = await fetch(
+          `${API_BASE_URL}/api/reviews/cafe/${selectedCafeId}`,
+        );
         const result = await response.json();
         if (result.success) {
           setReviews(Array.isArray(result.data) ? result.data : []);
@@ -219,8 +227,8 @@ const OwnerCafeListPage: FC = () => {
     const date = new Date(rawDate);
     if (Number.isNaN(date.getTime())) return rawDate;
     const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
     return `${yyyy}/${mm}/${dd}`;
   };
 
@@ -229,19 +237,25 @@ const OwnerCafeListPage: FC = () => {
     return rawTime.slice(0, 5);
   };
 
-  const handleStatusUpdate = async (reservationId: string, status: "APPROVED" | "REJECTED") => {
+  const handleStatusUpdate = async (
+    reservationId: string,
+    status: "APPROVED" | "REJECTED",
+  ) => {
     if (!ownerId) return;
     setActionLoadingId(reservationId);
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch(`http://localhost:3000/api/reservations/${reservationId}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      const response = await fetch(
+        `${API_BASE_URL}/api/reservations/${reservationId}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ status, owner_id: ownerId }),
         },
-        body: JSON.stringify({ status, owner_id: ownerId }),
-      });
+      );
       const result = await response.json();
       if (result.success) {
         setReservations((prev) =>
@@ -262,9 +276,12 @@ const OwnerCafeListPage: FC = () => {
     const confirmed = window.confirm("このカフェを削除しますか？");
     if (!confirmed) return;
     try {
-      const response = await fetch(`http://localhost:3000/api/cafes/${selectedCafeId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/cafes/${selectedCafeId}`,
+        {
+          method: "DELETE",
+        },
+      );
       const result = await response.json();
       if (result.success) {
         setCafes((prev) => prev.filter((cafe) => cafe.id !== selectedCafeId));
@@ -286,7 +303,10 @@ const OwnerCafeListPage: FC = () => {
         <section className="cafes-rail">
           <div className="rail-header">
             <h2>マイカフェ</h2>
-            <button className="rail-add" onClick={() => navigate("/cafes/register")}>
+            <button
+              className="rail-add"
+              onClick={() => navigate("/cafes/register")}
+            >
               +
             </button>
           </div>
@@ -339,11 +359,19 @@ const OwnerCafeListPage: FC = () => {
               </div>
               <div className="main-actions">
                 {selectedCafe?.id && (
-                  <Link className="icon-button" to={`/cafes/edit/${selectedCafe.id}`} aria-label="edit">
+                  <Link
+                    className="icon-button"
+                    to={`/cafes/edit/${selectedCafe.id}`}
+                    aria-label="edit"
+                  >
                     ✎
                   </Link>
                 )}
-                <button className="icon-button danger" onClick={handleDeleteCafe} aria-label="delete">
+                <button
+                  className="icon-button danger"
+                  onClick={handleDeleteCafe}
+                  aria-label="delete"
+                >
                   🗑
                 </button>
               </div>
@@ -383,7 +411,10 @@ const OwnerCafeListPage: FC = () => {
                         <div className="reservation-profile">
                           <div className="profile-avatar">
                             {item.profiles?.avatar_url ? (
-                              <img src={item.profiles.avatar_url} alt={getDisplayName(item)} />
+                              <img
+                                src={item.profiles.avatar_url}
+                                alt={getDisplayName(item)}
+                              />
                             ) : (
                               <span>
                                 {getDisplayName(item).charAt(0).toUpperCase()}
@@ -391,23 +422,30 @@ const OwnerCafeListPage: FC = () => {
                             )}
                           </div>
                           <div className="profile-info">
-                            <div className="profile-name">{getDisplayName(item)}</div>
+                            <div className="profile-name">
+                              {getDisplayName(item)}
+                            </div>
                             <div className="profile-meta">
-                              {formatDate(item.res_date)} · {formatTime(item.res_time)} · {item.num_guests}名
+                              {formatDate(item.res_date)} ·{" "}
+                              {formatTime(item.res_time)} · {item.num_guests}名
                             </div>
                             {item.status === "PENDING" && (
                               <div className="profile-actions">
                                 <button
                                   className="action-btn approve"
                                   disabled={actionLoadingId === item.id}
-                                  onClick={() => handleStatusUpdate(item.id, "APPROVED")}
+                                  onClick={() =>
+                                    handleStatusUpdate(item.id, "APPROVED")
+                                  }
                                 >
                                   承認
                                 </button>
                                 <button
                                   className="action-btn reject"
                                   disabled={actionLoadingId === item.id}
-                                  onClick={() => handleStatusUpdate(item.id, "REJECTED")}
+                                  onClick={() =>
+                                    handleStatusUpdate(item.id, "REJECTED")
+                                  }
                                 >
                                   拒否
                                 </button>
@@ -416,7 +454,9 @@ const OwnerCafeListPage: FC = () => {
                           </div>
                         </div>
                         <div className="reservation-actions">
-                          <span className={`status-chip status-${item.status.toLowerCase()}`}>
+                          <span
+                            className={`status-chip status-${item.status.toLowerCase()}`}
+                          >
                             {STATUS_LABELS[item.status]}
                           </span>
                         </div>
@@ -445,29 +485,45 @@ const OwnerCafeListPage: FC = () => {
                         <div className="review-header">
                           <div className="review-avatar">
                             {review.profiles?.avatar_url ? (
-                              <img src={review.profiles.avatar_url} alt={review.profiles?.full_name || "reviewer"} />
+                              <img
+                                src={review.profiles.avatar_url}
+                                alt={review.profiles?.full_name || "reviewer"}
+                              />
                             ) : (
                               <span>
-                                {(review.profiles?.full_name || "U").charAt(0).toUpperCase()}
+                                {(review.profiles?.full_name || "U")
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </span>
                             )}
                           </div>
                           <div>
-                            <div className="review-name">{review.profiles?.full_name || "ゲスト"}</div>
+                            <div className="review-name">
+                              {review.profiles?.full_name || "ゲスト"}
+                            </div>
                             <div className="review-stars">
                               {"★".repeat(review.rating)}
                               {"☆".repeat(Math.max(0, 5 - review.rating))}
                             </div>
                           </div>
                         </div>
-                        <p className="review-comment">{review.comment || "コメントはありません"}</p>
+                        <p className="review-comment">
+                          {review.comment || "コメントはありません"}
+                        </p>
                         {review.review_images?.[0]?.image_url ? (
                           <button
                             className="review-media"
                             type="button"
-                            onClick={() => setPreviewImage(review.review_images?.[0]?.image_url || null)}
+                            onClick={() =>
+                              setPreviewImage(
+                                review.review_images?.[0]?.image_url || null,
+                              )
+                            }
                           >
-                            <img src={review.review_images[0].image_url} alt="review" />
+                            <img
+                              src={review.review_images[0].image_url}
+                              alt="review"
+                            />
                           </button>
                         ) : (
                           <div className="review-media review-media--empty">

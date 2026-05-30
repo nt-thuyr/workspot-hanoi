@@ -44,7 +44,7 @@ npm run dev
 Mặc định:
 
 - Client: `http://localhost:5173`
-- Server: `http://localhost:3000`
+- Server: `VITE_API_URL` fallback to `http://localhost:3000`
 
 Chạy riêng từng app:
 

@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./ReviewPage.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 interface ReviewImage {
   id: number;
   image_url: string;
@@ -42,7 +44,9 @@ const ReviewPage: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // "idle" | "success" | "error"
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
   // Form states
   const [rating, setRating] = useState(0);
@@ -53,7 +57,10 @@ const ReviewPage: FC = () => {
   const [sortBy, setSortBy] = useState("highest"); // highest, newest, lowest
 
   // Field-level validation errors
-  const [fieldErrors, setFieldErrors] = useState<{ rating?: string; comment?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    rating?: string;
+    comment?: string;
+  }>({});
 
   // Lightbox
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
@@ -83,13 +90,15 @@ const ReviewPage: FC = () => {
     const fetchCafeData = async () => {
       try {
         setIsLoading(true);
-        const cafeRes = await fetch(`http://localhost:3000/api/cafes/${cafeId}`);
+        const cafeRes = await fetch(`${API_BASE_URL}/api/cafes/${cafeId}`);
         const cafeData = await cafeRes.json();
         if (cafeData.success && cafeData.data) {
           setCafeName(cafeData.data.name);
         }
 
-        const reviewsRes = await fetch(`http://localhost:3000/api/reviews/cafe/${cafeId}`);
+        const reviewsRes = await fetch(
+          `${API_BASE_URL}/api/reviews/cafe/${cafeId}`,
+        );
         const reviewsData = await reviewsRes.json();
         if (reviewsData.success) {
           setReviews(reviewsData.data || []);
@@ -119,18 +128,24 @@ const ReviewPage: FC = () => {
       if (e.key === "Escape") setLightbox(null);
       if (e.key === "ArrowRight") {
         setLightbox((prev) =>
-          prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+          prev
+            ? { ...prev, index: (prev.index + 1) % prev.images.length }
+            : null,
         );
       }
       if (e.key === "ArrowLeft") {
         setLightbox((prev) =>
           prev
-            ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
-            : null
+            ? {
+                ...prev,
+                index:
+                  (prev.index - 1 + prev.images.length) % prev.images.length,
+              }
+            : null,
         );
       }
     },
-    [lightbox]
+    [lightbox],
   );
 
   useEffect(() => {
@@ -197,7 +212,7 @@ const ReviewPage: FC = () => {
       setIsSubmitting(true);
       setSubmitStatus("idle");
 
-      const reviewResponse = await fetch("http://localhost:3000/api/reviews", {
+      const reviewResponse = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +228,9 @@ const ReviewPage: FC = () => {
       const reviewResult = await reviewResponse.json();
 
       if (!reviewResponse.ok || !reviewResult.success) {
-        throw new Error(reviewResult.message || "レビューの投稿に失敗しました。");
+        throw new Error(
+          reviewResult.message || "レビューの投稿に失敗しました。",
+        );
       }
 
       const reviewId = reviewResult.data.id;
@@ -224,26 +241,37 @@ const ReviewPage: FC = () => {
           formData.append("images", file);
         });
 
-        const uploadResponse = await fetch(`http://localhost:3000/api/reviews/${reviewId}/images`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const uploadResponse = await fetch(
+          `${API_BASE_URL}/api/reviews/${reviewId}/images`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: formData,
           },
-          body: formData,
-        });
+        );
 
         const uploadResult = await uploadResponse.json();
-        console.log("[Review Upload] Status:", uploadResponse.status, "Result:", uploadResult);
+        console.log(
+          "[Review Upload] Status:",
+          uploadResponse.status,
+          "Result:",
+          uploadResult,
+        );
         if (!uploadResponse.ok || !uploadResult.success) {
-          const errorMsg = uploadResult.message || uploadResult.error || "サーバーエラー";
-          toast(`レビューは投稿されましたが、画像のアップロードに失敗しました: ${errorMsg}`, { icon: "⚠️" });
+          const errorMsg =
+            uploadResult.message || uploadResult.error || "サーバーエラー";
+          toast(
+            `レビューは投稿されましたが、画像のアップロードに失敗しました: ${errorMsg}`,
+            { icon: "⚠️" },
+          );
         }
       }
 
       // Success state
       setSubmitStatus("success");
       toast.success("レビューを投稿しました！");
-
 
       // Reset form
       setRating(0);
@@ -252,7 +280,9 @@ const ReviewPage: FC = () => {
       setFilePreviews([]);
 
       // Re-fetch reviews
-      const reviewsRes = await fetch(`http://localhost:3000/api/reviews/cafe/${cafeId}`);
+      const reviewsRes = await fetch(
+        `${API_BASE_URL}/api/reviews/cafe/${cafeId}`,
+      );
       const reviewsData = await reviewsRes.json();
       if (reviewsData.success) {
         setReviews(reviewsData.data || []);
@@ -277,8 +307,8 @@ const ReviewPage: FC = () => {
       const d = new Date(dateString);
       if (isNaN(d.getTime())) return dateString;
       const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
       return `${yyyy}/${mm}/${dd}`;
     } catch {
       return dateString;
@@ -294,7 +324,9 @@ const ReviewPage: FC = () => {
       if (sortBy === "highest") return b.rating - a.rating;
       if (sortBy === "lowest") return a.rating - b.rating;
       if (sortBy === "newest")
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       return 0;
     };
 
@@ -305,8 +337,10 @@ const ReviewPage: FC = () => {
 
   // Submit button appearance
   const getSubmitBtnClass = () => {
-    if (submitStatus === "success") return "submit-review-btn submit-review-btn--success";
-    if (submitStatus === "error") return "submit-review-btn submit-review-btn--error";
+    if (submitStatus === "success")
+      return "submit-review-btn submit-review-btn--success";
+    if (submitStatus === "error")
+      return "submit-review-btn submit-review-btn--error";
     return "submit-review-btn";
   };
 
@@ -337,14 +371,23 @@ const ReviewPage: FC = () => {
                 title="カフェ詳細に戻る"
                 onClick={() => navigate(`/?cafeId=${cafeId}`)}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  width="20"
+                  height="20"
+                >
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
               </button>
               <div>
                 <h1 className="form-title">レビューを書く</h1>
-                <p className="form-subtitle">{cafeName} での体験をシェアしましょう</p>
+                <p className="form-subtitle">
+                  {cafeName} での体験をシェアしましょう
+                </p>
               </div>
             </div>
 
@@ -353,7 +396,11 @@ const ReviewPage: FC = () => {
               <div className="user-profile-row">
                 <div className="user-avatar-circle">
                   {userAvatarUrl ? (
-                    <img src={userAvatarUrl} alt={userName} className="user-avatar-img" />
+                    <img
+                      src={userAvatarUrl}
+                      alt={userName}
+                      className="user-avatar-img"
+                    />
                   ) : (
                     userName.charAt(0).toUpperCase()
                   )}
@@ -364,9 +411,12 @@ const ReviewPage: FC = () => {
               {/* Star Rating Select */}
               <div className="form-group">
                 <label className="input-label">評価 *</label>
-                <div className={`star-rating-selector${fieldErrors.rating ? " star-rating-selector--error" : ""}`}>
+                <div
+                  className={`star-rating-selector${fieldErrors.rating ? " star-rating-selector--error" : ""}`}
+                >
                   {[1, 2, 3, 4, 5].map((star) => {
-                    const isFilled = hoverRating >= star || (!hoverRating && rating >= star);
+                    const isFilled =
+                      hoverRating >= star || (!hoverRating && rating >= star);
                     return (
                       <button
                         type="button"
@@ -374,7 +424,11 @@ const ReviewPage: FC = () => {
                         className="star-selector-btn"
                         onClick={() => {
                           setRating(star);
-                          if (fieldErrors.rating) setFieldErrors((prev) => ({ ...prev, rating: undefined }));
+                          if (fieldErrors.rating)
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              rating: undefined,
+                            }));
                         }}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
@@ -395,7 +449,18 @@ const ReviewPage: FC = () => {
                 </div>
                 {fieldErrors.rating && (
                   <span className="field-error-msg">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="13"
+                      height="13"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
                     {fieldErrors.rating}
                   </span>
                 )}
@@ -411,13 +476,27 @@ const ReviewPage: FC = () => {
                   onChange={(e) => {
                     setComment(e.target.value);
                     if (fieldErrors.comment && e.target.value.trim())
-                      setFieldErrors((prev) => ({ ...prev, comment: undefined }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        comment: undefined,
+                      }));
                   }}
                   rows={6}
                 />
                 {fieldErrors.comment && (
                   <span className="field-error-msg">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="13"
+                      height="13"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
                     {fieldErrors.comment}
                   </span>
                 )}
@@ -442,7 +521,14 @@ const ReviewPage: FC = () => {
                       className="add-photo-box"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        width="20"
+                        height="20"
+                      >
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
@@ -452,7 +538,11 @@ const ReviewPage: FC = () => {
 
                   {filePreviews.map((url, index) => (
                     <div key={index} className="photo-preview-wrapper">
-                      <img src={url} alt="selected preview" className="photo-preview-img" />
+                      <img
+                        src={url}
+                        alt="selected preview"
+                        className="photo-preview-img"
+                      />
                       <button
                         type="button"
                         className="remove-preview-btn"
@@ -495,12 +585,16 @@ const ReviewPage: FC = () => {
             <div className="reviews-list-container">
               {sortedReviews.length === 0 ? (
                 <div className="empty-reviews">
-                  <p>このカフェにはまだレビューがありません。最初のレビューを投稿してみましょう！</p>
+                  <p>
+                    このカフェにはまだレビューがありません。最初のレビューを投稿してみましょう！
+                  </p>
                 </div>
               ) : (
                 sortedReviews.map((rev, idx) => {
                   const isCurrentUser = rev.user_id === userId;
-                  const allImages = (rev.review_images || []).map((img) => img.image_url);
+                  const allImages = (rev.review_images || []).map(
+                    (img) => img.image_url,
+                  );
 
                   return (
                     <div
@@ -510,7 +604,12 @@ const ReviewPage: FC = () => {
                       {/* "Your review" badge */}
                       {isCurrentUser && (
                         <div className="my-review-badge">
-                          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            width="13"
+                            height="13"
+                          >
                             <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 14.414-3.707-3.707 1.414-1.414L11 13.586l5.293-5.293 1.414 1.414z" />
                           </svg>
                           あなたのレビュー
@@ -528,13 +627,19 @@ const ReviewPage: FC = () => {
                             />
                           ) : (
                             <div className="avatar-placeholder">
-                              {(rev.profiles?.full_name || "G").charAt(0).toUpperCase()}
+                              {(rev.profiles?.full_name || "G")
+                                .charAt(0)
+                                .toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="profile-text-details">
-                          <span className="profile-name">{rev.profiles?.full_name || "ユーザー"}</span>
-                          <span className="review-date">{formatJapaneseDate(rev.created_at)}</span>
+                          <span className="profile-name">
+                            {rev.profiles?.full_name || "ユーザー"}
+                          </span>
+                          <span className="review-date">
+                            {formatJapaneseDate(rev.created_at)}
+                          </span>
                         </div>
                       </div>
 
@@ -569,7 +674,14 @@ const ReviewPage: FC = () => {
                               />
                               {/* Zoom icon overlay */}
                               <div className="gallery-img-overlay">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  width="18"
+                                  height="18"
+                                >
                                   <circle cx="11" cy="11" r="8" />
                                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                   <line x1="11" y1="8" x2="11" y2="14" />
@@ -592,10 +704,23 @@ const ReviewPage: FC = () => {
       {/* Lightbox / Image Slider */}
       {lightbox && (
         <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
-          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="lightbox-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Close button */}
-            <button className="lightbox-close" onClick={() => setLightbox(null)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+            <button
+              className="lightbox-close"
+              onClick={() => setLightbox(null)}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                width="22"
+                height="22"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -608,12 +733,24 @@ const ReviewPage: FC = () => {
                 onClick={() =>
                   setLightbox((prev) =>
                     prev
-                      ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
-                      : null
+                      ? {
+                          ...prev,
+                          index:
+                            (prev.index - 1 + prev.images.length) %
+                            prev.images.length,
+                        }
+                      : null,
                   )
                 }
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  width="24"
+                  height="24"
+                >
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
@@ -633,12 +770,22 @@ const ReviewPage: FC = () => {
                 onClick={() =>
                   setLightbox((prev) =>
                     prev
-                      ? { ...prev, index: (prev.index + 1) % prev.images.length }
-                      : null
+                      ? {
+                          ...prev,
+                          index: (prev.index + 1) % prev.images.length,
+                        }
+                      : null,
                   )
                 }
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  width="24"
+                  height="24"
+                >
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
@@ -651,7 +798,11 @@ const ReviewPage: FC = () => {
                   <button
                     key={i}
                     className={`lightbox-dot${i === lightbox.index ? " lightbox-dot--active" : ""}`}
-                    onClick={() => setLightbox((prev) => prev ? { ...prev, index: i } : null)}
+                    onClick={() =>
+                      setLightbox((prev) =>
+                        prev ? { ...prev, index: i } : null,
+                      )
+                    }
                   />
                 ))}
               </div>
