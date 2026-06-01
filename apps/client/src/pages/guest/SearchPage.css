@@ -612,7 +612,7 @@
 .map-pin--selected {
   background: linear-gradient(135deg, #c8843a, #a0522d);
   box-shadow: 0 4px 18px rgba(200, 132, 58, 0.5);
-  transform: rotate(-45deg) scale(1.15);
+  transform: rotate(-45deg) scale(1.5);
 }
 
 /* ⑨ Current location marker */

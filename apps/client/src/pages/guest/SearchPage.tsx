@@ -19,6 +19,8 @@ import "leaflet/dist/leaflet.css";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./SearchPage.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 // ── Types ────────────────────────────────────────────────────
 interface CafeInfo {
   id: number;
@@ -39,83 +41,6 @@ interface CafeInfo {
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
 const centerHanoi: [number, number] = [21.0056, 105.8433];
 
-const MOCK_CAFES: CafeInfo[] = [
-  {
-    id: 1,
-    name: "The Coffee House",
-    location: { lat: 21.008, lng: 105.842 },
-    rating: 4.8,
-    reviewCount: 312,
-    isOpenNow: true,
-    tags: ["高速Wi-Fi", "コンセント", "静か"],
-    distance: 0.3,
-    imageUrl:
-      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=120&q=80",
-    address: "15 Tạ Quang Bửu, Bách Khoa, Hai Bà Trưng",
-    wifi: "高速Wi-Fi",
-    district: "Hai Ba Trung",
-  },
-  {
-    id: 2,
-    name: "Highlands Coffee",
-    location: { lat: 21.004, lng: 105.846 },
-    rating: 4.5,
-    reviewCount: 218,
-    isOpenNow: true,
-    tags: ["高速Wi-Fi", "エアコン"],
-    distance: 0.4,
-    imageUrl:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=120&q=80",
-    address: "45 Trần Đại Nghĩa, Đồng Tâm, Hai Bà Trưng",
-    wifi: "高速Wi-Fi",
-    district: "Hai Ba Trung",
-  },
-  {
-    id: 3,
-    name: "Cong Coffee",
-    location: { lat: 21.011, lng: 105.84 },
-    rating: 4.7,
-    reviewCount: 178,
-    isOpenNow: true,
-    tags: ["高速Wi-Fi", "テラス席"],
-    distance: 0.7,
-    imageUrl:
-      "https://images.unsplash.com/photo-1511920170033-f8396924c348?w=120&q=80",
-    address: "32 Lê Thanh Nghị, Bách Khoa, Hai Bà Trưng",
-    wifi: "高速Wi-Fi",
-    district: "Hai Ba Trung",
-  },
-  {
-    id: 4,
-    name: "Tranquil Books & Coffee",
-    location: { lat: 20.999, lng: 105.842 },
-    rating: 4.9,
-    reviewCount: 95,
-    isOpenNow: false,
-    tags: ["静か", "コンセント", "エアコン"],
-    distance: 0.8,
-    imageUrl:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80",
-    address: "192 Giải Phóng, Phương Liệt, Thanh Xuân",
-    wifi: "無料Wi-Fi",
-    district: "Thanh Xuan",
-  },
-  {
-    id: 5,
-    name: "Note Coffee",
-    location: { lat: 21.007, lng: 105.848 },
-    rating: 4.6,
-    reviewCount: 142,
-    isOpenNow: true,
-    tags: ["高速Wi-Fi", "静か", "テラス席"],
-    distance: 0.6,
-    imageUrl:
-      "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120&q=80",
-    address: "64 Bạch Mai, Cầu Dền, Hai Bà Trưng",
-    wifi: "高速Wi-Fi",
-    district: "Hai Ba Trung",
-  },
-];
 
 // ── Icon Factory ────────────────────────────────────────────
 const createCafeIcon = (selected = false) =>
@@ -163,16 +88,16 @@ function MapEventsHandler({ onMapClick }: { onMapClick: () => void }) {
 
 // ── Main Component ───────────────────────────────────────────
 const SearchPage: FC = () => {
-  const [searchQuery, setSearchQuery] = useState("Coffee");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [cafes, setCafes] = useState<CafeInfo[]>(MOCK_CAFES);
-  const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(
-    MOCK_CAFES[0] ?? null,
-  );
+  const [cafes, setCafes] = useState<CafeInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(null);
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapZoom, setMapZoom] = useState(14);
   const listRef = useRef<HTMLDivElement>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
+  const autoSelectNextFetchRef = useRef(false);
 
   const [userCoords, setUserCoords] = useState<[number, number]>(centerHanoi);
   const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
@@ -184,7 +109,7 @@ const SearchPage: FC = () => {
     if (!q || q.length < 1) return [];
     const seen = new Set<string>();
     const results: { label: string; type: "cafe" | "district" }[] = [];
-    MOCK_CAFES.forEach((c) => {
+    cafes.forEach((c) => {
       if (c.name.toLowerCase().includes(q) && !seen.has(c.name)) {
         seen.add(c.name);
         results.push({ label: c.name, type: "cafe" });
@@ -195,7 +120,7 @@ const SearchPage: FC = () => {
       }
     });
     return results.slice(0, 6);
-  }, [searchQuery]);
+  }, [searchQuery, cafes]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -298,31 +223,82 @@ const SearchPage: FC = () => {
     return R * c;
   };
 
-  // Tính khoảng cách động dựa trên userCoords
-  const cafesWithDistance = useMemo(() => {
-    return cafes.map((cafe) => ({
-      ...cafe,
-      distance: Number(
-        calculateDistance(
-          userCoords[0],
-          userCoords[1],
-          cafe.location.lat,
-          cafe.location.lng,
-        ).toFixed(1),
-      ),
-    }));
-  }, [cafes, userCoords]);
+  // Tự động gọi API
+  const fetchCafes = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const params = new URLSearchParams();
+      if (activeFilters.includes("営業中")) params.append("isOpen", "true");
+      if (activeFilters.includes("高評価")) params.append("minRating", "4");
+      if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
+      
+      params.append("lat", userCoords[0].toString());
+      params.append("lng", userCoords[1].toString());
+      
+      if (activeFilters.includes("近くの店")) {
+        params.append("maxDistance", "10");
+      } else {
+        params.append("maxDistance", "30");
+      }
 
-  // Filter cafes based on search + filters
-  const filteredCafes = cafesWithDistance.filter((cafe) => {
-    const matchSearch =
-      cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchOpen = !activeFilters.includes("営業中") || cafe.isOpenNow;
-    const matchRating = !activeFilters.includes("高評価") || cafe.rating >= 4.7;
-    return matchSearch && matchOpen && matchRating;
-  });
+      const response = await fetch(`${API_BASE_URL}/api/cafes/map?${params.toString()}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const mapped = result.data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          location: { lat: Number(c.lat), lng: Number(c.lng) },
+          rating: c.avg_rating || 0,
+          reviewCount: c.review_count || 0,
+          isOpenNow: Boolean(c.isOpenNow),
+          tags: c.custom_tags || [],
+          distance: c.distance ? Number(c.distance.toFixed(1)) : null,
+          imageUrl: c.images?.[0]?.image_url,
+          address: c.address || "",
+          wifi: c.cafe_amenities?.some((a: any) => a.amenities?.name_ja?.includes("Wi-Fi")) ? "高速Wi-Fi" : "なし",
+          district: c.address ? c.address.split(",").slice(-2, -1)[0]?.trim() || "Hà Nội" : "Hà Nội"
+        }));
+        setCafes(mapped);
+        setIsLoading(false);
+
+        if (autoSelectNextFetchRef.current) {
+          autoSelectNextFetchRef.current = false;
+          if (mapped.length > 0 && map) {
+            setSelectedCafe(mapped[0]);
+            map.flyTo([mapped[0].location.lat, mapped[0].location.lng], 15, { animate: true, duration: 0.6 });
+            
+            // Cuộn danh sách đến kết quả đầu tiên
+            if (listRef.current) {
+               const firstCard = listRef.current.querySelector('.cafe-card');
+               if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          } else {
+            setSelectedCafe(null);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("[SearchPage] Error fetching cafes:", error);
+      setIsLoading(false);
+    }
+  }, [searchQuery, activeFilters, userCoords, map]);
+
+  // Debounce 400ms khi gõ từ khoá
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCafes();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Gọi ngay khi filter hoặc vị trí thay đổi
+  useEffect(() => {
+    fetchCafes();
+  }, [activeFilters, userCoords]);
+
+  // Filter cafes based on local state (just for immediate responsiveness while API re-fetches)
+  const filteredCafes = cafes;
 
   const toggleFilter = (f: string) =>
     setActiveFilters((prev) =>
@@ -349,6 +325,8 @@ const SearchPage: FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
+    autoSelectNextFetchRef.current = true;
+    fetchCafes();
   };
 
   const handleSelectSuggestion = (label: string) => {
@@ -466,15 +444,21 @@ const SearchPage: FC = () => {
 
           {/* ⑱ Result Count */}
           <div className="result-count" id="search-result-count">
-            <span className="result-count__keyword">
-              「{searchQuery || "すべて"}」
-            </span>
-            <span className="result-count__text"> で </span>
-            <span className="result-count__num">{filteredCafes.length}件</span>
-            <span className="result-count__text">
-              {" "}
-              のカフェが見つかりました
-            </span>
+            {isLoading ? (
+              <span className="result-count__text">検索中...</span>
+            ) : (
+              <>
+                <span className="result-count__keyword">
+                  「{searchQuery || "すべて"}」
+                </span>
+                <span className="result-count__text"> で </span>
+                <span className="result-count__num">{filteredCafes.length}件</span>
+                <span className="result-count__text">
+                  {" "}
+                  のカフェが見つかりました
+                </span>
+              </>
+            )}
           </div>
 
           {/* ⑲ + ⑳ Cafe Cards List */}

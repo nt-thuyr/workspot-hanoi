@@ -175,26 +175,29 @@ const OwnerDashboardPage: FC = () => {
   const checkIsOpen = (openTime?: string, closeTime?: string) => {
     if (!openTime || !closeTime) return false;
     const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
+    // Chuyển giờ sang múi giờ VN
+    const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+    const currentHours = vnTime.getHours();
+    const currentMinutes = vnTime.getMinutes();
     const currentTimeInMinutes = currentHours * 60 + currentMinutes;
 
     const oParts = openTime.split(":").map(Number);
     const cParts = closeTime.split(":").map(Number);
-    if (oParts.length < 2 || cParts.length < 2) return false;
 
-    const oHours = oParts[0] ?? 0;
-    const oMinutes = oParts[1] ?? 0;
-    const cHours = cParts[0] ?? 0;
-    const cMinutes = cParts[1] ?? 0;
+    const oHours = oParts[0] || 0;
+    const oMinutes = oParts[1] || 0;
+    const cHours = cParts[0] || 0;
+    const cMinutes = cParts[1] || 0;
 
     const openTimeInMinutes = oHours * 60 + oMinutes;
     const closeTimeInMinutes = cHours * 60 + cMinutes;
 
-    return (
-      currentTimeInMinutes >= openTimeInMinutes &&
-      currentTimeInMinutes <= closeTimeInMinutes
-    );
+    if (openTimeInMinutes <= closeTimeInMinutes) {
+      return currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes <= closeTimeInMinutes;
+    } else {
+      // Quán mở qua đêm
+      return currentTimeInMinutes >= openTimeInMinutes || currentTimeInMinutes <= closeTimeInMinutes;
+    }
   };
 
   return (
@@ -233,19 +236,16 @@ const OwnerDashboardPage: FC = () => {
                 .filter((img) => img.image_type !== "MENU")
                 .map((img) => img.image_url);
 
-              const mainImage =
-                allUploadedPhotos.length > 0
-                  ? allUploadedPhotos[0]
-                  : DEFAULT_CAROUSEL_IMAGES[0];
+              const mainImage = allUploadedPhotos[0] || DEFAULT_CAROUSEL_IMAGES[0] || "";
 
               // Extract menu photos for highlights
               const menuPhotos = (cafe.cafe_images || [])
                 .filter((img) => img.image_type === "MENU")
                 .map((img) => img.image_url);
               const menuHighlightImages =
-                menuPhotos.length >= 3
+                menuPhotos.length > 0
                   ? menuPhotos.slice(0, 3)
-                  : [...menuPhotos, ...DEFAULT_MENU_IMAGES].slice(0, 3);
+                  : DEFAULT_MENU_IMAGES.slice(0, 3);
 
               // Map amenities tags
               const standardTags = (cafe.cafe_amenities || [])

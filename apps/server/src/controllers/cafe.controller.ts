@@ -8,6 +8,16 @@ import { supabase } from "../config/supabase";
 // --- UTILS TÍNH TOÁN KHOẢNG CÁCH ---
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
+// --- UTILS CHUẨN HÓA CHUỖI TÌM KIẾM ---
+const removeAccents = (str: string) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 const getDistanceFromLatLonInKm = (
   lat1: number,
   lon1: number,
@@ -30,9 +40,22 @@ const getDistanceFromLatLonInKm = (
 // --- UTILS KIỂM TRA GIỜ MỞ CỬA ---
 const checkIsOpen = (openTime: string, closeTime: string) => {
   if (!openTime || !closeTime) return false;
+
   const now = new Date();
-  const currentTimeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-  return currentTimeStr >= openTime && currentTimeStr <= closeTime;
+  const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+  const currentMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+
+  const oParts = openTime.split(":");
+  const cParts = closeTime.split(":");
+  const oMins = parseInt(oParts[0] || "0") * 60 + parseInt(oParts[1] || "0");
+  const cMins = parseInt(cParts[0] || "0") * 60 + parseInt(cParts[1] || "0");
+
+  if (oMins <= cMins) {
+    return currentMinutes >= oMins && currentMinutes <= cMins;
+  } else {
+    // Quán mở qua đêm
+    return currentMinutes >= oMins || currentMinutes <= cMins;
+  }
 };
 
 // ━━━ READ ━━━
@@ -484,11 +507,14 @@ export const getMapCafes = async (req: Request, res: Response) => {
 
     // 1. Lọc theo Keyword (tìm trong tên, địa chỉ, tags)
     if (keyword) {
-      const kw = (keyword as string).toLowerCase();
+      const kw = removeAccents(keyword as string).toLowerCase();
       filteredCafes = filteredCafes.filter((cafe) => {
-        const nameMatch = cafe.name?.toLowerCase().includes(kw);
-        const addressMatch = cafe.address?.toLowerCase().includes(kw);
-        const tagsMatch = cafe.tags.some((t: string) => t.toLowerCase().includes(kw));
+        const nameStr = cafe.name ? removeAccents(cafe.name).toLowerCase() : "";
+        const addrStr = cafe.address ? removeAccents(cafe.address).toLowerCase() : "";
+        
+        const nameMatch = nameStr.includes(kw);
+        const addressMatch = addrStr.includes(kw);
+        const tagsMatch = cafe.tags.some((t: string) => removeAccents(t).toLowerCase().includes(kw));
         return nameMatch || addressMatch || tagsMatch;
       });
     }
