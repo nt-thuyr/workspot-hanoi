@@ -59,8 +59,8 @@ interface CafeInfo {
 
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
 const POPULAR_TAGS = [
-  "Fast Wi-Fi",
-  "Quiet",
+  "高速Wi-Fi",
+  "静か",
   "コンセント",
   "エアコン",
   "テラス席",
@@ -308,8 +308,8 @@ const HomePage: FC = () => {
       const params = new URLSearchParams();
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
       if (activeFilters.includes("高評価")) params.append("minRating", "4");
-      if (activeTags.includes("Fast Wi-Fi")) params.append("hasWifi", "true");
-      if (activeTags.includes("Quiet")) params.append("isQuiet", "true");
+      if (activeTags.includes("高速Wi-Fi")) params.append("hasWifi", "true");
+      if (activeTags.includes("静か")) params.append("isQuiet", "true");
       if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
 
       params.append("lat", userCoords[0].toString());
@@ -1034,7 +1034,7 @@ const HomePage: FC = () => {
                               </div>
 
                               <div className="space-y-1 mt-2 text-xs text-gray-500">
-                                {cafe.tags?.includes("Fast Wi-Fi") && (
+                                {cafe.tags?.includes("高速Wi-Fi") && (
                                   <div className="flex items-center gap-1.5 truncate">
                                     <svg
                                       viewBox="0 0 24 24"
@@ -1055,7 +1055,7 @@ const HomePage: FC = () => {
                                         fill="currentColor"
                                       />
                                     </svg>
-                                    <span className="truncate">Fast Wi-Fi</span>
+                                    <span className="truncate">高速Wi-Fi</span>
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1.5 truncate">
@@ -1150,7 +1150,7 @@ const HomePage: FC = () => {
                           </span>
                         </div>
                         <StarRating value={cafe.rating} />
-                        {cafe.tags?.includes("Fast Wi-Fi") && (
+                        {cafe.tags?.includes("高速Wi-Fi") && (
                           <div className="popup-row">
                             <svg
                               viewBox="0 0 24 24"
@@ -1170,7 +1170,7 @@ const HomePage: FC = () => {
                                 fill="currentColor"
                               />
                             </svg>
-                            Fast Wi-Fi
+                            高速Wi-Fi
                           </div>
                         )}
                         <div className="popup-row popup-dist">

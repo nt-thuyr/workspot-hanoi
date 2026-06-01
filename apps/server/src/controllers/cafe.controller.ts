@@ -463,7 +463,7 @@ export const getMapCafes = async (req: Request, res: Response) => {
 
     // Map amenities to string tags
     const tagMap: Record<number, string> = {
-      1: "Fast Wi-Fi", 2: "コンセント", 3: "Quiet", 4: "禁煙",
+      1: "高速Wi-Fi", 2: "コンセント", 3: "静か", 4: "禁煙",
       5: "エアコン", 6: "ペット可", 7: "駐車場", 8: "テラス席",
       9: "飲食可", 10: "プロジェクター", 11: "会議室", 12: "24時間営業",
     };
@@ -511,12 +511,12 @@ export const getMapCafes = async (req: Request, res: Response) => {
     // 3. Lọc theo Wi-Fi và Yên tĩnh
     if (hasWifi === "true") {
       filteredCafes = filteredCafes.filter((cafe) =>
-        cafe.tags?.includes("Fast Wi-Fi") || cafe.tags?.some((t: string) => t.toLowerCase().includes("wifi")),
+        cafe.tags?.includes("高速Wi-Fi") || cafe.tags?.some((t: string) => t.toLowerCase().includes("wifi")),
       );
     }
     if (isQuiet === "true") {
       filteredCafes = filteredCafes.filter((cafe) =>
-        cafe.tags?.includes("Quiet") || cafe.tags?.some((t: string) => t.toLowerCase().includes("quiet") || t.toLowerCase().includes("静か")),
+        cafe.tags?.includes("静か") || cafe.tags?.some((t: string) => t.toLowerCase().includes("静か")),
       );
     }
 
