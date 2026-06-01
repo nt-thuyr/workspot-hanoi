@@ -55,20 +55,36 @@ const tagMap: Record<number, string> = {
   12: "24時間営業",
 };
 
-// Fallback images for carousel & menu highlights
+// Fallback image for carousel when no photos uploaded
 const DEFAULT_CAROUSEL_IMAGES = [
   "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800",
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800",
   "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800",
 ];
 
-
-// Leaflet Cafe Pin Marker Icon
-const cafeMarkerIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
+// Leaflet Cafe Pin Marker Icon (custom SVG — no dark ring)
+const cafeMarkerIcon = L.divIcon({
+  className: "",
+  html: `<div style="
+    width:36px;height:36px;
+    border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);
+    background:linear-gradient(135deg,#614734,#3d2210);
+    border:2.5px solid #fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 10px rgba(0,0,0,0.28);
+  ">
+    <svg style="transform:rotate(45deg)" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="15" height="15">
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+      <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+      <line x1="6" y1="1" x2="6" y2="4"/>
+      <line x1="10" y1="1" x2="10" y2="4"/>
+      <line x1="14" y1="1" x2="14" y2="4"/>
+    </svg>
+  </div>`,
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+  popupAnchor: [0, -38],
 });
 
 const OwnerDashboardPage: FC = () => {
@@ -135,7 +151,7 @@ const OwnerDashboardPage: FC = () => {
                     fullCafe.amenities && fullCafe.amenities.length > 0
                       ? fullCafe.amenities
                       : fullCafe.cafe_amenities &&
-                          fullCafe.cafe_amenities.length > 0
+                        fullCafe.cafe_amenities.length > 0
                         ? fullCafe.cafe_amenities
                         : cafe.cafe_amenities || [],
                   reservations:
@@ -231,27 +247,13 @@ const OwnerDashboardPage: FC = () => {
                 .filter((img) => img.image_type !== "MENU")
                 .map((img) => img.image_url);
 
-<<<<<<< Updated upstream
               const mainImage = allUploadedPhotos[0] || DEFAULT_CAROUSEL_IMAGES[0] || "";
-=======
-              const mainImage =
-                allUploadedPhotos.length > 0
-                  ? allUploadedPhotos[0]!
-                  : DEFAULT_CAROUSEL_IMAGES[0];
->>>>>>> Stashed changes
 
               // Extract menu photos for highlights
               const menuPhotos = (cafe.cafe_images || [])
                 .filter((img) => img.image_type === "MENU")
                 .map((img) => img.image_url);
-<<<<<<< Updated upstream
-              const menuHighlightImages =
-                menuPhotos.length > 0
-                  ? menuPhotos.slice(0, 3)
-                  : DEFAULT_MENU_IMAGES.slice(0, 3);
-=======
               const menuHighlightImages = menuPhotos.slice(0, 3);
->>>>>>> Stashed changes
 
               // Map amenities tags
               const standardTags = (cafe.cafe_amenities || [])
@@ -265,8 +267,8 @@ const OwnerDashboardPage: FC = () => {
               const avgRating =
                 ratings.length > 0
                   ? (
-                      ratings.reduce((a, b) => a + b, 0) / ratings.length
-                    ).toFixed(1)
+                    ratings.reduce((a, b) => a + b, 0) / ratings.length
+                  ).toFixed(1)
                   : "0.0";
               const reviewCount = ratings.length;
 
@@ -372,7 +374,7 @@ const OwnerDashboardPage: FC = () => {
 
                       {menuPhotos.length > 0 && (
                         <div className="thumbnails-container">
-                          {menuHighlightImages.map((thumbUrl, tIdx) => (
+                          {menuHighlightImages.map((thumbUrl: string, tIdx: number) => (
                             <div
                               key={tIdx}
                               className="thumbnail-wrapper"

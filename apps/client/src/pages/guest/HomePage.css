@@ -883,11 +883,8 @@
 .cafe-marker-pin--selected {
   width: 50px;
   height: 50px;
-  filter: drop-shadow(0 4px 8px rgba(97, 71, 52, 0.5));
-  outline: 3px solid #614734;
-  outline-offset: 2px;
-  border-radius: 50%;
-  transform: scale(1.15);
+  filter: drop-shadow(0 4px 12px rgba(200, 132, 58, 0.6));
+  transform: scale(1.15) translateY(-5px);
 }
 
 /* Current location marker */
@@ -981,9 +978,22 @@
   font-weight: 500;
 }
 
-/* Leaflet container font */
+/* ── Leaflet Overrides ────────────────────────────────────── */
 .leaflet-container {
   font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Xóa vòng trắng/đen mặc định của Leaflet div-icon */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.leaflet-shadow-pane {
+  display: none !important;
 }
 
 

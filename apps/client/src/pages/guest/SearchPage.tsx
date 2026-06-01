@@ -248,15 +248,17 @@ const SearchPage: FC = () => {
         const mapped = result.data.map((c: any) => ({
           id: c.id,
           name: c.name,
-          location: { lat: Number(c.lat), lng: Number(c.lng) },
-          rating: c.avg_rating || 0,
-          reviewCount: c.review_count || 0,
+          // Server trả về location: { lat, lng } hoặc flat c.lat/c.lng
+          location: { lat: Number(c.location?.lat ?? c.lat), lng: Number(c.location?.lng ?? c.lng) },
+          rating: c.rating || c.avg_rating || 0,
+          reviewCount: c.reviewCount || c.review_count || 0,
           isOpenNow: Boolean(c.isOpenNow),
-          tags: c.custom_tags || [],
+          tags: c.tags || c.custom_tags || [],
           distance: c.distance ? Number(c.distance.toFixed(1)) : null,
-          imageUrl: c.images?.[0]?.image_url,
+          // Server trả về imageUrl (flat), không phải images[]
+          imageUrl: c.imageUrl || c.image_url || c.images?.[0]?.image_url,
           address: c.address || "",
-          wifi: c.cafe_amenities?.some((a: any) => a.amenities?.name_ja?.includes("Wi-Fi")) ? "高速Wi-Fi" : "なし",
+          wifi: (c.tags || []).some((t: string) => t.includes("Wi-Fi")) ? "高速Wi-Fi" : "なし",
           district: c.address ? c.address.split(",").slice(-2, -1)[0]?.trim() || "Hà Nội" : "Hà Nội"
         }));
         setCafes(mapped);
@@ -284,16 +286,22 @@ const SearchPage: FC = () => {
     }
   }, [searchQuery, activeFilters, userCoords, map]);
 
-  // Debounce 400ms khi gõ từ khoá
+  // Debounce 400ms khi gõ từ khoá - tự động focus vào kết quả đầu tiên
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        autoSelectNextFetchRef.current = true;
+      }
       fetchCafes();
     }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Gọi ngay khi filter hoặc vị trí thay đổi
+  // Gọi ngay khi filter hoặc vị trí thay đổi - tự động focus khi bật filter
   useEffect(() => {
+    if (activeFilters.length > 0) {
+      autoSelectNextFetchRef.current = true;
+    }
     fetchCafes();
   }, [activeFilters, userCoords]);
 

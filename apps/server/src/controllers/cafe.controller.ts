@@ -48,13 +48,20 @@ const getVietnamTimeString = (): string => {
   return formatter.format(new Date());
 };
 
-const checkIsOpen = (openTime: string, closeTime: string) => {
+const checkIsOpen = (openTime: string, closeTime: string): boolean => {
   if (!openTime || !closeTime) return false;
-<<<<<<< Updated upstream
 
   const now = new Date();
-  const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-  const currentMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+  // Tính giờ VN (UTC+7) một cách robust
+  let currentMinutes: number;
+  try {
+    const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+    currentMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
+  } catch {
+    // Fallback: UTC + 7 hours
+    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    currentMinutes = (utcMinutes + 7 * 60) % (24 * 60);
+  }
 
   const oParts = openTime.split(":");
   const cParts = closeTime.split(":");
@@ -62,15 +69,12 @@ const checkIsOpen = (openTime: string, closeTime: string) => {
   const cMins = parseInt(cParts[0] || "0") * 60 + parseInt(cParts[1] || "0");
 
   if (oMins <= cMins) {
+    // Quán đóng trước nửa đêm
     return currentMinutes >= oMins && currentMinutes <= cMins;
   } else {
     // Quán mở qua đêm
     return currentMinutes >= oMins || currentMinutes <= cMins;
   }
-=======
-  const currentTimeStr = getVietnamTimeString();
-  return currentTimeStr >= openTime && currentTimeStr <= closeTime;
->>>>>>> Stashed changes
 };
 
 // ━━━ READ ━━━
@@ -576,9 +580,6 @@ export const getMapCafes = async (req: Request, res: Response) => {
 
       // Lọc các quán nằm trong bán kính cho phép
       filteredCafes = filteredCafes.filter((cafe) => cafe.distance <= radiusKm);
-
-      // Sắp xếp ưu tiên quán gần nhất
-      filteredCafes.sort((a, b) => a.distance - b.distance);
     }
 
     console.log("[getMapCafes] Final filtered count:", filteredCafes.length);

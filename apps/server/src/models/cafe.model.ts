@@ -13,6 +13,7 @@ export class CafeModel {
     const { data, error, count } = await supabase
       .from("cafes")
       .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (error) throw error;
@@ -40,7 +41,8 @@ export class CafeModel {
 
     const { data, error } = await adminClient
       .from("cafes")
-      .select("*, cafe_amenities(amenity_id), cafe_images(image_url, image_type), reviews(rating), reservations(id)");
+      .select("*, cafe_amenities(amenity_id), cafe_images(image_url, image_type), reviews(rating), reservations(id)")
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data;
@@ -88,7 +90,8 @@ export class CafeModel {
       const { data, error, count } = await supabase
         .from("cafes")
         .select(selectQuery, { count: "exact" })
-        .eq("owner_id", ownerId);
+        .eq("owner_id", ownerId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return { data, count };
@@ -101,6 +104,7 @@ export class CafeModel {
         .from("cafes")
         .select(selectQuery, { count: "exact" })
         .eq("owner_id", ownerId)
+        .order("created_at", { ascending: false })
         .range(from, to);
 
     if (error) throw error;

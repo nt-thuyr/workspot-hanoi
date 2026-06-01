@@ -56,7 +56,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dashboard-empty-state {
@@ -476,27 +478,27 @@
   .dashboard-shell {
     padding: 1rem;
   }
-  
+
   .card-header {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .media-block {
     flex-direction: column;
     height: auto;
   }
-  
+
   .carousel-container {
     height: 200px;
   }
-  
+
   .thumbnails-container {
     width: 100%;
     flex-direction: row;
     height: 70px;
   }
-  
+
   .stats-row {
     grid-template-columns: 1fr;
   }
@@ -607,9 +609,11 @@
   .modal-arrow--prev {
     left: 15px;
   }
+
   .modal-arrow--next {
     right: 15px;
   }
+
   .modal-arrow {
     background: rgba(0, 0, 0, 0.5);
   }
