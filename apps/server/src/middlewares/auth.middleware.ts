@@ -40,7 +40,7 @@ export const requireRole = (requiredRole: 'japanese_user' | 'cafe_owner') => {
         if (userRole !== requiredRole) {
             return res.status(403).json({
                 success: false,
-                message: 'Forbidden: Bạn không có quyền truy cập vào tài nguyên này'
+                message: 'アクセス権限がありません'
             });
         }
 

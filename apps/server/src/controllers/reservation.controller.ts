@@ -175,7 +175,7 @@ export const getHistory = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
 
     if (!userId) {
-      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+      return res.status(401).json({ success: false, message: 'ログインしてください。' });
     }
 
     // Gọi Model lấy dữ liệu thô từ Database
@@ -244,7 +244,7 @@ export const getCafeReservations = async (req: Request, res: Response) => {
     if (!ownerId) {
       return res.status(401).json({
         success: false,
-        message: 'Vui lòng đăng nhập.',
+        message: 'ログインしてください。',
       });
     }
 
@@ -252,7 +252,7 @@ export const getCafeReservations = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền xem đơn đặt chỗ của quán này',
+        message: 'このカフェの予約を閲覧する権限がありません',
       });
     }
 
@@ -294,14 +294,14 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     if (!cafeId) {
       return res.status(404).json({
         success: false,
-        message: 'Đơn đặt chỗ không tồn tại',
+        message: '予約が見つかりません',
       });
     }
 
     if (!ownerId) {
       return res.status(401).json({
         success: false,
-        message: 'Vui lòng đăng nhập.',
+        message: 'ログインしてください。',
       });
     }
 
@@ -310,7 +310,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền cập nhật đơn đặt chỗ này',
+        message: 'この予約を更新する権限がありません',
       });
     }
 
@@ -362,7 +362,7 @@ export const cancelReservationByUser = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
 
     if (!userId) {
-      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+      return res.status(401).json({ success: false, message: 'ログインしてください。' });
     }
 
     const reservationUserId = await ReservationModel.getUserIdFromReservation(id);
@@ -371,12 +371,12 @@ export const cancelReservationByUser = async (req: Request, res: Response) => {
     }
 
     if (reservationUserId !== userId) {
-      return res.status(403).json({ success: false, message: 'Bạn không có quyền hủy đơn đặt chỗ này' });
+      return res.status(403).json({ success: false, message: 'この予約をキャンセルする権限がありません' });
     }
 
     const reservation = await ReservationModel.updateReservationStatus(id, 'CANCELLED');
 
-    res.status(200).json({ success: true, message: 'Đã hủy thành công', data: reservation });
+    res.status(200).json({ success: true, message: '予約がキャンセルされました', data: reservation });
   } catch (error: any) {
     console.error('Error cancelling reservation:', error);
     res.status(500).json({ error: 'サーバーエラー', details: error.message });

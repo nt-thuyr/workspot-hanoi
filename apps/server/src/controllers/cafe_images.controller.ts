@@ -10,7 +10,7 @@ export const createCafeImage = async (req: Request, res: Response) => {
     if (!imageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Missing imageUrl',
+        message: '画像URLが不足しています',
       });
     }
 
@@ -24,7 +24,7 @@ export const createCafeImage = async (req: Request, res: Response) => {
     if (cafeError || cafe?.owner_id !== owner_id) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền upload ảnh cho café này',
+        message: 'このカフェに画像をアップロードする権限がありません',
       });
     }
 
@@ -65,7 +65,7 @@ export const deleteCafeImage = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền xóa ảnh này',
+        message: 'この画像を削除する権限がありません',
       });
     }
 

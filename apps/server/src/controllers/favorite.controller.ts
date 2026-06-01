@@ -9,7 +9,7 @@ export const addToFavorites = async (req: Request, res: Response) => {
     if (!user_id || !cafe_id) {
       return res.status(400).json({
         success: false,
-        message: 'Missing user_id or cafe_id',
+        message: 'ユーザーIDまたはカフェIDが不足しています',
       });
     }
 
@@ -18,7 +18,7 @@ export const addToFavorites = async (req: Request, res: Response) => {
     if (isFav) {
       return res.status(400).json({
         success: false,
-        message: 'Café này đã trong danh sách yêu thích',
+        message: 'このカフェは既にお気に入りに登録されています',
       });
     }
 
@@ -40,7 +40,7 @@ export const removeFromFavorites = async (req: Request, res: Response) => {
     if (!user_id) {
       return res.status(400).json({
         success: false,
-        message: 'Missing user_id',
+        message: 'ユーザーIDが不足しています',
       });
     }
 
@@ -48,7 +48,7 @@ export const removeFromFavorites = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: 'Đã xoá khỏi danh sách yêu thích',
+      message: 'お気に入りから削除されました',
     });
   } catch (error: any) {
     console.error('Error removing from favorites:', error);

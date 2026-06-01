@@ -20,6 +20,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isLoggingOut = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,7 +38,8 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
     };
     window.addEventListener("avatarUpdated", handleAvatarUpdated);
 
-    // Fetch latest profile to keep in sync
+    // Fetch latest profile to keep in sync (skip during logout to avoid API errors)
+    if (isLoggingOut.current) return;
     const userId = localStorage.getItem("user_id");
     if (userId) {
       fetch(`${API_BASE_URL}/api/profiles/${userId}`)
@@ -105,6 +107,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
   };
 
   const handleLogout = () => {
+    isLoggingOut.current = true;
     localStorage.removeItem("access_token");
     localStorage.removeItem("user_role");
     localStorage.removeItem("user_name");

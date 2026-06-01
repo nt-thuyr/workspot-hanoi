@@ -20,14 +20,14 @@ export const createReview = async (req: AuthRequest, res: Response) => {
     if (!cafe_id || !rating || rating < 1 || rating > 5) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields or invalid rating (1-5)',
+        message: '必須項目が不足しているか、評価が無効です（1〜5）',
       });
     }
 
     if (!comment || !comment.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Review comment (nội dung) is required',
+        message: 'レビューコメントは必須です',
       });
     }
 
@@ -134,7 +134,7 @@ export const createReviewImage = async (req: Request, res: Response) => {
     if (!imageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Missing imageUrl or files',
+        message: '画像URLまたはファイルが不足しています',
       });
     }
 

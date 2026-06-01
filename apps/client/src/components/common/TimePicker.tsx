@@ -5,6 +5,7 @@ interface TimePickerProps {
   value: string; // Expected format HH:mm
   onChange: (value: string) => void;
   error?: string;
+  required?: boolean;
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({
@@ -12,6 +13,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   value,
   onChange,
   error,
+  required: isRequired,
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
@@ -21,6 +23,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     <div className="group">
       <label className="block font-label text-[11px] uppercase tracking-widest font-bold text-[#81756d] mb-2 group-focus-within:text-[#614734] transition-colors">
         {label}
+        {isRequired && <span className="text-[#ba1a1a] ml-1">*</span>}
       </label>
       <input
         type="time"

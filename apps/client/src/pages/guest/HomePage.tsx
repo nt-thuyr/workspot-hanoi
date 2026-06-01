@@ -22,14 +22,14 @@ import "./HomePage.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// 2. Cấu hình Icon cho ghim (Marker) — đồng bộ với màn Edit Cafe
+// 2. Cấu hình Icon cho ghim (Marker) — dùng divIcon để hỗ trợ CSS shadow/border
 const createCafeIcon = (isSelected = false) => {
-  return new L.Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+  return L.divIcon({
+    className: "",
+    html: `<div class="cafe-marker-pin ${isSelected ? "cafe-marker-pin--selected" : ""}"></div>`,
     iconSize: isSelected ? [50, 50] : [40, 40],
     iconAnchor: isSelected ? [25, 50] : [20, 40],
     popupAnchor: [0, -40],
-    className: isSelected ? "cafe-marker--selected" : "",
   });
 };
 
@@ -95,6 +95,8 @@ const HomePage: FC = () => {
   const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(null);
   const [fullCafeDetail, setFullCafeDetail] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [menuPreviewOpen, setMenuPreviewOpen] = useState(false);
+  const [menuPreviewIndex, setMenuPreviewIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapZoom, setMapZoom] = useState(14);
   const lastProcessedCafeIdRef = useRef<string | null>(null);
@@ -353,6 +355,20 @@ const HomePage: FC = () => {
   useEffect(() => {
     fetchCafes();
   }, [activeFilters, activeTags, userCoords]);
+
+  useEffect(() => {
+    if (cafes.length === 0 && selectedCafe) {
+      handleCloseDetail();
+    }
+  }, [cafes]);
+
+  // Extract menu images for the currently selected cafe (used in carousel & popup)
+  const menuImagesForCafe = useMemo(() => {
+    if (!fullCafeDetail?.images) return [];
+    return fullCafeDetail.images
+      .filter((img: any) => img.image_type === "MENU")
+      .map((img: any) => img.image_url);
+  }, [fullCafeDetail]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -677,68 +693,61 @@ const HomePage: FC = () => {
                   </h4>
 
                   {/* Image Carousel */}
-                  {fullCafeDetail?.images &&
-                  fullCafeDetail.images.filter(
-                    (img: any) => img.image_type === "MENU",
-                  ).length > 0 ? (
-                    (() => {
-                      const menuImages = fullCafeDetail.images
-                        .filter((img: any) => img.image_type === "MENU")
-                        .map((img: any) => img.image_url);
+                  {menuImagesForCafe.length > 0 ? (
+                    <div className="relative rounded-xl overflow-hidden shadow-sm bg-gray-100 aspect-video group">
+                      <img
+                        src={menuImagesForCafe[activeImageIndex]}
+                        alt="Menu item"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => {
+                          setMenuPreviewIndex(activeImageIndex);
+                          setMenuPreviewOpen(true);
+                        }}
+                      />
+                      {menuImagesForCafe.length > 1 && (
+                        <>
+                          <button
+                            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
+                            onClick={() =>
+                              setActiveImageIndex((prev) =>
+                                prev === 0
+                                  ? menuImagesForCafe.length - 1
+                                  : prev - 1,
+                              )
+                            }
+                          >
+                            ‹
+                          </button>
+                          <button
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
+                            onClick={() =>
+                              setActiveImageIndex((prev) =>
+                                prev === menuImagesForCafe.length - 1
+                                  ? 0
+                                  : prev + 1,
+                              )
+                            }
+                          >
+                            ›
+                          </button>
 
-                      return (
-                        <div className="relative rounded-xl overflow-hidden shadow-sm bg-gray-100 aspect-video group">
-                          <img
-                            src={menuImages[activeImageIndex]}
-                            alt="Menu item"
-                            className="w-full h-full object-cover"
-                          />
-                          {menuImages.length > 1 && (
-                            <>
+                          {/* Dots */}
+                          <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
+                            {menuImagesForCafe.map((_: any, idx: number) => (
                               <button
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
-                                onClick={() =>
-                                  setActiveImageIndex((prev) =>
-                                    prev === 0
-                                      ? menuImages.length - 1
-                                      : prev - 1,
-                                  )
-                                }
-                              >
-                                ‹
-                              </button>
-                              <button
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center text-sm font-bold border-0 cursor-pointer transition-colors"
-                                onClick={() =>
-                                  setActiveImageIndex((prev) =>
-                                    prev === menuImages.length - 1
-                                      ? 0
-                                      : prev + 1,
-                                  )
-                                }
-                              >
-                                ›
-                              </button>
-
-                              {/* Dots */}
-                              <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5">
-                                {menuImages.map((_: any, idx: number) => (
-                                  <button
-                                    key={idx}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
-                                      idx === activeImageIndex
-                                        ? "bg-white scale-110"
-                                        : "bg-white/40 hover:bg-white/60"
-                                    }`}
-                                    onClick={() => setActiveImageIndex(idx)}
-                                  />
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()
+                                key={idx}
+                                className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${
+                                  idx === activeImageIndex
+                                    ? "bg-white scale-110"
+                                    : "bg-white/40 hover:bg-white/60"
+                                }`}
+                                onClick={() => setActiveImageIndex(idx)}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 px-4 rounded-xl border border-dashed border-[#d6cfc7] bg-white">
                       <svg
@@ -880,7 +889,8 @@ const HomePage: FC = () => {
                 ))}
               </div>
 
-              {/* Tags section — luôn hiện, active state khi đã chọn */}
+              {/* Tags section — ẩn khi đang search/filter */}
+              {!(searchQuery.trim() !== "" || activeFilters.length > 0 || activeTags.length > 0) && (
               <div className="sidebar-tags mt-4">
                 <div
                   style={{
@@ -939,6 +949,7 @@ const HomePage: FC = () => {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */}
               {(searchQuery.trim() !== "" ||
@@ -1245,6 +1256,25 @@ const HomePage: FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Menu Image Preview Modal */}
+      {menuPreviewOpen && (
+        <div className="image-modal-overlay" onClick={() => setMenuPreviewOpen(false)}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={() => setMenuPreviewOpen(false)}>✕</button>
+            <div className="image-modal-body">
+              <img src={menuImagesForCafe[menuPreviewIndex]} alt="Menu preview" className="image-modal-img" />
+              {menuImagesForCafe.length > 1 && (
+                <>
+                  <button className="modal-arrow modal-arrow--prev" onClick={(e) => { e.stopPropagation(); setMenuPreviewIndex(prev => (prev - 1 + menuImagesForCafe.length) % menuImagesForCafe.length); }}>‹</button>
+                  <button className="modal-arrow modal-arrow--next" onClick={(e) => { e.stopPropagation(); setMenuPreviewIndex(prev => (prev + 1) % menuImagesForCafe.length); }}>›</button>
+                  <div className="modal-counter">{menuPreviewIndex + 1} / {menuImagesForCafe.length}</div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

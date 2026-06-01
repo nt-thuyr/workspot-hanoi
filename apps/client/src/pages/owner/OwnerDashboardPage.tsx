@@ -62,11 +62,6 @@ const DEFAULT_CAROUSEL_IMAGES = [
   "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800",
 ];
 
-const DEFAULT_MENU_IMAGES = [
-  "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500", // Coffee cup
-  "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500", // Croissant
-  "https://images.unsplash.com/photo-1534778101976-62847782c213?w=500", // Matcha green tea cake
-];
 
 // Leaflet Cafe Pin Marker Icon
 const cafeMarkerIcon = new L.Icon({
@@ -236,16 +231,27 @@ const OwnerDashboardPage: FC = () => {
                 .filter((img) => img.image_type !== "MENU")
                 .map((img) => img.image_url);
 
+<<<<<<< Updated upstream
               const mainImage = allUploadedPhotos[0] || DEFAULT_CAROUSEL_IMAGES[0] || "";
+=======
+              const mainImage =
+                allUploadedPhotos.length > 0
+                  ? allUploadedPhotos[0]!
+                  : DEFAULT_CAROUSEL_IMAGES[0];
+>>>>>>> Stashed changes
 
               // Extract menu photos for highlights
               const menuPhotos = (cafe.cafe_images || [])
                 .filter((img) => img.image_type === "MENU")
                 .map((img) => img.image_url);
+<<<<<<< Updated upstream
               const menuHighlightImages =
                 menuPhotos.length > 0
                   ? menuPhotos.slice(0, 3)
                   : DEFAULT_MENU_IMAGES.slice(0, 3);
+=======
+              const menuHighlightImages = menuPhotos.slice(0, 3);
+>>>>>>> Stashed changes
 
               // Map amenities tags
               const standardTags = (cafe.cafe_amenities || [])
@@ -356,7 +362,7 @@ const OwnerDashboardPage: FC = () => {
                             alt={`${cafe.name} view`}
                             className="carousel-image"
                             onClick={() => {
-                              setPreviewImages([mainImage]);
+                              setPreviewImages([mainImage!]);
                               setPreviewIndex(0);
                             }}
                             style={{ cursor: "pointer" }}
@@ -364,33 +370,31 @@ const OwnerDashboardPage: FC = () => {
                         </div>
                       </div>
 
-                      <div className="thumbnails-container">
-                        {menuHighlightImages.map((thumbUrl, tIdx) => (
-                          <div
-                            key={tIdx}
-                            className="thumbnail-wrapper"
-                            style={{
-                              position: "relative",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => {
-                              const previewSet =
-                                menuPhotos.length > 0
-                                  ? menuPhotos
-                                  : menuHighlightImages;
-                              setPreviewImages(previewSet);
-                              const idx = previewSet.indexOf(thumbUrl);
-                              setPreviewIndex(idx >= 0 ? idx : 0);
-                            }}
-                          >
-                            <img
-                              src={thumbUrl}
-                              alt="Menu highlight"
-                              className="thumbnail-img"
-                            />
-                          </div>
-                        ))}
-                      </div>
+                      {menuPhotos.length > 0 && (
+                        <div className="thumbnails-container">
+                          {menuHighlightImages.map((thumbUrl, tIdx) => (
+                            <div
+                              key={tIdx}
+                              className="thumbnail-wrapper"
+                              style={{
+                                position: "relative",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => {
+                                setPreviewImages(menuPhotos);
+                                const idx = menuPhotos.indexOf(thumbUrl);
+                                setPreviewIndex(idx >= 0 ? idx : 0);
+                              }}
+                            >
+                              <img
+                                src={thumbUrl}
+                                alt="Menu highlight"
+                                className="thumbnail-img"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Stats & Map Block */}

@@ -49,7 +49,7 @@ export const FeatureTags: React.FC<FeatureTagsProps> = ({
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-[#4f453e] mb-2">
-          特徴タグ
+          特徴タグ <span className="text-[#81756d] font-normal text-xs">(任意)</span>
         </label>
 
         {/* Selected Tags */}

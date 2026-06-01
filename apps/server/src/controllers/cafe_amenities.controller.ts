@@ -10,7 +10,7 @@ export const createCafeAmenity = async (req: Request, res: Response) => {
     if (!amenityId) {
       return res.status(400).json({
         success: false,
-        message: 'Missing amenityId',
+        message: 'アメニティIDが不足しています',
       });
     }
 
@@ -19,7 +19,7 @@ export const createCafeAmenity = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền gán tiện ích cho café này',
+        message: 'このカフェにアメニティを追加する権限がありません',
       });
     }
 
@@ -60,7 +60,7 @@ export const deleteCafeAmenity = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền bỏ tiện ích khỏi café này',
+        message: 'このカフェのアメニティを削除する権限がありません',
       });
     }
 

@@ -334,6 +334,7 @@ export const RegisterCafePage: React.FC = () => {
                     value={formData.cafeName}
                     onChange={handleInputChange}
                     error={errors.cafeName}
+                    required
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -345,6 +346,7 @@ export const RegisterCafePage: React.FC = () => {
                       onChange={handleInputChange}
                       onKeyDown={handleAddressKeyDown}
                       error={errors.street}
+                      required
                     />
                     <FormInput
                       label="区・町"
@@ -354,6 +356,7 @@ export const RegisterCafePage: React.FC = () => {
                       onChange={handleInputChange}
                       onKeyDown={handleAddressKeyDown}
                       error={errors.ward}
+                      required
                     />
                   </div>
 
@@ -404,12 +407,14 @@ export const RegisterCafePage: React.FC = () => {
                   value={formData.openTime}
                   onChange={(val) => setFormData((prev) => ({ ...prev, openTime: val }))}
                   error={errors.openTime}
+                  required
                 />
                 <TimePicker
                   label="閉店時刻"
                   value={formData.closeTime}
                   onChange={(val) => setFormData((prev) => ({ ...prev, closeTime: val }))}
                   error={errors.closeTime}
+                  required
                 />
               </div>
             </section>

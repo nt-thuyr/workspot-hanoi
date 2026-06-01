@@ -8,7 +8,7 @@ export const getMyNotifications = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) {
-      return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+      return res.status(401).json({ success: false, message: 'ログインしてください。' });
     }
 
     const page = parseInt(req.query.page as string) || 1;

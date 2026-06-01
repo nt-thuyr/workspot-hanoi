@@ -9,7 +9,7 @@ export const getProfile = async (req: Request, res: Response) => {
     const profile = await ProfileModel.getProfile(userId);
 
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Profile không tồn tại' });
+      return res.status(404).json({ success: false, message: 'プロフィールが見つかりません' });
     }
 
     res.status(200).json({ success: true, data: profile });
@@ -30,7 +30,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (authUserId && authUserId !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn không có quyền sửa profile này',
+        message: 'このプロフィールを編集する権限がありません',
       });
     }
 

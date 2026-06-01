@@ -1,6 +1,21 @@
 import { Request, Response } from 'express';
 import { supabase, supabaseAuth } from '../config/supabase';
 
+const mapSupabaseAuthError = (error: any): string => {
+  const message = error?.message || '';
+
+  const errorMap: Record<string, string> = {
+    'User already registered': 'このメールアドレスは既に登録されています',
+    'Password should be at least 6 characters': 'パスワードは6文字以上で入力してください',
+  };
+
+  if (message.includes('Invalid email') || message.includes('Unable to validate')) {
+    return '有効なメールアドレスを入力してください';
+  }
+
+  return errorMap[message] || 'アカウント作成中にエラーが発生しました。もう一度お試しください。';
+};
+
 const ROLE_TO_ROLE_ID = {
     japanese_user: 1,
     cafe_owner: 2,
@@ -94,7 +109,7 @@ export const register = async (req: Request, res: Response) => {
         if (error || !data.user) {
             return res.status(400).json({
                 success: false,
-                message: error?.message || '新しいアカウントを作成できませんでした。',
+                message: mapSupabaseAuthError(error),
             });
         }
 

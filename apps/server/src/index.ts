@@ -1,3 +1,6 @@
+// Set server timezone to Vietnam (UTC+7) before any time operations
+process.env.TZ = 'Asia/Ho_Chi_Minh';
+
 import express from 'express';
 import cors from 'cors';
 

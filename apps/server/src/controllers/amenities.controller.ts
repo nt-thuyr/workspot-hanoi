@@ -23,7 +23,7 @@ export const getAmenityById = async (req: Request, res: Response) => {
     const amenity = await AmenitiesModel.getAmenityById(parseInt(id));
 
     if (!amenity) {
-      return res.status(404).json({ success: false, message: 'Amenity không tồn tại' });
+      return res.status(404).json({ success: false, message: 'アメニティが見つかりません' });
     }
 
     res.status(200).json({ success: true, data: amenity });

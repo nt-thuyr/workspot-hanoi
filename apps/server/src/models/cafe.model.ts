@@ -26,7 +26,7 @@ export class CafeModel {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error(
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment",
+        "SUPABASE_URLまたはSUPABASE_SERVICE_ROLE_KEYが環境変数に設定されていません",
       );
     }
 

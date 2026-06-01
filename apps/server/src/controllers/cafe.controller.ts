@@ -37,9 +37,20 @@ const getDistanceFromLatLonInKm = (
   return R * c;
 };
 
-// --- UTILS KIỂM TRA GIỜ MỞ CỬA ---
+// --- UTILS KIỂM TRA GIỜ MỞ CỬA (theo giờ Việt Nam UTC+7) ---
+const getVietnamTimeString = (): string => {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(new Date());
+};
+
 const checkIsOpen = (openTime: string, closeTime: string) => {
   if (!openTime || !closeTime) return false;
+<<<<<<< Updated upstream
 
   const now = new Date();
   const vnTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
@@ -56,6 +67,10 @@ const checkIsOpen = (openTime: string, closeTime: string) => {
     // Quán mở qua đêm
     return currentMinutes >= oMins || currentMinutes <= cMins;
   }
+=======
+  const currentTimeStr = getVietnamTimeString();
+  return currentTimeStr >= openTime && currentTimeStr <= closeTime;
+>>>>>>> Stashed changes
 };
 
 // ━━━ READ ━━━
@@ -81,8 +96,8 @@ export const getHomeCafes = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Error fetching cafes:", error);
-    res.status(500).json({ error: "Lỗi server!", details: error.message });
-  }
+    res.status(500).json({ error: "サーバーエラー", details: error.message });
+  };
 };
 
 // GET /api/cafes/:id - Lấy chi tiết quán
@@ -94,13 +109,13 @@ export const getCafeDetail = async (req: Request, res: Response) => {
     if (!cafe) {
       return res
         .status(404)
-        .json({ success: false, message: "Quán không tồn tại" });
+        .json({ success: false, message: "カフェが見つかりません" });
     }
 
     res.status(200).json({ success: true, data: cafe });
   } catch (error: any) {
     console.error("Error fetching cafe detail:", error);
-    res.status(500).json({ error: "Lỗi server!", details: error.message });
+    res.status(500).json({ error: "サーバーエラー", details: error.message });
   }
 };
 
@@ -130,7 +145,7 @@ export const getCafesByOwner = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Error fetching owner cafes:", error);
-    res.status(500).json({ error: "Lỗi server!", details: error.message });
+    res.status(500).json({ error: "サーバーエラー", details: error.message });
   }
 };
 
@@ -164,7 +179,7 @@ export const createCafe = async (req: Request, res: Response) => {
       console.log("[CreateCafe] Validation failed - missing required fields");
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: cafeName, ward, street, owner_id",
+        message: "必須項目が不足しています：カフェ名、区・町、番地・通り",
       });
     }
 
@@ -301,13 +316,13 @@ export const createCafe = async (req: Request, res: Response) => {
     console.log("[CreateCafe] Cafe registration complete");
     res.status(201).json({
       success: true,
-      message: "Café registered successfully",
+      message: "カフェが正常に登録されました",
       data: cafe,
     });
   } catch (error: any) {
     console.error("[CreateCafe] Error:", error);
     res.status(500).json({
-      error: "Lỗi server!",
+      error: "サーバーエラー",
       details: error.message,
     });
   }
@@ -343,7 +358,7 @@ export const updateCafe = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: "Bạn không có quyền sửa quán này",
+        message: "このカフェを編集する権限がありません",
       });
     }
 
@@ -438,7 +453,7 @@ export const updateCafe = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: cafe });
   } catch (error: any) {
     console.error("Error updating cafe:", error);
-    res.status(500).json({ error: "Lỗi server!", details: error.message });
+    res.status(500).json({ error: "サーバーエラー", details: error.message });
   }
 };
 
@@ -455,16 +470,16 @@ export const deleteCafe = async (req: Request, res: Response) => {
     if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: "Bạn không có quyền xóa quán này",
+        message: "このカフェを削除する権限がありません",
       });
     }
 
     await CafeModel.deleteCafe(id);
 
-    res.status(200).json({ success: true, message: "Quán đã bị xóa" });
+    res.status(200).json({ success: true, message: "カフェが削除されました" });
   } catch (error: any) {
     console.error("Error deleting cafe:", error);
-    res.status(500).json({ error: "Lỗi server!", details: error.message });
+    res.status(500).json({ error: "サーバーエラー", details: error.message });
   }
 };
 
@@ -593,6 +608,6 @@ export const getMapCafes = async (req: Request, res: Response) => {
     console.error("[getMapCafes] ERROR:", error);
     res
       .status(500)
-      .json({ success: false, message: "Lỗi máy chủ", details: error.message });
+      .json({ success: false, message: "サーバーエラーが発生しました", details: error.message });
   }
 };
