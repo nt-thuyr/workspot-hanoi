@@ -17,7 +17,7 @@ export const login = async (req: Request, res: Response) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Vui lòng nhập email và mật khẩu' });
+            return res.status(400).json({ success: false, message: 'メールアドレスとパスワードを入力してください' });
         }
 
         // Dùng supabaseAuth (client riêng) để tránh user session ghi đè lên supabase admin client
@@ -27,7 +27,7 @@ export const login = async (req: Request, res: Response) => {
         });
 
         if (error) {
-            return res.status(401).json({ success: false, message: 'Email hoặc mật khẩu không chính xác' });
+            return res.status(401).json({ success: false, message: 'メールアドレスまたはパスワードが正しくありません' });
         }
 
         // Fetch profile dùng supabase admin client (service_role, không bị RLS)
@@ -39,20 +39,20 @@ export const login = async (req: Request, res: Response) => {
 
         res.status(200).json({
             success: true,
-            message: 'Đăng nhập thành công',
+            message: 'ログインに成功しました',
             data: {
                 session: data.session,
                 user: {
                     id: data.user.id,
                     email: data.user.email,
                     role: data.user.user_metadata?.role || 'japanese_user',
-                    full_name: profile?.full_name || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Người dùng',
+                    full_name: profile?.full_name || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'ユーザー',
                     avatar_url: profile?.avatar_url || null
                 }
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi server khi đăng nhập' });
+        res.status(500).json({ success: false, message: 'サーバーエラーが発生しました' });
     }
 };
 
@@ -63,14 +63,14 @@ export const register = async (req: Request, res: Response) => {
         if (!email || !password || !role) {
             return res.status(400).json({
                 success: false,
-                message: 'Vui lòng nhập đầy đủ email, mật khẩu và vai trò.',
+                message: 'メールアドレス、パスワード、役割をすべて入力してください。',
             });
         }
 
         if (!isRegisterRole(role)) {
             return res.status(400).json({
                 success: false,
-                message: 'Vai trò không hợp lệ. Chỉ chấp nhận japanese_user hoặc cafe_owner.',
+                message: '無効な役割です。japanese_user または cafe_owner のみ受け付けます。',
             });
         }
 
@@ -94,13 +94,13 @@ export const register = async (req: Request, res: Response) => {
         if (error || !data.user) {
             return res.status(400).json({
                 success: false,
-                message: error?.message || 'Không thể tạo tài khoản mới.',
+                message: error?.message || '新しいアカウントを作成できませんでした。',
             });
         }
 
         res.status(201).json({
             success: true,
-            message: 'Đăng ký thành công! Vui lòng đăng nhập.',
+            message: '登録に成功しました！ログインしてください。',
             data: {
                 user: {
                     id: data.user.id,
@@ -113,6 +113,6 @@ export const register = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error('Register error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi server nội bộ khi đăng ký.' });
+        res.status(500).json({ success: false, message: 'サーバー内部エラーが発生しました。' });
     }
 };

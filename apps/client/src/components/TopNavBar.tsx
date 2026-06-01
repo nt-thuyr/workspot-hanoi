@@ -1,5 +1,5 @@
 import { FC, useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 // @ts-ignore
 import "./TopNavBar.css";
@@ -13,6 +13,7 @@ interface TopNavBarProps {
 }
 
 export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>(
     localStorage.getItem("user_avatar_url") || "",
@@ -110,7 +111,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
     localStorage.removeItem("user_email");
     localStorage.removeItem("user_id");
     localStorage.removeItem("user_avatar_url");
-    window.location.href = "/login";
+    navigate("/login");
   };
 
   return (

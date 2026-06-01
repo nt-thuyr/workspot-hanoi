@@ -42,19 +42,19 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
           const { latitude, longitude } = position.coords;
           setSelectedLocation({ lat: latitude, lng: longitude });
           reverseGeocode(latitude, longitude);
-          onLocationSelect(latitude, longitude, "Vị trí hiện tại của bạn");
+          onLocationSelect(latitude, longitude, "現在位置");
           setLoading(false);
         },
         (error) => {
-          console.error("Lỗi lấy vị trí:", error);
-          let errorMessage = "Không thể lấy vị trí của bạn lúc này. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.";
+          console.error("位置情報の取得エラー:", error);
+          let errorMessage = "現在位置を取得できません。もう一度お試しいただくか、地図上で位置を選択してください。";
           
           if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = "Vui lòng cấp quyền truy cập GPS trong cài đặt trình duyệt để xác định vị trí của bạn.";
+            errorMessage = "ブラウザの設定でGPSアクセスを許可してください。";
           } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage = "Không thể xác định vị trí hiện tại của thiết bị. Vui lòng chọn vị trí thủ công trên bản đồ.";
+            errorMessage = "デバイスの現在位置を判定できません。地図上で手動で位置を選択してください。";
           } else if (error.code === error.TIMEOUT) {
-            errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
+            errorMessage = "位置情報の取得がタイムアウトしました。もう一度お試しください。";
           }
           
           console.error(errorMessage);
@@ -67,7 +67,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
         }
       );
     } else {
-      console.error("Trình duyệt của bạn không hỗ trợ GPS.");
+      console.error("このブラウザはGPSをサポートしていません。");
       setLoading(false);
     }
   };
@@ -76,12 +76,12 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=vi`
       );
       const data = await response.json();
-      setAddress(data.address?.city || data.address?.town || "Địa chỉ không xác định");
+      setAddress(data.address?.city || data.address?.town || "住所不明");
     } catch (error) {
-      console.error("Lỗi reverse geocode:", error);
+      console.error("逆ジオコーディングエラー:", error);
       setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
   };
@@ -97,10 +97,10 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
     <div className="location-selector">
       <div className="location-selector__header">
         <h3 style={{ marginTop: 0, marginBottom: "8px", fontSize: "16px", fontWeight: "600" }}>
-          📍 Chọn vị trí của bạn
+          📍 位置を選択してください
         </h3>
         <p style={{ marginTop: 0, marginBottom: "12px", fontSize: "13px", color: "#666" }}>
-          Nhấp vào bản đồ để chọn vị trí hoặc sử dụng GPS của bạn
+          地図をクリックして位置を選択するか、GPSを使用してください
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
             fontWeight: "500"
           }}
         >
-          {loading ? "Đang xác định vị trí..." : "📍 Dùng GPS hiện tại"}
+          {loading ? "位置を確認中..." : "📍 現在のGPSを使用"}
         </button>
       </div>
 
@@ -160,7 +160,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ onLocationSelect }
           fontSize: "14px",
           color: "#333"
         }}>
-          <p style={{ margin: "0 0 4px 0", fontWeight: "500" }}>✓ Vị trí đã chọn:</p>
+          <p style={{ margin: "0 0 4px 0", fontWeight: "500" }}>✓ 選択した位置:</p>
           <p style={{ margin: "0", color: "#666" }}>
             {address || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
           </p>

@@ -44,15 +44,15 @@ const RegisterPage: FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setErrorMsg(data.message || "Lỗi đăng ký không xác định");
+        setErrorMsg(data.message || "登録中に不明なエラーが発生しました。");
         return;
       }
 
-      alert(data.message || "Đăng ký thành công! Vui lòng đăng nhập.");
+      alert(data.message || "登録が成功しました！ログインしてください。");
       navigate("/login");
     } catch (error) {
       console.error("Error during registration:", error);
-      setErrorMsg("Lỗi kết nối đến máy chủ. Vui lòng thử lại.");
+      setErrorMsg("サーバーへの接続に失敗しました。再度お試しください。");
     }
   };
 

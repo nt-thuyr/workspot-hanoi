@@ -50,11 +50,13 @@ const LoginPage: FC = () => {
           navigate("/");
         }
       } else {
-        setErrorMsg(data.message || "Tài khoản hoặc mật khẩu không đúng.");
+        setErrorMsg(
+          data.message || "メールアドレスまたはパスワードが正しくありません。",
+        );
       }
     } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
-      setErrorMsg("Không thể kết nối tới máy chủ.");
+      console.error("ログインエラー:", error);
+      setErrorMsg("サーバーへの接続に失敗しました。");
     }
   };
 

@@ -88,7 +88,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             addr,
-          )}&limit=1&addressdetails=1&language=vi`,
+          )}&limit=1&addressdetails=1&accept-language=vi`,
         );
         const data = await response.json();
 
@@ -104,8 +104,8 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             map.setView([newLat, newLon], 14);
           }
 
-          // Reverse geocode to get normalized Vietnamese address
-          const normalized = await reverseGeocode(newLat, newLon);
+          const addrObj = data[0].address || {};
+          const normalized = formatAddress(addrObj, newLat, newLon);
 
           if (onLocationSelect) {
             // Truyền fromGeocode = true để parent không ghi đè text input đang gõ
@@ -134,7 +134,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
     const reverseGeocode = async (lat: number, lng: number) => {
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&language=vi`,
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=vi`,
         );
 
         if (!response.ok) {
@@ -142,37 +142,9 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
         }
 
         const data = await response.json();
-        const addr = data.address || {};
-
-        // Extract parts in logical order
-        const house = addr.house_number || "";
-        const road = addr.road || "";
-        const neighbourhood = addr.neighbourhood || "";
-        const suburb = addr.suburb || "";
-        const city_district = addr.city_district || "";
-        const district = addr.district || "";
-        const county = addr.county || "";
-        const city = addr.city || addr.town || addr.village || "";
-
-        const parts: string[] = [];
-        if (house) parts.push(house);
-        if (road) parts.push(road);
-        if (neighbourhood) parts.push(neighbourhood);
-
-        // For administrative parts, use raw values returned by the API
-        const adminParts = [suburb, city_district, district, county].filter(
-          Boolean,
-        );
-        parts.push(...adminParts);
-
-        if (city) parts.push(city);
-
-        let newAddress = parts.join(", ");
-
-        if (!newAddress) {
-          newAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        }
-
+        const addrObj = data.address || {};
+        
+        const newAddress = formatAddress(addrObj, lat, lng);
         setCurrentAddress(newAddress);
         return newAddress;
       } catch (error) {
@@ -181,6 +153,36 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
         setCurrentAddress(fallbackAddress);
         return fallbackAddress;
       }
+    };
+
+    // Hàm helper để parse address từ object Nominatim
+    const formatAddress = (addr: any, lat: number, lng: number) => {
+      const house = addr.house_number || "";
+      const road = addr.road || "";
+      const neighbourhood = addr.neighbourhood || "";
+      const suburb = addr.suburb || "";
+      const city_district = addr.city_district || "";
+      const district = addr.district || "";
+      const county = addr.county || "";
+      const city = addr.city || addr.town || addr.village || "";
+
+      const parts: string[] = [];
+      if (house) parts.push(house);
+      if (road) parts.push(road);
+      if (neighbourhood) parts.push(neighbourhood);
+
+      const adminParts = [suburb, city_district, district, county].filter(
+        Boolean,
+      );
+      parts.push(...adminParts);
+
+      if (city) parts.push(city);
+
+      let newAddress = parts.join(", ");
+      if (!newAddress) {
+        newAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+      return newAddress;
     };
 
     // Lắng nghe thay đổi của address prop từ parent
@@ -228,15 +230,15 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
             setLoading(false);
           },
           (error) => {
-            console.error("Lỗi lấy vị trí:", error);
-            let errorMessage = "Không thể lấy vị trí của bạn lúc này. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.";
+            console.error("位置情報の取得エラー:", error);
+            let errorMessage = "現在位置を取得できません。もう一度お試しいただくか、地図上で位置を選択してください。";
 
             if (error.code === error.PERMISSION_DENIED) {
-              errorMessage = "Vui lòng cấp quyền truy cập GPS trong cài đặt trình duyệt để xác định vị trí của bạn.";
+              errorMessage = "ブラウザの設定でGPSアクセスを許可してください。";
             } else if (error.code === error.POSITION_UNAVAILABLE) {
-              errorMessage = "Không thể xác định vị trí hiện tại của thiết bị. Vui lòng chọn vị trí thủ công trên bản đồ.";
+              errorMessage = "デバイスの現在位置を判定できません。地図上で手動で位置を選択してください。";
             } else if (error.code === error.TIMEOUT) {
-              errorMessage = "Thời gian lấy vị trí đã hết hạn. Vui lòng thử lại.";
+              errorMessage = "位置情報の取得がタイムアウトしました。もう一度お試しください。";
             }
 
             console.error(errorMessage);
@@ -257,7 +259,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           }
         );
       } else {
-        console.error("Trình duyệt của bạn không hỗ trợ GPS.");
+        console.error("このブラウザはGPSをサポートしていません。");
         setLoading(false);
       }
     };
@@ -309,7 +311,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           onClick={getCurrentLocation}
           disabled={loading}
           className="absolute right-4 bottom-4 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center text-[#4f453e] hover:text-[#614734] hover:bg-gray-50 disabled:opacity-50 transition-colors z-400"
-          title="Lấy vị trí hiện tại"
+          title="現在位置を取得"
         >
           <span className="material-symbols-outlined">my_location</span>
         </button>
@@ -319,7 +321,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           <button
             type="button"
             className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Phóng to"
+            title="ズームイン"
             disabled={mapZoom >= 18}
             onClick={() => {
               if (map) map.zoomIn();
@@ -330,7 +332,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           <button
             type="button"
             className="w-10 h-10 flex items-center justify-center text-[#4f453e] hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Thu nhỏ"
+            title="ズームアウト"
             disabled={mapZoom <= 8}
             onClick={() => {
               if (map) map.zoomOut();

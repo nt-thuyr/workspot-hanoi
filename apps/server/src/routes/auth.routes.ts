@@ -14,7 +14,7 @@ const registerLimiter = rateLimit({
     legacyHeaders: false,
     message: {
         success: false,
-        message: 'Bạn đã đăng ký quá nhiều lần. Vui lòng thử lại sau 15 phút.',
+        message: '登録回数が上限を超えました。15分後に再度お試しください。',
     },
 });
 
@@ -26,7 +26,7 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
     message: {
         success: false,
-        message: 'Đăng nhập thất bại quá nhiều lần. Vui lòng thử lại sau 15 phút.',
+        message: 'ログイン失敗回数が上限を超えました。15分後に再度お試しください。',
     },
 });
 
@@ -46,7 +46,7 @@ router.post(
     verifyToken,
     requireRole('japanese_user'),
     (req, res) => {
-        res.json({ message: 'Chào người dùng, bạn có thể đặt chỗ!' });
+        res.json({ message: '予約が可能です。' });
     }
 );
 
@@ -56,7 +56,7 @@ router.get(
     verifyToken,
     requireRole('cafe_owner'),
     (req, res) => {
-        res.json({ message: 'Chào chủ quán, đây là dữ liệu Dashboard của bạn!' });
+        res.json({ message: 'ダッシュボードデータです。' });
     }
 );
 

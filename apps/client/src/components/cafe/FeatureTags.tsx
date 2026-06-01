@@ -6,11 +6,23 @@ interface FeatureTagsProps {
 }
 
 const RECOMMENDED_TAGS = [
-  "高速Wi-Fi", "静か", "エアコン", "ペット可", "駐車場", "テラス席", "飲食可", 
-  "プロジェクター", "会議室", "24時間営業", "コンセント"
+  "高速Wi-Fi",
+  "静か",
+  "エアコン",
+  "ペット可",
+  "駐車場",
+  "テラス席",
+  "飲食可",
+  "プロジェクター",
+  "会議室",
+  "24時間営業",
+  "コンセント",
 ];
 
-export const FeatureTags: React.FC<FeatureTagsProps> = ({ selectedTags, onChange }) => {
+export const FeatureTags: React.FC<FeatureTagsProps> = ({
+  selectedTags,
+  onChange,
+}) => {
   const [inputValue, setInputValue] = useState("");
 
   const handleAddTag = (tag: string) => {
@@ -20,7 +32,7 @@ export const FeatureTags: React.FC<FeatureTagsProps> = ({ selectedTags, onChange
   };
 
   const handleRemoveTag = (tag: string) => {
-    onChange(selectedTags.filter(t => t !== tag));
+    onChange(selectedTags.filter((t) => t !== tag));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -39,11 +51,11 @@ export const FeatureTags: React.FC<FeatureTagsProps> = ({ selectedTags, onChange
         <label className="block text-sm font-medium text-[#4f453e] mb-2">
           特徴タグ
         </label>
-        
+
         {/* Selected Tags */}
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
-            {selectedTags.map(tag => (
+            {selectedTags.map((tag) => (
               <button
                 key={tag}
                 type="button"
@@ -51,7 +63,9 @@ export const FeatureTags: React.FC<FeatureTagsProps> = ({ selectedTags, onChange
                 className="flex items-center gap-1 px-3 py-1 bg-[#614734] text-white rounded-full text-sm hover:bg-[#4a3628] transition-colors"
               >
                 {tag}
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <span className="material-symbols-outlined text-[14px]">
+                  close
+                </span>
               </button>
             ))}
           </div>
@@ -73,13 +87,12 @@ export const FeatureTags: React.FC<FeatureTagsProps> = ({ selectedTags, onChange
           おすすめ
         </label>
         <div className="flex flex-wrap gap-2">
-          {RECOMMENDED_TAGS.map(tag => (
+          {RECOMMENDED_TAGS.filter(tag => !selectedTags.includes(tag)).map((tag) => (
             <button
               key={tag}
               type="button"
               onClick={() => handleAddTag(tag)}
-              disabled={selectedTags.includes(tag)}
-              className="px-3 py-1 bg-white border border-[#d6cfc7] text-[#4f453e] rounded-full text-sm hover:border-[#614734] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 bg-white border border-[#d6cfc7] text-[#4f453e] rounded-full text-sm hover:border-[#614734] transition-colors"
             >
               {tag}
             </button>

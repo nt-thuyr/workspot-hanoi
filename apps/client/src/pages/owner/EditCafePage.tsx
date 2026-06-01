@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import { FormInput } from "../../components/FormInput";
+import { TimePicker } from "../../components/common/TimePicker";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
 import { MenuImageGrid } from "../../components/cafe/MenuImageGrid";
 import { FeatureTags } from "../../components/cafe/FeatureTags";
@@ -226,13 +227,13 @@ export const EditCafePage: React.FC = () => {
               longitude: cafe.lng || null,
             });
           } else {
-            console.error("Không tìm thấy quán với ID này");
+            console.error("このIDのカフェが見つかりません");
           }
         } else {
-          console.error("Owner không có quán nào để sửa");
+          console.error("編集可能なカフェがありません");
         }
       } catch (err) {
-        console.error("Lỗi khi tải dữ liệu quán:", err);
+        console.error("カフェデータの読み込みエラー:", err);
       } finally {
         setIsLoading(false);
       }
@@ -334,21 +335,7 @@ export const EditCafePage: React.FC = () => {
     });
   };
 
-  // Auto-geocode when address changes (with debounce to avoid excessive API calls)
-  React.useEffect(() => {
-    if (!fullAddress.trim()) {
-      return; // Don't geocode empty addresses
-    }
 
-    // Debounce the geocoding request by 800ms
-    const timeoutId = setTimeout(() => {
-      if (locationMapRef.current && fullAddress.trim()) {
-        locationMapRef.current.geocodeAndSearch(fullAddress);
-      }
-    }, 800);
-
-    return () => clearTimeout(timeoutId);
-  }, [fullAddress]);
 
   const handleTagsChange = (tags: string[]) => {
     setFormData((prev) => ({ ...prev, tags }));
@@ -392,7 +379,7 @@ export const EditCafePage: React.FC = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+      toast.error("必須項目をすべて入力してください。");
       // Scroll to top to show error
       window.scrollTo({ top: 0, behavior: "smooth" });
       return false;
@@ -411,7 +398,7 @@ export const EditCafePage: React.FC = () => {
     try {
       const ownerId = localStorage.getItem("user_id");
       if (!ownerId) {
-        throw new Error("Vui lòng đăng nhập lại để tiếp tục");
+        throw new Error("続行するには再度ログインしてください");
       }
 
       const formDataToSend = new FormData();
@@ -447,15 +434,15 @@ export const EditCafePage: React.FC = () => {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to update");
+      if (!response.ok) throw new Error(data.message || "更新に失敗しました");
 
-      toast.success("Cập nhật thông tin quán thành công!");
+      toast.success("カフェ情報を更新しました！");
       setTimeout(() => {
         navigate("/dashboard");
       }, 1500);
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Đã xảy ra lỗi khi lưu thông tin");
+      toast.error(error.message || "保存中にエラーが発生しました");
     } finally {
       setIsSaving(false);
     }
@@ -464,7 +451,7 @@ export const EditCafePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#fdf9f4] flex items-center justify-center">
-        Đang tải dữ liệu...
+        データを読み込み中...
       </div>
     );
   }
@@ -567,20 +554,16 @@ export const EditCafePage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormInput
+                <TimePicker
                   label="開店時間"
-                  name="openTime"
-                  placeholder="時刻（HH:MM AM/PM）"
                   value={formData.openTime}
-                  onChange={handleInputChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, openTime: val }))}
                   error={errors.openTime}
                 />
-                <FormInput
+                <TimePicker
                   label="閉店時間"
-                  name="closeTime"
-                  placeholder="時刻（HH:MM AM/PM）"
                   value={formData.closeTime}
-                  onChange={handleInputChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, closeTime: val }))}
                   error={errors.closeTime}
                 />
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import { FormInput } from "../../components/FormInput";
+import { TimePicker } from "../../components/common/TimePicker";
 import { ImageUploadArea } from "../../components/cafe/ImageUploadArea";
 import { MenuImageGrid } from "../../components/cafe/MenuImageGrid";
 import { FeatureTags } from "../../components/cafe/FeatureTags";
@@ -64,21 +65,6 @@ export const RegisterCafePage: React.FC = () => {
   const fullAddress = useMemo(() => {
     return [formData.street, formData.ward].filter(Boolean).join(", ");
   }, [formData.ward, formData.street]);
-
-  // Auto-geocode khi địa chỉ thay đổi (debounce 800ms) để cập nhật mượt mà
-  React.useEffect(() => {
-    if (!fullAddress.trim()) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      if (locationMapRef.current && fullAddress.trim()) {
-        locationMapRef.current.geocodeAndSearch(fullAddress);
-      }
-    }, 800);
-
-    return () => clearTimeout(timeoutId);
-  }, [fullAddress]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -219,7 +205,7 @@ export const RegisterCafePage: React.FC = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+      toast.error("必須項目をすべて入力してください。");
       return false;
     }
     return true;
@@ -249,7 +235,7 @@ export const RegisterCafePage: React.FC = () => {
       // Get actual user ID from localStorage
       const ownerId = localStorage.getItem("user_id");
       if (!ownerId) {
-        throw new Error("Vui lòng đăng nhập lại để tiếp tục");
+        throw new Error("続行するには再度ログインしてください");
       }
       formDataToSend.append("owner_id", ownerId);
 
@@ -273,19 +259,19 @@ export const RegisterCafePage: React.FC = () => {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(
-          data.message || data.error || "Failed to register café",
+          data.message || data.error || "カフェの登録に失敗しました",
         );
       }
 
       // Success!
-      toast.success("Tạo quán thành công!");
+      toast.success("カフェを作成しました！");
       setTimeout(() => {
         navigate("/dashboard"); // Redirect to dashboard
       }, 1500);
     } catch (error: any) {
       console.error("[RegisterCafe] Error submitting form:", error);
       toast.error(
-        error.message || "Failed to register café. Please try again.",
+        error.message || "カフェの登録に失敗しました。もう一度お試しください。",
       );
     } finally {
       setIsLoading(false);
@@ -413,20 +399,16 @@ export const RegisterCafePage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormInput
+                <TimePicker
                   label="開店時刻"
-                  name="openTime"
-                  placeholder="時刻（HH:MM AM/PM）"
                   value={formData.openTime}
-                  onChange={handleInputChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, openTime: val }))}
                   error={errors.openTime}
                 />
-                <FormInput
+                <TimePicker
                   label="閉店時刻"
-                  name="closeTime"
-                  placeholder="時刻（HH:MM AM/PM）"
                   value={formData.closeTime}
-                  onChange={handleInputChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, closeTime: val }))}
                   error={errors.closeTime}
                 />
               </div>

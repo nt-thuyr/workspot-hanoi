@@ -164,12 +164,12 @@ const ReservationPage: FC = () => {
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
   const hasCenteredRef = useRef(false);
-  const [locationName, setLocationName] = useState("Hai Bà Trưng, Hà Nội");
+  const [locationName, setLocationName] = useState("Hai Ba Trung, Hanoi");
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&language=vi`,
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&accept-language=vi`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -180,7 +180,7 @@ const ReservationPage: FC = () => {
           addr.district ||
           addr.county ||
           "";
-        const city = addr.city || addr.town || addr.province || "Hà Nội";
+        const city = addr.city || addr.town || addr.province || "Hanoi";
         if (district) {
           setLocationName(`${district}, ${city}`);
         } else {
