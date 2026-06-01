@@ -81,9 +81,6 @@ const OwnerDashboardPage: FC = () => {
   const ownerId = localStorage.getItem("user_id");
   const [cafes, setCafes] = useState<OwnerCafe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [carouselIndices, setCarouselIndices] = useState<
-    Record<string, number>
-  >({});
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
@@ -164,12 +161,6 @@ const OwnerDashboardPage: FC = () => {
 
           setCafes(enrichedCafes);
 
-          // Initialize active index for each cafe's carousel to 0
-          const indices: Record<string, number> = {};
-          enrichedCafes.forEach((cafe: OwnerCafe) => {
-            indices[cafe.id] = 0;
-          });
-          setCarouselIndices(indices);
         }
       } catch (error) {
         console.error("Failed to load owner dashboard cafes", error);
@@ -206,33 +197,6 @@ const OwnerDashboardPage: FC = () => {
     );
   };
 
-  const handlePrevSlide = (cafeId: string, totalSlides: number) => {
-    setCarouselIndices((prev) => {
-      const current = prev[cafeId] ?? 0;
-      return {
-        ...prev,
-        [cafeId]: (current - 1 + totalSlides) % totalSlides,
-      };
-    });
-  };
-
-  const handleNextSlide = (cafeId: string, totalSlides: number) => {
-    setCarouselIndices((prev) => {
-      const current = prev[cafeId] ?? 0;
-      return {
-        ...prev,
-        [cafeId]: (current + 1) % totalSlides,
-      };
-    });
-  };
-
-  const handleSelectDot = (cafeId: string, index: number) => {
-    setCarouselIndices((prev) => ({
-      ...prev,
-      [cafeId]: index,
-    }));
-  };
-
   return (
     <div className="owner-dashboard">
       <TopNavBar mode="owner" activeTab="dashboard" />
@@ -264,21 +228,24 @@ const OwnerDashboardPage: FC = () => {
         ) : (
           <div className="dashboard-cards-container">
             {cafes.map((cafe) => {
-              // Extract all uploaded photos for main carousel
-              const allUploadedPhotos = (cafe.cafe_images || []).map(
-                (img) => img.image_url,
-              );
+              // Extract uploaded photos for main carousel (exclude menu images)
+              const allUploadedPhotos = (cafe.cafe_images || [])
+                .filter((img) => img.image_type !== "MENU")
+                .map((img) => img.image_url);
 
-              const carouselImages =
+              const mainImage =
                 allUploadedPhotos.length > 0
-                  ? allUploadedPhotos
-                  : DEFAULT_CAROUSEL_IMAGES;
-              const activeSlide = carouselIndices[cafe.id] || 0;
+                  ? allUploadedPhotos[0]
+                  : DEFAULT_CAROUSEL_IMAGES[0];
 
-              // Extract menu photos for thumbnails
+              // Extract menu photos for highlights
               const menuPhotos = (cafe.cafe_images || [])
                 .filter((img) => img.image_type === "MENU")
                 .map((img) => img.image_url);
+              const menuHighlightImages =
+                menuPhotos.length >= 3
+                  ? menuPhotos.slice(0, 3)
+                  : [...menuPhotos, ...DEFAULT_MENU_IMAGES].slice(0, 3);
 
               // Map amenities tags
               const standardTags = (cafe.cafe_amenities || [])
@@ -380,109 +347,50 @@ const OwnerDashboardPage: FC = () => {
 
                   {/* Card Content Grid */}
                   <div className="card-grid">
-                    {/* Media Block (Carousel + Stacked Thumbnails) */}
+                    {/* Media Block (Main Image + Stacked Thumbnails) */}
                     <div className="media-block">
                       <div className="carousel-container">
                         <div className="carousel-wrapper">
                           <img
-                            src={carouselImages[activeSlide]}
+                            src={mainImage}
                             alt={`${cafe.name} view`}
                             className="carousel-image"
                             onClick={() => {
-                              setPreviewImages(carouselImages);
-                              setPreviewIndex(activeSlide);
+                              setPreviewImages([mainImage]);
+                              setPreviewIndex(0);
                             }}
                             style={{ cursor: "pointer" }}
                           />
-                          <div className="carousel-counter">
-                            {activeSlide + 1} / {carouselImages.length}
-                          </div>
-                          {carouselImages.length > 1 && (
-                            <>
-                              <button
-                                className="carousel-arrow carousel-arrow--prev"
-                                onClick={() =>
-                                  handlePrevSlide(
-                                    cafe.id,
-                                    carouselImages.length,
-                                  )
-                                }
-                              >
-                                ‹
-                              </button>
-                              <button
-                                className="carousel-arrow carousel-arrow--next"
-                                onClick={() =>
-                                  handleNextSlide(
-                                    cafe.id,
-                                    carouselImages.length,
-                                  )
-                                }
-                              >
-                                ›
-                              </button>
-                              <div className="carousel-dots">
-                                {carouselImages.map((_, dotIdx) => (
-                                  <button
-                                    key={dotIdx}
-                                    className={`carousel-dot ${dotIdx === activeSlide ? "carousel-dot--active" : ""}`}
-                                    onClick={() =>
-                                      handleSelectDot(cafe.id, dotIdx)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            </>
-                          )}
                         </div>
                       </div>
 
-                      {menuPhotos.length > 0 && (
-                        <div className="thumbnails-container">
-                          {menuPhotos.slice(0, 3).map((thumbUrl, tIdx) => {
-                            const isLast = tIdx === 2;
-                            const hasMore = menuPhotos.length > 3;
-                            return (
-                              <div
-                                key={tIdx}
-                                className="thumbnail-wrapper"
-                                style={{
-                                  position: "relative",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => {
-                                  setPreviewImages(carouselImages);
-                                  const idx = carouselImages.indexOf(thumbUrl);
-                                  setPreviewIndex(idx >= 0 ? idx : 0);
-                                }}
-                              >
-                                <img
-                                  src={thumbUrl}
-                                  alt="Menu highlight"
-                                  className="thumbnail-img"
-                                />
-                                {isLast && hasMore && (
-                                  <div
-                                    style={{
-                                      position: "absolute",
-                                      inset: 0,
-                                      backgroundColor: "rgba(0,0,0,0.5)",
-                                      color: "white",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      fontSize: "1.1rem",
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    +{menuPhotos.length - 3}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <div className="thumbnails-container">
+                        {menuHighlightImages.map((thumbUrl, tIdx) => (
+                          <div
+                            key={tIdx}
+                            className="thumbnail-wrapper"
+                            style={{
+                              position: "relative",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => {
+                              const previewSet =
+                                menuPhotos.length > 0
+                                  ? menuPhotos
+                                  : menuHighlightImages;
+                              setPreviewImages(previewSet);
+                              const idx = previewSet.indexOf(thumbUrl);
+                              setPreviewIndex(idx >= 0 ? idx : 0);
+                            }}
+                          >
+                            <img
+                              src={thumbUrl}
+                              alt="Menu highlight"
+                              className="thumbnail-img"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Stats & Map Block */}
