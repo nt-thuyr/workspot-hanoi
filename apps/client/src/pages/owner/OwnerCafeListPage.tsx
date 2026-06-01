@@ -276,10 +276,16 @@ const OwnerCafeListPage: FC = () => {
     const confirmed = window.confirm("このカフェを削除しますか？");
     if (!confirmed) return;
     try {
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         `${API_BASE_URL}/api/cafes/${selectedCafeId}`,
         {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ owner_id: ownerId }),
         },
       );
       const result = await response.json();
