@@ -6,7 +6,7 @@ import {
   useRef,
   useMemo,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -99,6 +99,7 @@ const HomePage: FC = () => {
   const [menuPreviewIndex, setMenuPreviewIndex] = useState(0);
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapZoom, setMapZoom] = useState(14);
+  const location = useLocation();
   const lastProcessedCafeIdRef = useRef<string | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
@@ -252,56 +253,14 @@ const HomePage: FC = () => {
   useEffect(() => {
     reverseGeocode(userCoords[0], userCoords[1]);
   }, [userCoords]);
-  // Tự động hiển thị chi tiết quán khi có query param ?cafeId=...
+  // Tự động hiển thị chi tiết quán khi có query param ?cafeId=... (chỉ khi mount lần đầu có map)
+  // Việc back từ trang khác sẽ được xử lý bởi effect theo dõi location.search bên dưới
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    if (!map) return;
+    const params = new URLSearchParams(location.search);
     const cafeId = params.get("cafeId");
     if (!cafeId) return;
-
-    const selectCafeFromUrl = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/cafes/${cafeId}`);
-        const result = await response.json();
-        if (result.success && result.data) {
-          const cafeData = result.data;
-          const cafeInfo: CafeInfo = {
-            id: cafeData.id,
-            name: cafeData.name,
-            location: {
-              lat: Number(cafeData.lat || 0),
-              lng: Number(cafeData.lng || 0),
-            },
-            rating: cafeData.avg_rating || 0,
-            reviewCount: cafeData.reviews?.length || 0,
-            isOpenNow: true,
-            tags: cafeData.custom_tags || [],
-            distance: null,
-            imageUrl: cafeData.images?.[0]?.image_url,
-            address: cafeData.address,
-          };
-
-          setSelectedCafe(cafeInfo);
-          setFullCafeDetail(cafeData);
-
-          // Đảm bảo Marker của quán hiển thị trên bản đồ bằng cách đưa vào danh sách cafes
-          setCafes((prev) => {
-            if (prev.some((c) => c.id === cafeInfo.id)) return prev;
-            return [cafeInfo, ...prev];
-          });
-
-          if (map && cafeInfo.location.lat && cafeInfo.location.lng) {
-            map.flyTo([cafeInfo.location.lat, cafeInfo.location.lng], 15, {
-              animate: true,
-              duration: 0.6,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error auto-selecting cafe from URL:", error);
-      }
-    };
-
-    selectCafeFromUrl();
+    // Đã xử lý bởi effect dưới — không cần flyTo ở đây
   }, [map]);
 
   // 3. Gọi API lấy dữ liệu từ Backend
@@ -436,23 +395,40 @@ const HomePage: FC = () => {
     }
   };
 
+  // Khi URL thay đổi (bao gồm cả khi bấm nút back), xử lý cafeId trên query string
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlCafeId = params.get("cafeId");
+
+    // Không có cafeId trên URL → không làm gì (panel đã mở vẫn giữ nguyên)
+    if (!urlCafeId) return;
+
+    // Nếu cafeId này đã xử lý rồi → bỏ qua để tránh zoom lại khi re-render
+    if (lastProcessedCafeIdRef.current === urlCafeId) return;
+
+    if (!map) return;
+
     const checkAndSelectUrlCafe = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const urlCafeId = params.get("cafeId");
-      if (!urlCafeId) return;
-
-      if (lastProcessedCafeIdRef.current === urlCafeId) return;
-
       const existing = cafes.find((c) => String(c.id) === urlCafeId);
       if (existing) {
         lastProcessedCafeIdRef.current = urlCafeId;
-        handleSelectCafe(existing);
+        // Khi back về: chỉ mở panel, panTo nhẹ nhàng KHÔNG flyTo/zoom
+        setSelectedCafe(existing);
+        setFullCafeDetail(null);
+        setActiveImageIndex(0);
+        if (existing.location.lat && existing.location.lng) {
+          map.panTo([existing.location.lat, existing.location.lng], { animate: true });
+        }
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/cafes/${existing.id}`);
+          const result = await response.json();
+          if (result.success) setFullCafeDetail(result.data);
+        } catch (err) {
+          console.error("Error fetching URL cafe detail:", err);
+        }
       } else {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/api/cafes/${urlCafeId}`,
-          );
+          const response = await fetch(`${API_BASE_URL}/api/cafes/${urlCafeId}`);
           const result = await response.json();
           if (result.success && result.data) {
             const cafe = result.data;
@@ -476,7 +452,16 @@ const HomePage: FC = () => {
               return [mappedCafe, ...prev];
             });
             lastProcessedCafeIdRef.current = urlCafeId;
-            handleSelectCafe(mappedCafe);
+            // Cafe chưa có trong list → mở panel + flyTo (lần đầu)
+            setSelectedCafe(mappedCafe);
+            setFullCafeDetail(cafe);
+            setActiveImageIndex(0);
+            if (mappedCafe.location.lat && mappedCafe.location.lng) {
+              map.flyTo([mappedCafe.location.lat, mappedCafe.location.lng], 15, {
+                animate: true,
+                duration: 0.6,
+              });
+            }
           }
         } catch (err) {
           console.error("Error fetching URL cafe:", err);
@@ -484,10 +469,8 @@ const HomePage: FC = () => {
       }
     };
 
-    if (map) {
-      checkAndSelectUrlCafe();
-    }
-  }, [cafes, map, window.location.search, handleSelectCafe]);
+    checkAndSelectUrlCafe();
+  }, [location.search, map, cafes]);
 
   return (
     <div className="home-root">

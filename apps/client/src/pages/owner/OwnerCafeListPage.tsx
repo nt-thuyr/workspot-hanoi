@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FC } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { TopNavBar } from "../../components/TopNavBar";
 import "./OwnerCafeListPage.css";
 
@@ -59,6 +59,7 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
 
 const OwnerCafeListPage: FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const ownerId = localStorage.getItem("user_id");
   const [cafes, setCafes] = useState<CafeSummary[]>([]);
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
@@ -105,7 +106,12 @@ const OwnerCafeListPage: FC = () => {
             } as CafeSummary;
           });
           setCafes(normalized);
-          if (normalized.length > 0) {
+          // Ưu tiên chọn cafe từ query param ?cafeId=...
+          const params = new URLSearchParams(location.search);
+          const urlCafeId = params.get("cafeId");
+          if (urlCafeId && normalized.some((c: { id: string }) => c.id === urlCafeId)) {
+            setSelectedCafeId(urlCafeId);
+          } else if (normalized.length > 0) {
             setSelectedCafeId((prev) => prev || normalized[0].id);
           }
         } else {

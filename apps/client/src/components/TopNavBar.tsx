@@ -114,7 +114,7 @@ export const TopNavBar: FC<TopNavBarProps> = ({ mode, activeTab }) => {
     localStorage.removeItem("user_email");
     localStorage.removeItem("user_id");
     localStorage.removeItem("user_avatar_url");
-    navigate("/login");
+    navigate("/");
   };
 
   return (

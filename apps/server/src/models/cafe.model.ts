@@ -84,7 +84,7 @@ export class CafeModel {
     page: number = 1,
     limit: number = 10,
   ) {
-    const selectQuery = "*, cafe_amenities(amenity_id), cafe_images(image_url, image_type), reviews(rating), reservations(id)";
+    const selectQuery = "id, name, address, lat, lng, open_time, close_time, custom_tags, avg_rating, cafe_amenities(amenity_id), cafe_images(id, image_url, image_type), reviews(rating), reservations(id)";
     
     if (limit <= 0) {
       const { data, error, count } = await supabase

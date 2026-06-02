@@ -119,8 +119,7 @@ const OwnerDashboardPage: FC = () => {
           const enrichedCafes = await Promise.all(
             rawCafes.map(async (cafe: OwnerCafe) => {
               try {
-                const [detailRes, resRes, revRes] = await Promise.all([
-                  fetch(`${API_BASE_URL}/api/cafes/${cafe.id}`),
+                const [resRes, revRes] = await Promise.all([
                   fetch(
                     `${API_BASE_URL}/api/reservations/cafe/${cafe.id}?owner_id=${ownerId}&page=1&limit=0`,
                     {
@@ -132,28 +131,11 @@ const OwnerDashboardPage: FC = () => {
                   fetch(`${API_BASE_URL}/api/reviews/cafe/${cafe.id}`),
                 ]);
 
-                const detailData = await detailRes.json();
                 const resData = await resRes.json();
                 const revData = await revRes.json();
 
-                const fullCafe = detailData.success ? detailData.data : cafe;
-
                 return {
                   ...cafe,
-                  ...fullCafe,
-                  cafe_images:
-                    fullCafe.images && fullCafe.images.length > 0
-                      ? fullCafe.images
-                      : fullCafe.cafe_images && fullCafe.cafe_images.length > 0
-                        ? fullCafe.cafe_images
-                        : cafe.cafe_images || [],
-                  cafe_amenities:
-                    fullCafe.amenities && fullCafe.amenities.length > 0
-                      ? fullCafe.amenities
-                      : fullCafe.cafe_amenities &&
-                        fullCafe.cafe_amenities.length > 0
-                        ? fullCafe.cafe_amenities
-                        : cafe.cafe_amenities || [],
                   reservations:
                     resData.success && Array.isArray(resData.data)
                       ? resData.data
@@ -279,7 +261,12 @@ const OwnerDashboardPage: FC = () => {
               const isOpen = checkIsOpen(cafe.open_time, cafe.close_time);
 
               return (
-                <div key={cafe.id} className="cafe-dashboard-card">
+                <div
+                  key={cafe.id}
+                  className="cafe-dashboard-card"
+                  onClick={() => navigate(`/cafes?cafeId=${cafe.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   {/* Card Header */}
                   <div className="card-header">
                     <div className="header-left">
@@ -336,6 +323,7 @@ const OwnerDashboardPage: FC = () => {
                       <Link
                         to={`/cafes/edit/${cafe.id}`}
                         className="edit-info-btn"
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
                       >
                         <svg
                           width="14"
