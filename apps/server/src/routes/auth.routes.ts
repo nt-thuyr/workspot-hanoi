@@ -31,7 +31,7 @@ const loginLimiter = rateLimit({
 });
 
 // ==========================================
-// API PUBLIC (Không cần token)
+// パブリックAPI (トークン不要)
 // ==========================================
 router.post('/login', loginLimiter, login);
 router.post('/register', registerLimiter, register);

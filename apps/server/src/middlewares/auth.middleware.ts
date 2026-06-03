@@ -13,21 +13,21 @@ export const verifyToken = async (req: AuthRequest, res: Response, next: NextFun
         const token = authHeader && authHeader.split(' ')[1]; // Lấy token từ header "Bearer <token>"
 
         if (!token) {
-            return res.status(401).json({ success: false, message: 'Không tìm thấy Token xác thực' });
+            return res.status(401).json({ success: false, message: '認証トークンが見つかりません' });
         }
 
         // Xác thực token bằng Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
-            return res.status(401).json({ success: false, message: 'Token không hợp lệ hoặc đã hết hạn' });
+            return res.status(401).json({ success: false, message: 'トークンが無効または期限切れです' });
         }
 
         // Gắn thông tin user vào request để các API sau sử dụng
         req.user = user;
         next();
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi xác thực máy chủ' });
+        res.status(500).json({ success: false, message: 'サーバー認証エラー' });
     }
 };
 

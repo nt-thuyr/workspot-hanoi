@@ -45,7 +45,7 @@ export const login = async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: 'メールアドレスまたはパスワードが正しくありません' });
         }
 
-        // Fetch profile dùng supabase admin client (service_role, không bị RLS)
+        // supabase admin client を使用してプロファイルを取得する (service_role、RLSの影響を受けない)
         const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, avatar_url')
@@ -92,7 +92,7 @@ export const register = async (req: Request, res: Response) => {
         const normalizedEmail = String(email).trim().toLowerCase();
         const fullName = typeof name === 'string' ? name.trim() : '';
 
-        // Dùng supabase admin client — KHÔNG bao giờ gọi signInWithPassword trên client này
+        // supabase admin client を使用する — このクライアントで signInWithPassword を絶対に呼び出さないこと
         // Profile sẽ được tạo tự động qua Supabase trigger on_auth_user_created
         const { data, error } = await supabase.auth.admin.createUser({
             email: normalizedEmail,

@@ -22,7 +22,7 @@ const clientOptions = {
 
 /**
  * Client dành cho Admin API + DB operations (register, profile, cafe, v.v.)
- * KHÔNG bao giờ gọi signInWithPassword trên client này —
+ * このクライアントで signInWithPassword を絶対に呼び出さないこと —
  * vì signInWithPassword sẽ ghi user session vào bộ nhớ, làm mất service_role
  * và khiến các DB query sau bị chặn bởi RLS.
  */
@@ -30,6 +30,6 @@ export const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
 
 /**
  * Client riêng CHỈ dành cho signInWithPassword (login).
- * Tách biệt để session của user không làm ảnh hưởng supabase client trên.
+ * ユーザーのセッションが上のsupabaseクライアントに影響を与えないように分離する。
  */
 export const supabaseAuth = createClient(supabaseUrl, supabaseKey, clientOptions);

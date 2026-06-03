@@ -216,9 +216,9 @@ const SearchPage: FC = () => {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -231,10 +231,10 @@ const SearchPage: FC = () => {
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
       if (activeFilters.includes("高評価")) params.append("minRating", "4");
       if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
-      
+
       params.append("lat", userCoords[0].toString());
       params.append("lng", userCoords[1].toString());
-      
+
       if (activeFilters.includes("近くの店")) {
         params.append("maxDistance", "10");
       } else {
@@ -243,7 +243,7 @@ const SearchPage: FC = () => {
 
       const response = await fetch(`${API_BASE_URL}/api/cafes/map?${params.toString()}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         const mapped = result.data.map((c: any) => ({
           id: c.id,
@@ -269,11 +269,11 @@ const SearchPage: FC = () => {
           if (mapped.length > 0 && map) {
             setSelectedCafe(mapped[0]);
             map.flyTo([mapped[0].location.lat, mapped[0].location.lng], 15, { animate: true, duration: 0.6 });
-            
+
             // Cuộn danh sách đến kết quả đầu tiên
             if (listRef.current) {
-               const firstCard = listRef.current.querySelector('.cafe-card');
-               if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              const firstCard = listRef.current.querySelector('.cafe-card');
+              if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           } else {
             setSelectedCafe(null);

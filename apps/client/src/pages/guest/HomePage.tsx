@@ -58,7 +58,7 @@ interface CafeInfo {
 }
 
 const FILTER_CHIPS = ["近くの店", "営業中", "高評価"];
-const POPULAR_TAGS = [
+const RECOMMENDED_KEYWORDS = [
   "高速Wi-Fi",
   "静か",
   "コンセント",
@@ -90,7 +90,6 @@ function MapEventsHandler({ onMapClick }: { onMapClick: () => void }) {
 const HomePage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [activeTags, setActiveTags] = useState<string[]>([]);
   const [cafes, setCafes] = useState<CafeInfo[]>([]);
   const [selectedCafe, setSelectedCafe] = useState<CafeInfo | null>(null);
   const [fullCafeDetail, setFullCafeDetail] = useState<any | null>(null);
@@ -269,8 +268,6 @@ const HomePage: FC = () => {
       const params = new URLSearchParams();
       if (activeFilters.includes("営業中")) params.append("isOpen", "true");
       if (activeFilters.includes("高評価")) params.append("minRating", "4");
-      if (activeTags.includes("高速Wi-Fi")) params.append("hasWifi", "true");
-      if (activeTags.includes("静か")) params.append("isQuiet", "true");
       if (searchQuery.trim()) params.append("keyword", searchQuery.trim());
 
       params.append("lat", userCoords[0].toString());
@@ -310,10 +307,10 @@ const HomePage: FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Filter chip và tag: gọi API ngay, không debounce
+  // Filter chip: gọi API ngay, không debounce
   useEffect(() => {
     fetchCafes();
-  }, [activeFilters, activeTags, userCoords]);
+  }, [activeFilters, userCoords]);
 
   useEffect(() => {
     if (cafes.length === 0 && selectedCafe) {
@@ -352,11 +349,6 @@ const HomePage: FC = () => {
   const toggleFilter = (f: string) =>
     setActiveFilters((prev) =>
       prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f],
-    );
-
-  const toggleTag = (t: string) =>
-    setActiveTags((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
     );
 
   const handleSelectCafe = useCallback(
@@ -598,8 +590,8 @@ const HomePage: FC = () => {
                 <div className="flex items-center justify-between border-t border-b border-[#f0ebe3] py-3 my-1">
                   <span
                     className={`text-xs font-bold px-3 py-1 rounded-full ${selectedCafe.isOpenNow
-                        ? "bg-green-50 text-green-700 border border-green-200"
-                        : "bg-red-50 text-red-700 border border-red-200"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
                       }`}
                   >
                     {selectedCafe.isOpenNow ? "営業中" : "閉店中"}
@@ -718,8 +710,8 @@ const HomePage: FC = () => {
                               <button
                                 key={idx}
                                 className={`w-1.5 h-1.5 rounded-full transition-all border-0 p-0 ${idx === activeImageIndex
-                                    ? "bg-white scale-110"
-                                    : "bg-white/40 hover:bg-white/60"
+                                  ? "bg-white scale-110"
+                                  : "bg-white/40 hover:bg-white/60"
                                   }`}
                                 onClick={() => setActiveImageIndex(idx)}
                               />
@@ -869,8 +861,8 @@ const HomePage: FC = () => {
                 ))}
               </div>
 
-              {/* Tags section — ẩn khi đang search/filter */}
-              {!(searchQuery.trim() !== "" || activeFilters.length > 0 || activeTags.length > 0) && (
+              {/* Keywords section — ẩn khi đang search/filter */}
+              {!(searchQuery.trim() !== "" || activeFilters.length > 0) && (
                 <div className="sidebar-tags mt-4">
                   <div
                     style={{
@@ -881,49 +873,16 @@ const HomePage: FC = () => {
                     }}
                   >
                     <p className="sidebar-tags__title" style={{ margin: 0 }}>
-                      人気のあるタグ
+                      おすすめキーワード
                     </p>
-                    {activeTags.length > 0 && (
-                      <button
-                        onClick={() => setActiveTags([])}
-                        style={{
-                          fontSize: "0.72rem",
-                          color: "#a0896b",
-                          background: "none",
-                          border: "1px solid #e5d9cc",
-                          borderRadius: "6px",
-                          padding: "2px 8px",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.target as HTMLElement).style.color = "#c8843a";
-                          (e.target as HTMLElement).style.borderColor = "#c8843a";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.target as HTMLElement).style.color = "#a0896b";
-                          (e.target as HTMLElement).style.borderColor = "#e5d9cc";
-                        }}
-                      >
-                        クリア ✕
-                      </button>
-                    )}
                   </div>
                   <div className="tag-list">
-                    {POPULAR_TAGS.map((tag) => (
+                    {RECOMMENDED_KEYWORDS.map((tag) => (
                       <button
                         key={tag}
-                        className={`search-tag${activeTags.includes(tag) ? " search-tag--active" : ""}`}
-                        onClick={() => toggleTag(tag)}
+                        className="search-tag"
+                        onClick={() => setSearchQuery(tag)}
                       >
-                        {activeTags.includes(tag) && (
-                          <span
-                            style={{ marginRight: "4px", fontSize: "0.75rem" }}
-                          >
-                            ✓
-                          </span>
-                        )}
                         {tag}
                       </button>
                     ))}
@@ -933,16 +892,15 @@ const HomePage: FC = () => {
 
               {/* Danh sách quán — hiển thị sau khi tìm kiếm/lọc */}
               {(searchQuery.trim() !== "" ||
-                activeFilters.length > 0 ||
-                activeTags.length > 0) && (
+                activeFilters.length > 0) && (
                   <div className="search-results-section flex-1 overflow-y-auto pr-2 pb-4">
                     <div className="text-sm text-gray-600 mb-4 font-medium">
                       <span className="font-bold text-[#614734]">
                         「
                         {searchQuery
                           ? searchQuery
-                          : [...activeTags, ...activeFilters].length > 0
-                            ? [...activeTags, ...activeFilters].join("・")
+                          : activeFilters.length > 0
+                            ? activeFilters.join("・")
                             : "すべて"}
                         」
                       </span>
@@ -960,8 +918,8 @@ const HomePage: FC = () => {
                           <div
                             key={cafe.id}
                             className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${isSelected
-                                ? "border-[#614734] shadow-md transform scale-[1.02]"
-                                : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
+                              ? "border-[#614734] shadow-md transform scale-[1.02]"
+                              : "border-transparent shadow-sm hover:shadow-md hover:border-[#614734]/30"
                               }`}
                             onClick={() => handleSelectCafe(cafe)}
                           >
@@ -998,8 +956,8 @@ const HomePage: FC = () => {
                                 )}
                                 <div
                                   className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${cafe.isOpenNow
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-red-100 text-red-700"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
                                     }`}
                                 >
                                   {cafe.isOpenNow ? "営業中" : "閉店中"}

@@ -28,7 +28,7 @@ export const createCafeAmenity = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: amenity });
   } catch (error: any) {
     console.error('Error creating cafe amenity:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -45,7 +45,7 @@ export const getCafeAmenities = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching cafe amenities:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -69,6 +69,6 @@ export const deleteCafeAmenity = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Tiện ích đã bị xóa' });
   } catch (error: any) {
     console.error('Error deleting cafe amenity:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

@@ -177,6 +177,103 @@ function CancelModal({
   );
 }
 
+// Component Modal Chi tiết đặt chỗ
+function ReservationDetailModal({
+  item,
+  onClose,
+}: {
+  item: ReservationInfo;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="rhp-modal-overlay"
+      onClick={onClose}
+    >
+      <div
+        className="rhp-modal-box"
+        onClick={(e) => e.stopPropagation()}
+        style={{ textAlign: "left", maxWidth: "450px" }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h3 className="rhp-modal-title" style={{ margin: 0 }}>予約詳細</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer", color: "#a89c93" }}>&times;</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <img src={item.imageUrl || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500"} alt={item.cafeName} style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+          
+          <div style={{ fontSize: "16px", fontWeight: "bold", color: "#2e2520" }}>
+            {item.cafeName}
+          </div>
+          {item.cafeAddress && (
+            <div style={{ fontSize: "14px", color: "#7a6e67", display: "flex", gap: "6px", alignItems: "flex-start" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginTop: "2px", flexShrink: 0 }}>
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span>{item.cafeAddress}</span>
+            </div>
+          )}
+          <hr style={{ borderTop: "1px solid #e5ddd6", margin: "4px 0", borderBottom: "none" }} />
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "14px", color: "#4f453e" }}>
+            <div>
+              <div style={{ fontSize: "12px", color: "#a89c93", marginBottom: "4px" }}>予約日</div>
+              <div style={{ fontWeight: "600" }}>{formatDate(item.reservationDate)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "12px", color: "#a89c93", marginBottom: "4px" }}>時間</div>
+              <div style={{ fontWeight: "600" }}>{item.timeSlot}</div>
+            </div>
+            {item.seatNumber && (
+              <div>
+                <div style={{ fontSize: "12px", color: "#a89c93", marginBottom: "4px" }}>人数</div>
+                <div style={{ fontWeight: "600" }}>{item.seatNumber}名</div>
+              </div>
+            )}
+            {item.amount > 0 && (
+              <div>
+                <div style={{ fontSize: "12px", color: "#a89c93", marginBottom: "4px" }}>金額</div>
+                <div style={{ fontWeight: "600", color: "#8b6f5e" }}>{item.amount.toLocaleString()}円</div>
+              </div>
+            )}
+          </div>
+          <hr style={{ borderTop: "1px solid #e5ddd6", margin: "4px 0", borderBottom: "none" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px" }}>
+             <span style={{ color: "#7a6e67" }}>ステータス</span>
+             <span style={{ fontWeight: "600" }}>
+                {(() => {
+                  const appStatus = (
+                    item.approvalStatus ||
+                    (item.status === "completed"
+                      ? "approved"
+                      : item.status === "cancelled"
+                        ? "cancelled"
+                        : "pending")
+                  ).toUpperCase();
+                  if (appStatus === "REJECTED") return "拒否済み";
+                  if (appStatus === "APPROVED") return "承認済み";
+                  if (appStatus === "PENDING") return "未承認";
+                  if (appStatus === "CANCELLED") return "キャンセル済み";
+                  return appStatus;
+                })()}
+             </span>
+          </div>
+        </div>
+        <div className="rhp-modal-actions" style={{ marginTop: "24px" }}>
+          <button
+            onClick={onClose}
+            className="rhp-modal-btn rhp-modal-btn--back"
+            style={{ width: "100%" }}
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Định dạng ngày từ ISO thành "yyyy/MM/dd"
 function formatDate(dateStr: string): string {
   try {
@@ -197,6 +294,7 @@ const ReservationHistoryPage: FC = () => {
   const [reservations, setReservations] = useState<ReservationInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
+  const [detailTarget, setDetailTarget] = useState<ReservationInfo | null>(null);
 
   // Kiểm tra trạng thái đăng nhập
   const isLoggedIn = !!localStorage.getItem("access_token");
@@ -220,11 +318,11 @@ const ReservationHistoryPage: FC = () => {
       if (result.success) {
         setReservations(result.data);
       } else {
-        console.error("Lấy lịch sử thất bại:", result.message);
+        console.error("Lấy lịch sử 失敗:", result.message);
         setReservations([]);
       }
     } catch (error) {
-      console.error("Lỗi khi tải lịch sử đặt chỗ:", error);
+      console.error("エラー khi tải lịch sử đặt chỗ:", error);
       setReservations([]);
     } finally {
       setLoading(false);
@@ -256,7 +354,7 @@ const ReservationHistoryPage: FC = () => {
         });
       }
     } catch (err) {
-      console.error("Lỗi hủy đặt chỗ:", err);
+      console.error("エラー hủy đặt chỗ:", err);
       toast.error("サーバーエラーが発生しました。", { id: toastId });
     } finally {
       setCancelTargetId(null);
@@ -407,16 +505,16 @@ const ReservationHistoryPage: FC = () => {
     );
   };
 
-  // Kiểm tra card có thể hủy hay không (không ở trạng thái hủy/từ chối/quá khứ)
+  // キャンセル可能なカードか確認する（キャンセル/拒否/過去のステータスではない）
   const canCancel = (item: ReservationInfo) => {
     const appStatus = (item.approvalStatus || "").toUpperCase();
 
-    // Đã hủy hoặc bị từ chối thì không thể hủy
+    // キャンセル済みまたは拒否された場合はキャンセル不可
     if (appStatus === "CANCELLED" || appStatus === "REJECTED") {
       return false;
     }
 
-    // Kiểm tra xem thời gian đặt chỗ có ở tương lai hay không
+    // 予約時間が未来かどうか確認する
     const resDateTime = parseReservationDateTime(
       item.reservationDate,
       item.timeSlot,
@@ -521,7 +619,7 @@ const ReservationHistoryPage: FC = () => {
                   key={item.id}
                   className="rhp-card"
                   id={`reservation-card-${item.id}`}
-                  onClick={() => navigate(`/?cafeId=${item.cafeId}`)}
+                  onClick={() => setDetailTarget(item)}
                   style={{ cursor: "pointer" }}
                 >
                   {/* Khu vực 15: Ảnh cafe */}
@@ -631,6 +729,14 @@ const ReservationHistoryPage: FC = () => {
         <CancelModal
           onConfirm={executeCancel}
           onClose={() => setCancelTargetId(null)}
+        />
+      )}
+
+      {/* Modal Chi tiết Đặt chỗ */}
+      {detailTarget && (
+        <ReservationDetailModal
+          item={detailTarget}
+          onClose={() => setDetailTarget(null)}
         />
       )}
     </div>
