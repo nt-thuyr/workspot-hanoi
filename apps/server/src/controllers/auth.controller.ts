@@ -6,8 +6,13 @@ const mapSupabaseAuthError = (error: any): string => {
 
   const errorMap: Record<string, string> = {
     'User already registered': 'このメールアドレスは既に登録されています',
+    'A user with this email address has already been registered': 'このメールアドレスは既に登録されています',
     'Password should be at least 6 characters': 'パスワードは6文字以上で入力してください',
   };
+
+  if (message.includes('already registered')) {
+    return 'このメールアドレスは既に登録されています';
+  }
 
   if (message.includes('Invalid email') || message.includes('Unable to validate')) {
     return '有効なメールアドレスを入力してください';
