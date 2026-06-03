@@ -12,7 +12,7 @@ export const getAllAmenities = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching amenities:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -29,6 +29,6 @@ export const getAmenityById = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: amenity });
   } catch (error: any) {
     console.error('Error fetching amenity:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

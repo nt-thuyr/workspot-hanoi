@@ -15,7 +15,7 @@ export const getProfile = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
     console.error('Error fetching profile:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -46,7 +46,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       } catch (uploadErr: any) {
         return res.status(400).json({
           success: false,
-          message: `Không thể tải lên ảnh đại diện: ${uploadErr.message}`,
+          message: `アバターをアップロードできません: ${uploadErr.message}`,
         });
       }
     }
@@ -56,6 +56,6 @@ export const updateProfile = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: profile });
   } catch (error: any) {
     console.error('Error updating profile:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

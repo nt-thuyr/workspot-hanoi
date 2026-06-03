@@ -159,7 +159,7 @@ export const NotificationDropdown: FC = () => {
         setNotifications(result.data || []);
       }
     } catch (error) {
-      console.error("Lỗi khi tải thông báo hệ thống:", error);
+      console.error("エラー khi tải thông báo hệ thống:", error);
     }
   };
 
@@ -217,7 +217,7 @@ export const NotificationDropdown: FC = () => {
         );
       }
     } catch (error) {
-      console.error("Không thể cập nhật trạng thái thông báo:", error);
+      console.error("通知ステータスを更新できません:", error);
     }
   };
 

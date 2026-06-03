@@ -33,7 +33,7 @@ export const createCafeImage = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: image });
   } catch (error: any) {
     console.error('Error creating cafe image:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -50,7 +50,7 @@ export const getCafeImages = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching cafe images:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -74,6 +74,6 @@ export const deleteCafeImage = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Ảnh đã bị xóa' });
   } catch (error: any) {
     console.error('Error deleting cafe image:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

@@ -282,7 +282,7 @@ export const EditCafePage: React.FC = () => {
         longitude: lng,
       };
 
-      // Nếu cập nhật vị trí xuất phát từ việc gõ địa chỉ, không ghi đè text input đang gõ
+      // アドレス入力による位置更新の場合、入力中のテキストを上書きしない
       if (fromGeocode) {
         return updateData;
       }

@@ -210,7 +210,7 @@ export const getHistory = async (req: Request, res: Response) => {
         imageUrl: firstImage || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500",
         reservationDate: resDate.toISOString().slice(0, 10).replace(/-/g, '/'),
         timeSlot: timeSlot,
-        seatNumber: 'フリー席 (Chỗ ngồi tự do)',
+        seatNumber: String(item.num_guests || 1),
         status: mappedStatus,
         approvalStatus: item.status, // "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
         createdAt: createdDate.toISOString().slice(0, 10).replace(/-/g, '/'),
@@ -224,8 +224,8 @@ export const getHistory = async (req: Request, res: Response) => {
     });
 
   } catch (error: any) {
-    console.error('Lỗi API Get History:', error);
-    return res.status(500).json({ success: false, message: 'Lỗi server nội bộ' });
+    console.error('履歴取得APIエラー:', error);
+    return res.status(500).json({ success: false, message: '内部サーバーエラー' });
   }
 };
 
@@ -343,7 +343,7 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
           });
         }
       } catch (emailErr) {
-        // Không block response nếu email lỗi
+        // メールエラーの場合レスポンスをブロックしない
         console.error('[Email] Failed to send reservation email:', emailErr);
       }
     }
@@ -367,7 +367,7 @@ export const cancelReservationByUser = async (req: Request, res: Response) => {
 
     const reservationUserId = await ReservationModel.getUserIdFromReservation(id);
     if (!reservationUserId) {
-      return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại' });
+      return res.status(404).json({ success: false, message: '予約が存在しません' });
     }
 
     if (reservationUserId !== userId) {

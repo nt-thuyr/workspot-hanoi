@@ -121,7 +121,7 @@ export class ReservationModel {
   }
 
   // HELPER - Lấy đầy đủ thông tin reservation để gửi email
-  // Email được lấy từ auth.users qua Admin API (không có trong bảng profiles)
+  // EmailはAdmin API経由でauth.usersから取得される（profilesテーブルにはない）
   static async getReservationWithDetails(reservationId: string) {
     // Bước 1: Lấy dữ liệu reservation kèm profile và tên quán
     const { data, error } = await supabase

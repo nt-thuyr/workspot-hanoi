@@ -108,7 +108,7 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
           const normalized = formatAddress(addrObj, newLat, newLon);
 
           if (onLocationSelect) {
-            // Truyền fromGeocode = true để parent không ghi đè text input đang gõ
+            // 入力中のテキストを親が上書きしないよう fromGeocode = true を渡す
             onLocationSelect(newLat, newLon, normalized || addr, true);
           }
         } else {
@@ -243,8 +243,8 @@ export const LocationMap = forwardRef<LocationMapHandle, LocationMapProps>(
 
             console.error(errorMessage);
             
-            // Nếu không lấy được GPS (do từ chối quyền, timeout, v.v.)
-            // Ít nhất hãy đưa map về lại vị trí ghim đỏ (nếu có) để người dùng không bị kẹt
+            // GPSを取得できない場合（権限拒否、タイムアウトなど）
+            // 少なくともユーザーがスタックしないように赤ピンの位置（あれば）にマップを戻す
             if (selectedLocation && map) {
               const currentZoom = map.getZoom();
               map.setView([selectedLocation.lat, selectedLocation.lng], currentZoom > 14 ? currentZoom : 14);

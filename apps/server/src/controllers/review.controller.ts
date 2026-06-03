@@ -58,7 +58,7 @@ export const createReview = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, data: review });
   } catch (error: any) {
     console.error('Error creating review:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -83,7 +83,7 @@ export const getCafeReviews = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching cafe reviews:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -108,7 +108,7 @@ export const getUserReviews = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching user reviews:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -143,7 +143,7 @@ export const createReviewImage = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: image });
   } catch (error: any) {
     console.error('Error creating review image:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -160,7 +160,7 @@ export const getReviewImages = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching review images:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -188,6 +188,6 @@ export const deleteReview = async (req: AuthRequest, res: Response) => {
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting review:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

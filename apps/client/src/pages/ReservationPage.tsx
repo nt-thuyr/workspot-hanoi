@@ -37,7 +37,7 @@ interface ReservationForm {
   guestName: string;
   date: string;
   time: string;
-  guests: number;
+  guests: number | string;
   cafeId?: string;
 }
 
@@ -358,10 +358,17 @@ const ReservationPage: FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "guests" ? parseInt(value) : value,
-    }));
+    setFormData((prev) => {
+      let newValue: string | number = value;
+      if (name === "guests") {
+        newValue = value === "" ? "" : parseInt(value, 10);
+        if (Number.isNaN(newValue)) newValue = "";
+      }
+      return {
+        ...prev,
+        [name]: newValue,
+      };
+    });
   };
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
@@ -406,10 +413,12 @@ const ReservationPage: FC = () => {
       !formData.guestName.trim() ||
       !formData.date ||
       !formData.time ||
+      !formData.guests ||
+      Number(formData.guests) < 1 ||
       !selectedCafe
     ) {
       setAlertVariant("error");
-      setShowAlert("すべての情報を入力し、カフェを選択してください。");
+      setShowAlert("すべての情報を正しく入力し、カフェを選択してください。");
       return;
     }
 
@@ -499,19 +508,32 @@ const ReservationPage: FC = () => {
         {/* Left Panel - Reservation Form */}
         <div className="reservation-panel">
           <div className="reservation-header">
-            <button
-              className="reservation-back-btn"
-              onClick={() => window.history.back()}
-            >
-              <span className="reservation-back-btn__icon" aria-hidden="true">
-                ←
-              </span>
-              <span className="reservation-back-btn__label">
+            <div className="reservation-title-row">
+              <button
+                type="button"
+                className="reservation-back-icon-btn"
+                onClick={() => window.history.back()}
+                aria-label="戻る"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 className="reservation-title">
                 {bookingCafe
                   ? `${bookingCafe.name} の席を予約`
                   : "席を予約する"}
-              </span>
-            </button>
+              </h1>
+            </div>
             <p className="reservation-subtitle">
               {bookingCafe
                 ? `「${bookingCafe.name}」の予約情報をご入力ください`
@@ -604,20 +626,17 @@ const ReservationPage: FC = () => {
               <label htmlFor="guests" className="form-label">
                 人数
               </label>
-              <p className="form-hint">人数を選択してください</p>
-              <select
+              <p className="form-hint">人数を入力してください</p>
+              <input
+                type="number"
                 id="guests"
                 name="guests"
                 value={formData.guests}
                 onChange={handleInputChange}
                 className="form-input"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                  <option key={num} value={num}>
-                    {num}人
-                  </option>
-                ))}
-              </select>
+                placeholder="例：2"
+                min="1"
+              />
             </div>
 
             {/* Alert Message */}

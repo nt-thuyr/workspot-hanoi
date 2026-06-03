@@ -19,7 +19,7 @@ export const getMyNotifications = async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, data, total: count });
   } catch (error: any) {
     console.error('Error fetching my notifications:', error);
-    return res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    return res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -31,7 +31,7 @@ export const markMyNotificationAsRead = async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, data: notification });
   } catch (error: any) {
     console.error('Error marking notification as read:', error);
-    return res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    return res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -58,7 +58,7 @@ export const getUserNotifications = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -70,7 +70,7 @@ export const getUnreadCount = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, unreadCount });
   } catch (error: any) {
     console.error('Error fetching unread count:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -82,7 +82,7 @@ export const markAsRead = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: notification });
   } catch (error: any) {
     console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -94,7 +94,7 @@ export const markAllAsRead = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Đã đánh dấu tất cả thông báo là đã đọc' });
   } catch (error: any) {
     console.error('Error marking all notifications as read:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -106,7 +106,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Đã xoá thông báo' });
   } catch (error: any) {
     console.error('Error deleting notification:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -118,6 +118,6 @@ export const deleteAllNotifications = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: 'Đã xoá tất cả thông báo' });
   } catch (error: any) {
     console.error('Error deleting all notifications:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };

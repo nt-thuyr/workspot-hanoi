@@ -27,7 +27,7 @@ export const addToFavorites = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: favorite });
   } catch (error: any) {
     console.error('Error adding to favorites:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -52,7 +52,7 @@ export const removeFromFavorites = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error removing from favorites:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -77,7 +77,7 @@ export const getUserFavorites = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching user favorites:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
 
@@ -94,6 +94,6 @@ export const checkIsFavorite = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error checking favorite:', error);
-    res.status(500).json({ error: 'Lỗi server!', details: error.message });
+    res.status(500).json({ error: 'サーバーエラー!', details: error.message });
   }
 };
