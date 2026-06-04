@@ -316,35 +316,48 @@ export const updateReservationStatus = async (req: Request, res: Response) => {
 
     const reservation = await ReservationModel.updateReservationStatus(id, status);
 
-    // Gửi email thông báo nếu status là APPROVED hoặc REJECTED
+    // Gửi email và thông báo nếu status là APPROVED hoặc REJECTED
     if (status === 'APPROVED' || status === 'REJECTED') {
+      let details;
       try {
-        const details = await ReservationModel.getReservationWithDetails(id);
-        if (details?.email) {
-          await sendReservationStatusEmail({
-            to: details.email,                                  // email từ auth.users
-            guestName: details.guest_name || details.profiles?.full_name || 'Guest',
-            cafeName: details.cafes?.name || 'WorkSpot Cafe',
-            date: details.res_date || '',
-            time: details.res_time || '',
-            status: status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED',
-          });
-          console.log(`[Email] Sent ${status} email to: ${details.email}`);
+        details = await ReservationModel.getReservationWithDetails(id);
+      } catch (err) {
+        console.error('Failed to get reservation details for notification/email:', err);
+      }
+
+      if (details) {
+        // 1. Gửi email
+        if (details.email) {
+          try {
+            await sendReservationStatusEmail({
+              to: details.email,
+              guestName: details.guest_name || details.profiles?.full_name || 'Guest',
+              cafeName: details.cafes?.name || 'WorkSpot Cafe',
+              date: details.res_date || '',
+              time: details.res_time || '',
+              status: status === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED',
+            });
+            console.log(`[Email] Sent ${status} email to: ${details.email}`);
+          } catch (emailErr) {
+            console.error('[Email] Failed to send reservation email:', emailErr);
+          }
         } else {
           console.warn(`[Email] Skipped: no email found for reservation ${id}`);
         }
 
-        if (details?.user_id) {
-          const statusLabel = status === 'APPROVED' ? '承認されました' : '却下されました';
-          await NotificationModel.createNotification({
-            user_id: details.user_id,
-            title: `予約が${statusLabel}`,
-            content: `${details.cafes?.name || 'カフェ名未設定'}・${details.res_date || ''}・${details.res_time || ''}`.trim(),
-          });
+        // 2. Tạo thông báo (Notification)
+        if (details.user_id) {
+          try {
+            const statusLabel = status === 'APPROVED' ? '承認されました' : '却下されました';
+            await NotificationModel.createNotification({
+              user_id: details.user_id,
+              title: `予約が${statusLabel}`,
+              content: `${details.cafes?.name || 'カフェ名未設定'}・${details.res_date || ''}・${details.res_time || ''}`.trim(),
+            });
+          } catch (notifErr) {
+            console.error('Failed to create reservation status notification:', notifErr);
+          }
         }
-      } catch (emailErr) {
-        // メールエラーの場合レスポンスをブロックしない
-        console.error('[Email] Failed to send reservation email:', emailErr);
       }
     }
 
