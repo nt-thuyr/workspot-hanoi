@@ -1,4 +1,4 @@
-import { useState, type FC, type ChangeEvent, type FormEvent } from "react";
+import { useState, useEffect, type FC, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 
@@ -8,6 +8,15 @@ const LoginPage: FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const role = localStorage.getItem("user_role");
+    if (token) {
+      if (role === "cafe_owner") navigate("/dashboard");
+      else navigate("/");
+    }
+  }, [navigate]);
 
   const [formData, setFormData] = useState({
     email: "",

@@ -143,9 +143,12 @@ const ReservationPage: FC = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
+    const role = localStorage.getItem("user_role");
     if (!token) {
       toast.error("予約するにはログインが必要です。");
       navigate("/login");
+    } else if (role === "cafe_owner") {
+      navigate("/dashboard");
     }
   }, [navigate]);
 

@@ -334,9 +334,12 @@ const ReservationHistoryPage: FC = () => {
   const isLoggedIn = !!localStorage.getItem("access_token");
 
   useEffect(() => {
+    const role = localStorage.getItem("user_role");
     if (!isLoggedIn) {
       toast.error("ログインが必要です。");
       navigate("/login");
+    } else if (role === "cafe_owner") {
+      navigate("/dashboard");
     }
   }, [isLoggedIn, navigate]);
 

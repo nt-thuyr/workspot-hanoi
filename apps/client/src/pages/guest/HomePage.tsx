@@ -6,7 +6,7 @@ import {
   useRef,
   useMemo,
 } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -88,6 +88,15 @@ function MapEventsHandler({ onMapClick }: { onMapClick: () => void }) {
 }
 
 const HomePage: FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const role = localStorage.getItem("user_role");
+    if (role === "cafe_owner") {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [cafes, setCafes] = useState<CafeInfo[]>([]);

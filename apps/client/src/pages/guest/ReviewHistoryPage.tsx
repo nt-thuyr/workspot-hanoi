@@ -286,9 +286,13 @@ const ReviewHistoryPage: FC = () => {
   }, [userId]);
 
   useEffect(() => {
+    const role = localStorage.getItem("user_role");
     if (!accessToken) {
       toast.error("ログインが必要です。");
       navigate("/login");
+      return;
+    } else if (role === "cafe_owner") {
+      navigate("/dashboard");
       return;
     }
     fetchReviews();

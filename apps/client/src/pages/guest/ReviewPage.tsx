@@ -79,6 +79,12 @@ const ReviewPage: FC = () => {
       toast.error("レビューを書くにはログインが必要です。");
       navigate("/login");
       return;
+    } else {
+      const role = localStorage.getItem("user_role");
+      if (role === "cafe_owner") {
+        navigate("/dashboard");
+        return;
+      }
     }
 
     if (!cafeId) {
