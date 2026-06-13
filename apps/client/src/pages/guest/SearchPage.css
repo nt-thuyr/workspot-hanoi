@@ -8,8 +8,8 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  font-family: "Inter", system-ui, sans-serif;
-  background: #f5f2ee;
+  font-family: var(--font-body);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -24,16 +24,20 @@
 .search-sidebar {
   flex: 1 0 0;
   max-width: 33.333%;
-  min-width: 260px;
+  min-width: 320px;
   flex-shrink: 0;
-  background: #fff;
-  border-right: 1px solid #ede8e0;
+  background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--color-surface-border);
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 1.25rem 1rem;
+  gap: 1.25rem;
+  padding: 1.5rem 1.25rem;
   overflow-y: auto;
   min-height: 0;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+  z-index: 10;
 }
 
 /* ⑮ Sidebar Title */
@@ -233,10 +237,11 @@
 }
 
 .filter-tag--on {
-  border-color: #c8843a;
-  background: linear-gradient(135deg, #c8843a, #a0522d);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(200, 132, 58, 0.3);
+  border-color: var(--color-gold);
+  background: linear-gradient(135deg, var(--color-gold-dark), var(--color-gold));
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(226, 166, 93, 0.3);
+  transform: translateY(-1px) !important;
 }
 
 /* ⑱ Result Count */
@@ -318,9 +323,9 @@
 
 /* ⑲ Selected cafe card */
 .cafe-card--selected {
-  border-color: #c8843a;
-  background: linear-gradient(135deg, #fffaf5, #fff5e8);
-  box-shadow: 0 4px 18px rgba(200, 132, 58, 0.22);
+  border-color: var(--color-gold);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 245, 0.95));
+  box-shadow: 0 6px 20px rgba(226, 166, 93, 0.15);
   transform: translateY(-1px);
 }
 
@@ -643,8 +648,8 @@
 }
 
 .map-pin--selected {
-  background: linear-gradient(135deg, #c8843a, #a0522d);
-  box-shadow: 0 4px 18px rgba(200, 132, 58, 0.5);
+  background: linear-gradient(135deg, var(--color-gold-dark), var(--color-gold));
+  box-shadow: 0 6px 20px rgba(226, 166, 93, 0.4);
   transform: rotate(-45deg) scale(1.5);
 }
 

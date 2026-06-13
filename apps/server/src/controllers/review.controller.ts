@@ -113,9 +113,31 @@ export const getUserReviews = async (req: Request, res: Response) => {
 };
 
 // POST /api/reviews/:reviewId/images - Thêm ảnh cho review (user)
-export const createReviewImage = async (req: Request, res: Response) => {
+export const createReviewImage = async (req: AuthRequest, res: Response) => {
   try {
     const { reviewId } = req.params as { reviewId: string };
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // Check ownership
+    // Note: A better way would be a direct query, but let's use supabase directly here
+    const { supabase } = await import('../config/supabase.js');
+    const { data: existingReview, error: fetchError } = await supabase
+      .from('reviews')
+      .select('user_id')
+      .eq('id', reviewId)
+      .single();
+
+    if (fetchError || !existingReview) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    if (existingReview.user_id !== userId) {
+      return res.status(403).json({ success: false, message: 'You can only upload images to your own reviews' });
+    }
 
     // Check if files were uploaded via multer
     const files = req.files as Express.Multer.File[];

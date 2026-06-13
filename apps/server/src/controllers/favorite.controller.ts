@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { FavoriteModel } from '../models/favorite.model';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 // POST /api/favorites - Thêm café vào yêu thích
-export const addToFavorites = async (req: Request, res: Response) => {
+export const addToFavorites = async (req: AuthRequest, res: Response) => {
   try {
-    const { user_id, cafe_id } = req.body;
+    const { cafe_id } = req.body;
+    const user_id = req.user?.id;
 
     if (!user_id || !cafe_id) {
       return res.status(400).json({
@@ -32,10 +34,10 @@ export const addToFavorites = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/favorites/:cafeId - Xoá café khỏi yêu thích
-export const removeFromFavorites = async (req: Request, res: Response) => {
+export const removeFromFavorites = async (req: AuthRequest, res: Response) => {
   try {
     const { cafeId } = req.params as { cafeId: string };
-    const { user_id } = req.body;
+    const user_id = req.user?.id;
 
     if (!user_id) {
       return res.status(400).json({
@@ -57,9 +59,18 @@ export const removeFromFavorites = async (req: Request, res: Response) => {
 };
 
 // GET /api/favorites/user/:userId - Lấy danh sách yêu thích của user
-export const getUserFavorites = async (req: Request, res: Response) => {
+export const getUserFavorites = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = req.user?.id;
+
+    if (authUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'アクセス権限がありません',
+      });
+    }
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -82,9 +93,17 @@ export const getUserFavorites = async (req: Request, res: Response) => {
 };
 
 // GET /api/favorites/user/:userId/check/:cafeId - Check nếu user đã like café
-export const checkIsFavorite = async (req: Request, res: Response) => {
+export const checkIsFavorite = async (req: AuthRequest, res: Response) => {
   try {
     const { userId, cafeId } = req.params as { userId: string; cafeId: string };
+    const authUserId = req.user?.id;
+
+    if (authUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'アクセス権限がありません',
+      });
+    }
 
     const isFav = await FavoriteModel.isFavorite(userId, cafeId);
 

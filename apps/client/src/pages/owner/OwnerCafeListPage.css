@@ -14,9 +14,9 @@
 
 .owner-cafes {
   min-height: 100vh;
-  background: radial-gradient(circle at 20% 10%, #fff6ec 0%, #f5ecdf 40%, #efe3d5 100%);
-  color: var(--ink-900);
-  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  background: transparent;
+  color: var(--color-text-main);
+  font-family: var(--font-body);
 }
 
 .cafes-shell {
@@ -27,11 +27,13 @@
 }
 
 .cafes-rail {
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 22px;
   padding: 1.2rem;
-  border: 1px solid rgba(206, 185, 164, 0.5);
-  box-shadow: 0 18px 32px rgba(55, 39, 19, 0.08);
+  border: 1px solid var(--color-surface-border);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -106,13 +108,15 @@
 }
 
 .rail-item:hover {
-  border-color: #dac6b3;
+  border-color: var(--color-gold);
   transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .rail-item.active {
-  border-color: var(--accent-700);
-  box-shadow: inset 0 0 0 1px var(--accent-700);
+  border-color: var(--color-gold);
+  box-shadow: inset 0 0 0 1px var(--color-gold), 0 4px 12px rgba(226, 166, 93, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 245, 0.95));
 }
 
 .rail-thumb {
@@ -241,10 +245,12 @@
 }
 
 .card {
-  background: #fff;
+  background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 22px;
-  border: 1px solid rgba(216, 198, 179, 0.7);
-  box-shadow: 0 18px 32px rgba(60, 44, 24, 0.08);
+  border: 1px solid var(--color-surface-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
 }
 
 .panel-card {

@@ -58,11 +58,12 @@ export class NotificationModel {
   }
 
   // Đánh dấu một thông báo là đã đọc
-  static async markAsRead(notificationId: number) {
+  static async markAsRead(notificationId: number, userId: string) {
     const { data, error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('id', notificationId)
+      .eq('user_id', userId)
       .select('*')
       .single();
 
@@ -83,11 +84,12 @@ export class NotificationModel {
   }
 
   // Xoá một thông báo
-  static async deleteNotification(notificationId: number) {
+  static async deleteNotification(notificationId: number, userId: string) {
     const { error } = await supabase
       .from('notifications')
       .delete()
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('user_id', userId);
 
     if (error) throw error;
     return { success: true };

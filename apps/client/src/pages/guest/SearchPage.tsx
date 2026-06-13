@@ -250,7 +250,7 @@ const SearchPage: FC = () => {
           name: c.name,
           // Server trả về location: { lat, lng } hoặc flat c.lat/c.lng
           location: { lat: Number(c.location?.lat ?? c.lat), lng: Number(c.location?.lng ?? c.lng) },
-          rating: c.rating || c.avg_rating || 0,
+          rating: (c.reviewCount || c.review_count || 0) === 0 ? 0 : (c.rating || c.avg_rating || 0),
           reviewCount: c.reviewCount || c.review_count || 0,
           isOpenNow: Boolean(c.isOpenNow),
           tags: c.tags || c.custom_tags || [],
@@ -526,7 +526,7 @@ const SearchPage: FC = () => {
                         <span className="cafe-card__name">{cafe.name}</span>
                       </div>
                       <div className="cafe-card__meta">
-                        <StarRating value={cafe.rating} />
+                        <StarRating value={cafe.reviewCount === 0 ? 0 : cafe.rating} />
                         <span className="cafe-card__wifi">
                           <svg
                             viewBox="0 0 24 24"
@@ -627,7 +627,7 @@ const SearchPage: FC = () => {
                         {cafe.isOpenNow ? "営業中" : "閉店中"}
                       </span>
                     </div>
-                    <StarRating value={cafe.rating} />
+                    <StarRating value={cafe.reviewCount === 0 ? 0 : cafe.rating} />
                     <div className="popup-row">
                       <svg
                         viewBox="0 0 24 24"
