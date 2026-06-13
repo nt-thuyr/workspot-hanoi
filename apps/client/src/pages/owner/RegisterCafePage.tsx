@@ -251,8 +251,10 @@ export const RegisterCafePage: React.FC = () => {
         }
       });
 
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`${API_BASE_URL}/api/cafes`, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formDataToSend,
       });
 

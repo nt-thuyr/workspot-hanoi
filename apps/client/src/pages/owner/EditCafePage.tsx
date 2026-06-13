@@ -75,8 +75,10 @@ export const EditCafePage: React.FC = () => {
 
         if (!targetCafeId) {
           // Step 1: Lấy list cafes của owner để lấy cafeId
+          const token = localStorage.getItem("access_token");
           const ownerResponse = await fetch(
             `${API_BASE_URL}/api/cafes/owner/${ownerId}`,
+            { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
           );
           const ownerResult = await ownerResponse.json();
 
@@ -428,8 +430,10 @@ export const EditCafePage: React.FC = () => {
         }
       });
 
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`${API_BASE_URL}/api/cafes/${cafeId}`, {
         method: "PUT",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formDataToSend,
       });
 
