@@ -3,11 +3,29 @@
 @theme {
   --font-headline: "Plus Jakarta Sans", sans-serif;
   --font-body: "Inter", sans-serif;
+  
+  /* Premium Colors */
+  --color-gold-light: #fbe6cc;
+  --color-gold: #e2a65d;
+  --color-gold-dark: #b8782a;
+  
+  --color-surface: rgba(255, 255, 255, 0.75);
+  --color-surface-hover: rgba(255, 255, 255, 0.95);
+  --color-surface-border: rgba(255, 255, 255, 0.4);
+  
+  --color-text-main: #1a1a1a;
+  --color-text-muted: #666666;
 }
 
 @layer base {
   body {
-    @apply bg-[#fdf9f4] text-[#1c1c19] min-h-screen antialiased;
+    @apply text-[#1c1c19] min-h-screen antialiased;
+    /* Soft mesh gradient background */
+    background: radial-gradient(at 0% 0%, hsla(33, 50%, 95%, 1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(22, 100%, 97%, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(41, 50%, 95%, 1) 0, transparent 50%);
+    background-color: #faf7f2;
+    background-attachment: fixed;
   }
 
   .material-symbols-outlined {
@@ -21,7 +39,29 @@
   input:focus,
   textarea:focus {
     outline: none !important;
-    box-shadow: 0 0 0 2px rgba(97, 71, 52, 0.1);
-    background-color: #fdf9f4 !important;
+    box-shadow: 0 0 0 3px rgba(226, 166, 93, 0.25) !important;
+    border-color: #e2a65d !important;
+    background-color: #fff !important;
   }
+
+  /* Utility class for Glassmorphism */
+  .glass-panel {
+    background: var(--color-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--color-surface-border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Global Micro-Animations */
+@keyframes fadeInSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(226, 166, 93, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(226, 166, 93, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(226, 166, 93, 0); }
 }

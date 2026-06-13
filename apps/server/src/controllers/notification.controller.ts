@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationModel } from '../models/notification.model';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 // ── Token-based (frontend convenience) ───────────────────────────────────
 
@@ -24,10 +25,13 @@ export const getMyNotifications = async (req: Request, res: Response) => {
 };
 
 // PUT /api/notifications/:id/read — Đánh dấu đã đọc từ token
-export const markMyNotificationAsRead = async (req: Request, res: Response) => {
+export const markMyNotificationAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const notification = await NotificationModel.markAsRead(parseInt(id));
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const notification = await NotificationModel.markAsRead(parseInt(id), userId);
     return res.status(200).json({ success: true, data: notification });
   } catch (error: any) {
     console.error('Error marking notification as read:', error);
@@ -38,9 +42,11 @@ export const markMyNotificationAsRead = async (req: Request, res: Response) => {
 // ── UserId-based (legacy) ─────────────────────────────────────────────────
 
 // GET /api/notifications/user/:userId - Lấy danh sách thông báo
-export const getUserNotifications = async (req: Request, res: Response) => {
+export const getUserNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = req.user?.id;
+    if (authUserId !== userId) return res.status(403).json({ success: false, message: 'Forbidden' });
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -63,9 +69,11 @@ export const getUserNotifications = async (req: Request, res: Response) => {
 };
 
 // GET /api/notifications/user/:userId/unread-count
-export const getUnreadCount = async (req: Request, res: Response) => {
+export const getUnreadCount = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = req.user?.id;
+    if (authUserId !== userId) return res.status(403).json({ success: false, message: 'Forbidden' });
     const unreadCount = await NotificationModel.getUnreadCount(userId);
     res.status(200).json({ success: true, unreadCount });
   } catch (error: any) {
@@ -75,10 +83,12 @@ export const getUnreadCount = async (req: Request, res: Response) => {
 };
 
 // PUT /api/notifications/:id/mark-as-read
-export const markAsRead = async (req: Request, res: Response) => {
+export const markAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const notification = await NotificationModel.markAsRead(parseInt(id));
+    const authUserId = req.user?.id;
+    if (!authUserId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const notification = await NotificationModel.markAsRead(parseInt(id), authUserId);
     res.status(200).json({ success: true, data: notification });
   } catch (error: any) {
     console.error('Error marking notification as read:', error);
@@ -87,9 +97,11 @@ export const markAsRead = async (req: Request, res: Response) => {
 };
 
 // PUT /api/notifications/user/:userId/mark-all-as-read
-export const markAllAsRead = async (req: Request, res: Response) => {
+export const markAllAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = req.user?.id;
+    if (authUserId !== userId) return res.status(403).json({ success: false, message: 'Forbidden' });
     await NotificationModel.markAllAsRead(userId);
     res.status(200).json({ success: true, message: 'Đã đánh dấu tất cả thông báo là đã đọc' });
   } catch (error: any) {
@@ -99,10 +111,12 @@ export const markAllAsRead = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/notifications/:id
-export const deleteNotification = async (req: Request, res: Response) => {
+export const deleteNotification = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    await NotificationModel.deleteNotification(parseInt(id));
+    const authUserId = req.user?.id;
+    if (!authUserId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    await NotificationModel.deleteNotification(parseInt(id), authUserId);
     res.status(200).json({ success: true, message: 'Đã xoá thông báo' });
   } catch (error: any) {
     console.error('Error deleting notification:', error);
@@ -111,9 +125,11 @@ export const deleteNotification = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/notifications/user/:userId
-export const deleteAllNotifications = async (req: Request, res: Response) => {
+export const deleteAllNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = req.user?.id;
+    if (authUserId !== userId) return res.status(403).json({ success: false, message: 'Forbidden' });
     await NotificationModel.deleteAllNotifications(userId);
     res.status(200).json({ success: true, message: 'Đã xoá tất cả thông báo' });
   } catch (error: any) {

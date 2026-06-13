@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AuthRequest } from "../middlewares/auth.middleware";
 import { CafeModel } from "../models/cafe.model";
 import { CafeImagesModel } from "../models/cafe_images.model";
 import { CafeAmenitiesModel } from "../models/cafe_amenities.model";
@@ -177,6 +178,14 @@ export const createCafe = async (req: Request, res: Response) => {
       lat,
       lng,
     } = req.body;
+
+    const authReq = req as AuthRequest;
+    if (authReq.user?.id !== owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: "この操作を行う権限がありません",
+      });
+    }
 
     // Validate required fields
     if (!cafeName?.trim() || !ward?.trim() || !street?.trim() || !owner_id) {
@@ -357,6 +366,14 @@ export const updateCafe = async (req: Request, res: Response) => {
     const updatedAddress = street && ward ? `${street}, ${ward}` : address;
     const updatedName = cafeName || name;
 
+    const authReq = req as AuthRequest;
+    if (authReq.user?.id !== owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: "この操作を行う権限がありません",
+      });
+    }
+
     // Kiểm tra owner
     const isOwner = await CafeModel.isOwner(id, owner_id);
     if (!isOwner) {
@@ -470,6 +487,14 @@ export const deleteCafe = async (req: Request, res: Response) => {
     const { owner_id } = req.body;
 
     // Kiểm tra owner
+    const authReq = req as AuthRequest;
+    if (authReq.user?.id !== owner_id) {
+      return res.status(403).json({
+        success: false,
+        message: "この操作を行う権限がありません",
+      });
+    }
+
     const isOwner = await CafeModel.isOwner(id, owner_id);
     if (!isOwner) {
       return res.status(403).json({

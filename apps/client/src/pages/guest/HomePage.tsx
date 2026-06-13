@@ -431,7 +431,7 @@ const HomePage: FC = () => {
                 lat: Number(cafe.lat || 0),
                 lng: Number(cafe.lng || 0),
               },
-              rating: cafe.avg_rating || 0,
+              rating: cafe.review_count === 0 ? 0 : (cafe.avg_rating || 0),
               reviewCount: cafe.review_count || 0,
               isOpenNow: true,
               tags: cafe.custom_tags || [],
@@ -599,7 +599,7 @@ const HomePage: FC = () => {
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-500 text-lg">★</span>
                     <span className="text-sm font-bold text-[#3d2c20]">
-                      {selectedCafe.rating?.toFixed(1) || "0.0"}
+                      {selectedCafe.reviewCount === 0 ? "0.0" : (selectedCafe.rating?.toFixed(1) || "0.0")}
                     </span>
                     <span className="text-xs text-gray-400 font-medium">
                       ({selectedCafe.reviewCount || 0})
@@ -621,10 +621,10 @@ const HomePage: FC = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2.5 mt-2">
+                <div className="cafe-detail-actions mt-2">
                   <Link
                     to={`/booking?cafeId=${selectedCafe.id}`}
-                    className="flex-1 bg-gradient-to-r from-[#3d2f1e] to-[#1a1208] text-white text-xs font-bold text-center py-3 rounded-xl hover:from-[#c8843a] hover:to-[#a0522d] transition-all shadow-sm flex items-center justify-center gap-1.5 border-0 cursor-pointer decoration-none"
+                    className="cafe-detail-btn cafe-detail-btn--primary"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -643,7 +643,7 @@ const HomePage: FC = () => {
                   </Link>
                   <Link
                     to={`/reviews?cafeId=${selectedCafe.id}`}
-                    className="flex-1 bg-white text-[#3d2f1e] border border-[#d6cfc7] text-xs font-bold py-3 rounded-xl hover:bg-[#faf8f6] hover:border-[#614734] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-decoration-none"
+                    className="cafe-detail-btn cafe-detail-btn--secondary"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -973,36 +973,24 @@ const HomePage: FC = () => {
                                     {cafe.name}
                                   </h3>
                                   <div className="flex items-center gap-2 mt-1 text-xs">
-                                    <StarRating value={cafe.rating} />
+                                    <StarRating value={cafe.reviewCount === 0 ? 0 : cafe.rating} />
                                     <span className="text-gray-400">
                                       ({cafe.reviewCount})
                                     </span>
                                   </div>
                                 </div>
 
-                                <div className="space-y-1 mt-2 text-xs text-gray-500">
-                                  {cafe.tags?.includes("高速Wi-Fi") && (
-                                    <div className="flex items-center gap-1.5 truncate">
-                                      <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        width="12"
-                                        height="12"
-                                        className="text-[#614734]"
-                                      >
-                                        <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                                        <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                                        <circle
-                                          cx="12"
-                                          cy="20"
-                                          r="1"
-                                          fill="currentColor"
-                                        />
-                                      </svg>
-                                      <span className="truncate">高速Wi-Fi</span>
+                                <div className="space-y-1.5 mt-2 text-xs text-gray-500">
+                                  {cafe.tags && cafe.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {cafe.tags.map((tag: string, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#f5ede2] text-[#8c6b4a] border border-[#ebdcc7]"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1.5 truncate">
@@ -1096,7 +1084,7 @@ const HomePage: FC = () => {
                             {cafe.isOpenNow ? "営業中" : "閉店中"}
                           </span>
                         </div>
-                        <StarRating value={cafe.rating} />
+                        <StarRating value={cafe.reviewCount === 0 ? 0 : cafe.rating} />
                         {cafe.tags?.includes("高速Wi-Fi") && (
                           <div className="popup-row">
                             <svg

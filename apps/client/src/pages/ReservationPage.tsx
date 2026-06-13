@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { TopNavBar } from "../components/TopNavBar";
+import toast from "react-hot-toast";
 import "./ReservationPage.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -139,6 +140,15 @@ function MapEvents({
 
 const ReservationPage: FC = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("予約するにはログインが必要です。");
+      navigate("/login");
+    }
+  }, [navigate]);
+
   const centerHanoi: [number, number] = [21.0056, 105.8433];
 
   const [formData, setFormData] = useState<ReservationForm>({
@@ -229,7 +239,7 @@ const ReservationPage: FC = () => {
             address: cafe.address,
             lat: Number(cafe.location?.lat || 0),
             lng: Number(cafe.location?.lng || 0),
-            rating: cafe.rating || 0,
+            rating: cafe.reviewCount === 0 ? 0 : (cafe.rating || 0),
             tags: cafe.tags || [],
             image: cafe.imageUrl,
             isOpenNow: cafe.isOpenNow,
@@ -289,7 +299,7 @@ const ReservationPage: FC = () => {
                   address: cafe.address,
                   lat: Number(cafe.lat || 0),
                   lng: Number(cafe.lng || 0),
-                  rating: cafe.avg_rating || 0,
+                  rating: cafe.review_count === 0 ? 0 : (cafe.avg_rating || 0),
                   tags: combinedTags,
                   image: cafe.images?.[0]?.image_url,
                   isOpenNow: checkIsOpen(cafe.open_time, cafe.close_time),

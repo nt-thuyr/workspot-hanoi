@@ -1,11 +1,14 @@
 import { Request, Response } from 'express';
 import { CafeImagesModel } from '../models/cafe_images.model';
+import { CafeModel } from '../models/cafe.model';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 // POST /api/cafes/:cafeId/images - Upload ảnh (owner)
-export const createCafeImage = async (req: Request, res: Response) => {
+export const createCafeImage = async (req: AuthRequest, res: Response) => {
   try {
     const { cafeId } = req.params as { cafeId: string };
-    const { imageUrl, imageType = 'INTERIOR', owner_id } = req.body;
+    const { imageUrl, imageType = 'INTERIOR' } = req.body;
+    const owner_id = req.user?.id;
 
     if (!imageUrl) {
       return res.status(400).json({
@@ -14,14 +17,16 @@ export const createCafeImage = async (req: Request, res: Response) => {
       });
     }
 
+    if (!owner_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
     // Kiểm tra owner
-    const { data: cafe, error: cafeError } = require('../config/supabase').supabase
-      .from('cafes')
-      .select('owner_id')
-      .eq('id', cafeId)
-      .single();
-    
-    if (cafeError || cafe?.owner_id !== owner_id) {
+    const isOwner = await CafeModel.isOwner(cafeId, owner_id);
+    if (!isOwner) {
       return res.status(403).json({
         success: false,
         message: 'このカフェに画像をアップロードする権限がありません',
@@ -55,10 +60,17 @@ export const getCafeImages = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/cafes/images/:imageId - Xóa ảnh (owner)
-export const deleteCafeImage = async (req: Request, res: Response) => {
+export const deleteCafeImage = async (req: AuthRequest, res: Response) => {
   try {
     const { imageId } = req.params as { imageId: string };
-    const { owner_id } = req.body;
+    const owner_id = req.user?.id;
+
+    if (!owner_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
 
     // Kiểm tra owner
     const isOwner = await CafeImagesModel.isOwner(parseInt(imageId), owner_id);

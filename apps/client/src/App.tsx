@@ -37,7 +37,35 @@ const router = createBrowserRouter([
 function App() {
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          style: {
+            background: "var(--color-surface, rgba(255, 255, 255, 0.9))",
+            color: "var(--color-text-main, #1a1a1a)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: "1px solid var(--color-surface-border, rgba(255, 255, 255, 0.4))",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
+            borderRadius: "16px",
+            fontFamily: "var(--font-body, 'Inter', sans-serif)",
+            fontWeight: 500,
+            padding: "16px 24px",
+          },
+          success: {
+            iconTheme: {
+              primary: "var(--color-gold, #e2a65d)",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
+        }}
+      />
       <RouterProvider router={router} />
     </>
   );

@@ -92,7 +92,10 @@ export class ReviewModel {
     
     if (reviewError) return;
 
-    if (!reviews || reviews.length === 0) return;
+    if (!reviews || reviews.length === 0) {
+      await supabase.from('cafes').update({ avg_rating: null }).eq('id', cafeId);
+      return;
+    }
 
     const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
 

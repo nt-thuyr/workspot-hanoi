@@ -56,6 +56,7 @@ router.get('/owner/:ownerId', verifyToken, getCafesByOwner);
 // POST /api/cafes - Tạo quán mới (owner) - Với file upload
 router.post(
   '/',
+  verifyToken,
   (req: Request, res: Response, next: any) => {
     upload.fields([
       { name: 'coverImage', maxCount: 1 },
@@ -79,6 +80,7 @@ router.post(
 // PUT /api/cafes/:id - Cập nhật quán (owner)
 router.put(
   '/:id',
+  verifyToken,
   (req: Request, res: Response, next: any) => {
     upload.fields([
       { name: 'coverImage', maxCount: 1 },
@@ -100,6 +102,6 @@ router.put(
 // ━━━ DELETE ━━━
 
 // DELETE /api/cafes/:id - Xóa quán (owner)
-router.delete('/:id', deleteCafe);
+router.delete('/:id', verifyToken, deleteCafe);
 
 export default router;

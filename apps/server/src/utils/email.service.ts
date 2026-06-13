@@ -7,6 +7,16 @@ interface EmailParams {
   status: 'CONFIRMED' | 'CANCELLED';
 }
 
+interface OwnerEmailParams {
+  to: string;
+  ownerName: string;
+  guestName: string;
+  cafeName: string;
+  date: string;
+  time: string;
+  guests: number;
+}
+
 export const sendReservationStatusEmail = async ({
   to,
   guestName,
@@ -113,8 +123,8 @@ export const sendReservationStatusEmail = async ({
       },
       body: JSON.stringify({
         sender: {
-          name: process.env.BREVO_SENDER_NAME || 'WorkSpot Hanoi',
-          email: process.env.SMTP_USER || 'workspothanoi@gmail.com',
+          name: process.env.BREVO_SENDER_NAME || 'WorkSpotHanoi',
+          email: process.env.BREVO_USER || process.env.SMTP_USER || 'hoangvanbinh14122005@gmail.com',
         },
         to: [
           {
@@ -139,4 +149,130 @@ export const sendReservationStatusEmail = async ({
     // Don't throw to avoid breaking the reservation flow just because email failed
   }
 };
+
+export const sendNewReservationEmailToOwner = async ({
+  to,
+  ownerName,
+  guestName,
+  cafeName,
+  date,
+  time,
+  guests,
+}: OwnerEmailParams): Promise<void> => {
+  const subject = `【WorkSpot Hanoi】${cafeName}に新しい予約リクエストが届きました`;
+  const accentColor = '#f59e0b'; // Amber color for new requests
+
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 10px; background: #ffffff;">
+      
+      <!-- Header -->
+      <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid ${accentColor};">
+        <h1 style="font-size: 22px; color: ${accentColor}; margin: 0;">
+          WorkSpot HaNoi
+        </h1>
+        <p style="color: #555; margin: 6px 0 0 0; font-size: 14px;">新規予約通知</p>
+      </div>
+
+      <!-- Greeting -->
+      <div style="padding: 20px 0 10px;">
+        <p style="font-size: 15px; color: #222;"><strong>${ownerName}</strong> 様,</p>
+        <p style="color: #444; line-height: 1.6;">
+          WorkSpot Hanoiパートナーとしてご利用いただきありがとうございます。<br/>
+          お客様より新しい予約リクエストが届きました。
+        </p>
+      </div>
+
+      <!-- Status Banner -->
+      <div style="background-color: #fffbeb; border-left: 4px solid ${accentColor}; padding: 14px 18px; border-radius: 6px; margin: 10px 0 20px;">
+        <p style="margin: 0; font-size: 16px; font-weight: bold; color: #b45309;">
+          新しい予約リクエスト 🔔
+        </p>
+      </div>
+
+      <!-- Reservation Details -->
+      <div style="background-color: #f9f9f9; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 8px;">
+          予約詳細
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 7px 0; font-weight: 600; color: #555; width: 40%;">🏠 店舗名:</td>
+            <td style="padding: 7px 0; color: #111;">${cafeName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 7px 0; font-weight: 600; color: #555;">👤 氏名:</td>
+            <td style="padding: 7px 0; color: #111;">${guestName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 7px 0; font-weight: 600; color: #555;">👥 人数:</td>
+            <td style="padding: 7px 0; color: #111;">${guests}名</td>
+          </tr>
+          <tr>
+            <td style="padding: 7px 0; font-weight: 600; color: #555;">📅 日付:</td>
+            <td style="padding: 7px 0; color: #111;">${date}</td>
+          </tr>
+          <tr>
+            <td style="padding: 7px 0; font-weight: 600; color: #555;">🕐 時間:</td>
+            <td style="padding: 7px 0; color: #111;">${time}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <p style="color: #444; font-size: 14px;">
+          管理ダッシュボードにログインして、予約を承認または却下してください。
+        </p>
+        <a href="http://localhost:5173/dashboard" style="display: inline-block; padding: 10px 20px; background-color: ${accentColor}; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;">ダッシュボードを開く</a>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top: 1px solid #e0e0e0; padding-top: 16px; text-align: center; color: #999; font-size: 12px;">
+        <p style="margin: 0;">WorkSpot HaNoi</p>
+        <p style="margin: 4px 0 0;">このメールは自動送信です。返信は受け付けておりません。</p>
+      </div>
+    </div>
+  `;
+
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('[Email] BREVO_API_KEY is not set. Skipping email send.');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: process.env.BREVO_SENDER_NAME || 'WorkSpotHanoi',
+          email: process.env.BREVO_USER || process.env.SMTP_USER || 'hoangvanbinh14122005@gmail.com',
+        },
+        to: [
+          {
+            email: to,
+            name: ownerName,
+          },
+        ],
+        subject: subject,
+        htmlContent: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Email] Failed to send email via Brevo:', response.status, errorData);
+      throw new Error(`Failed to send email via Brevo: ${response.status}`);
+    }
+
+    console.log(`[Email] Sent new reservation email to owner: ${to}`);
+  } catch (error) {
+    console.error('[Email] Error sending email:', error);
+  }
+};
+
 

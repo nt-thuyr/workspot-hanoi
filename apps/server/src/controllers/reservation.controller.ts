@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { CafeModel } from '../models/cafe.model';
 import { NotificationModel } from '../models/notification.model';
 import { ReservationModel } from '../models/reservation.model';
-import { sendReservationStatusEmail } from '../utils/email.service';
-
+import { sendReservationStatusEmail, sendNewReservationEmailToOwner } from '../utils/email.service';
+import { supabase } from '../config/supabase';
 const parseTimeToMinutes = (time: string) => {
   const [hoursStr = '', minutesStr = ''] = String(time).split(':');
   const hours = parseInt(hoursStr, 10);
@@ -131,9 +131,28 @@ export const createReservation = async (req: Request, res: Response) => {
           title: `${guestName}が予約を申請しました`,
           content: `${cafe.name || 'カフェ名未設定'}・${res_date}・${res_time}・${guests}名`,
         });
+
+        // Send Email to Owner
+        const { data: ownerAuthUser, error: authError } = await supabase.auth.admin.getUserById(cafe.owner_id);
+        const ownerEmail = ownerAuthUser?.user?.email;
+
+        if (ownerEmail && !authError) {
+          const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', cafe.owner_id).single();
+          const ownerName = profile?.full_name || 'オーナー';
+
+          await sendNewReservationEmailToOwner({
+            to: ownerEmail,
+            ownerName,
+            guestName,
+            cafeName: cafe.name || 'カフェ名未設定',
+            date: res_date,
+            time: res_time,
+            guests
+          });
+        }
       }
     } catch (notificationError) {
-      console.error('Failed to create reservation notification:', notificationError);
+      console.error('Failed to create reservation notification or email:', notificationError);
     }
 
     res.status(201).json({ success: true, data: reservation });
@@ -147,6 +166,15 @@ export const createReservation = async (req: Request, res: Response) => {
 export const getUserReservations = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params as { userId: string };
+    const authUserId = (req as any).user?.id;
+
+    if (authUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: '他のユーザーの予約履歴を閲覧する権限がありません',
+      });
+    }
+
     const page = parseInt(req.query.page as string) || 1;
     const limitRaw = parseInt(req.query.limit as string);
     const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
@@ -233,9 +261,7 @@ export const getHistory = async (req: Request, res: Response) => {
 export const getCafeReservations = async (req: Request, res: Response) => {
   try {
     const { cafeId } = req.params as { cafeId: string };
-    const ownerIdFromToken = (req as any).user?.id as string | undefined;
-    const ownerIdFromQuery = req.query.owner_id as string | undefined;
-    const ownerId = ownerIdFromToken || ownerIdFromQuery;
+    const ownerId = (req as any).user?.id as string | undefined;
     const page = parseInt(req.query.page as string) || 1;
     const limitRaw = parseInt(req.query.limit as string);
     const limit = Number.isNaN(limitRaw) ? 10 : limitRaw;
@@ -278,9 +304,8 @@ export const getCafeReservations = async (req: Request, res: Response) => {
 export const updateReservationStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const { status, owner_id } = req.body;
-    const ownerIdFromToken = (req as any).user?.id as string | undefined;
-    const ownerId = ownerIdFromToken || owner_id;
+    const { status } = req.body;
+    const ownerId = (req as any).user?.id as string | undefined;
 
     if (!status || !['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({

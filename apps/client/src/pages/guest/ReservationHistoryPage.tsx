@@ -287,6 +287,40 @@ function formatDate(dateStr: string): string {
   }
 }
 
+// Hàm parse ngày và giờ thành đối tượng Date (vẫn giữ lại cho badges nếu cần)
+function parseReservationDateTime(dateStr: string, timeStr: string): Date {
+  try {
+    const normalizedDate = dateStr.replace(/\//g, "-"); // YYYY-MM-DD
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+      let hour = parseInt(match[1] || "0", 10);
+      const min = parseInt(match[2] || "0", 10);
+      const ampm = (match[3] || "").toUpperCase();
+      if (ampm === "PM" && hour < 12) hour += 12;
+      if (ampm === "AM" && hour === 12) hour = 0;
+
+      const [year = 0, month = 1, day = 1] = normalizedDate
+        .split("-")
+        .map(Number);
+      return new Date(year, month - 1, day, hour, min);
+    }
+
+    const hhmmMatch = timeStr.match(/^(\d{1,2}):(\d{2})/);
+    if (hhmmMatch) {
+      const hour = parseInt(hhmmMatch[1] || "0", 10);
+      const min = parseInt(hhmmMatch[2] || "0", 10);
+      const [year = 0, month = 1, day = 1] = normalizedDate
+        .split("-")
+        .map(Number);
+      return new Date(year, month - 1, day, hour, min);
+    }
+
+    return new Date(normalizedDate);
+  } catch {
+    return new Date(dateStr);
+  }
+}
+
 const ReservationHistoryPage: FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -298,6 +332,13 @@ const ReservationHistoryPage: FC = () => {
 
   // Kiểm tra trạng thái đăng nhập
   const isLoggedIn = !!localStorage.getItem("access_token");
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      toast.error("ログインが必要です。");
+      navigate("/login");
+    }
+  }, [isLoggedIn, navigate]);
 
   // Gọi API lấy danh sách lịch sử đặt chỗ
   const fetchReservationHistory = async () => {
@@ -371,50 +412,15 @@ const ReservationHistoryPage: FC = () => {
   );
   const reservedSorted = [...reservedFiltered].sort((a, b) => {
     if (sortKey === "name") return a.cafeName.localeCompare(b.cafeName);
-    if (sortKey === "date_asc")
-      return (
-        new Date(a.reservationDate).getTime() -
-        new Date(b.reservationDate).getTime()
-      );
-    return (
-      new Date(b.reservationDate).getTime() -
-      new Date(a.reservationDate).getTime()
-    );
-  });
-
-  // Hàm parse ngày và giờ thành đối tượng Date (vẫn giữ lại cho badges nếu cần)
-  const parseReservationDateTime = (dateStr: string, timeStr: string): Date => {
-    try {
-      const normalizedDate = dateStr.replace(/\//g, "-"); // YYYY-MM-DD
-      const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (match) {
-        let hour = parseInt(match[1] || "0", 10);
-        const min = parseInt(match[2] || "0", 10);
-        const ampm = (match[3] || "").toUpperCase();
-        if (ampm === "PM" && hour < 12) hour += 12;
-        if (ampm === "AM" && hour === 12) hour = 0;
-
-        const [year = 0, month = 1, day = 1] = normalizedDate
-          .split("-")
-          .map(Number);
-        return new Date(year, month - 1, day, hour, min);
-      }
-
-      const hhmmMatch = timeStr.match(/^(\d{1,2}):(\d{2})/);
-      if (hhmmMatch) {
-        const hour = parseInt(hhmmMatch[1] || "0", 10);
-        const min = parseInt(hhmmMatch[2] || "0", 10);
-        const [year = 0, month = 1, day = 1] = normalizedDate
-          .split("-")
-          .map(Number);
-        return new Date(year, month - 1, day, hour, min);
-      }
-
-      return new Date(normalizedDate);
-    } catch {
-      return new Date(dateStr);
+    
+    const timeA = parseReservationDateTime(a.reservationDate, a.timeSlot).getTime();
+    const timeB = parseReservationDateTime(b.reservationDate, b.timeSlot).getTime();
+    
+    if (sortKey === "date_asc") {
+      return timeA - timeB;
     }
-  };
+    return timeB - timeA;
+  });
 
   // Badge phê duyệt (số 20 = 拒否済み / 23 = 承認済み / 25 = 未承認 / キャンセル済み)
   const renderApprovalBadge = (item: ReservationInfo) => {

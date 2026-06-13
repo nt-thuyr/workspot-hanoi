@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, type FC } from "react";
+import { useNavigate } from "react-router-dom";
 import "./NotificationDropdown.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -135,6 +136,7 @@ export const NotificationDropdown: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const token = localStorage.getItem("access_token");
 
@@ -202,6 +204,12 @@ export const NotificationDropdown: FC = () => {
   // Đánh dấu một thông báo cụ thể là đã đọc
   const markAsRead = async (id: string, isRead: boolean) => {
     if (isRead || !token) return;
+
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (String(n.id) === id ? { ...n, is_read: true } : n)),
+    );
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/notifications/${id}/read`,
@@ -211,14 +219,33 @@ export const NotificationDropdown: FC = () => {
         },
       );
       const result = await response.json();
-      if (result.success) {
-        setNotifications((prev) =>
-          prev.map((n) => (String(n.id) === id ? { ...n, is_read: true } : n)),
-        );
+      if (!result.success) {
+        // Revert on failure (optional)
+        console.error("Failed to mark as read");
       }
     } catch (error) {
       console.error("通知ステータスを更新できません:", error);
     }
+  };
+
+  const handleNotificationClick = (item: NotificationItem) => {
+    if (!item.is_read) {
+      markAsRead(String(item.id), item.is_read);
+    }
+
+    const userRole = localStorage.getItem("user_role");
+    const isOwner = userRole === "cafe_owner";
+    const kind = inferNotificationKind(item);
+
+    if (kind === "review") {
+      navigate(isOwner ? "/dashboard" : "/my-reviews");
+    } else if (kind === "reservation") {
+      navigate(isOwner ? "/cafes" : "/history");
+    } else {
+      navigate(isOwner ? "/dashboard" : "/");
+    }
+
+    setIsOpen(false);
   };
 
   const renderNotificationCard = (item: NotificationItem) => {
@@ -373,7 +400,7 @@ export const NotificationDropdown: FC = () => {
                   key={item.id}
                   type="button"
                   className="noti-item-button"
-                  onClick={() => markAsRead(String(item.id), item.is_read)}
+                  onClick={() => handleNotificationClick(item)}
                 >
                   {renderNotificationCard(item)}
                 </button>

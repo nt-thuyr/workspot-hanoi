@@ -26,8 +26,8 @@ export const updateProfile = async (req: Request, res: Response) => {
     const { full_name, avatar_url } = req.body;
 
     // Kiểm tra quyền - chỉ có thể sửa profile của mình
-    const authUserId = (req as any).user?.id; // Giả sử middleware auth set req.user
-    if (authUserId && authUserId !== userId) {
+    const authUserId = (req as any).user?.id;
+    if (authUserId !== userId) {
       return res.status(403).json({
         success: false,
         message: 'このプロフィールを編集する権限がありません',

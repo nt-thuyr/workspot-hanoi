@@ -20,11 +20,11 @@ router.get('/', verifyToken, getMyNotifications);
 router.put('/:id/read', verifyToken, markMyNotificationAsRead);
 
 // ── UserId-based routes (legacy / admin) ─────────────────────────────────
-router.get('/user/:userId', getUserNotifications);
-router.get('/user/:userId/unread-count', getUnreadCount);
-router.put('/:id/mark-as-read', markAsRead);
-router.put('/user/:userId/mark-all-as-read', markAllAsRead);
-router.delete('/:id', deleteNotification);
-router.delete('/user/:userId', deleteAllNotifications);
+router.get('/user/:userId', verifyToken, getUserNotifications);
+router.get('/user/:userId/unread-count', verifyToken, getUnreadCount);
+router.put('/:id/mark-as-read', verifyToken, markAsRead);
+router.put('/user/:userId/mark-all-as-read', verifyToken, markAllAsRead);
+router.delete('/:id', verifyToken, deleteNotification);
+router.delete('/user/:userId', verifyToken, deleteAllNotifications);
 
 export default router;
